@@ -29,8 +29,9 @@ describe("ExecutionRecord on session", () => {
       workspaceSource: "demo",
     });
     expect(session.records).toEqual([]);
-    const { records: _r, ...legacy } = session;
-    expect(normalizeSession(legacy as SessionRecord).records).toEqual([]);
+    const legacy = { ...session } as SessionRecord;
+    delete (legacy as { records?: SessionRecord["records"] }).records;
+    expect(normalizeSession(legacy).records).toEqual([]);
   });
 });
 

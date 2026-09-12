@@ -36,8 +36,9 @@ describe("session.reviewPastePrompt", () => {
     });
     expect(session.reviewPastePrompt).toBeNull();
 
-    const { reviewPastePrompt: _dropped, ...legacy } = session;
-    const restored = normalizeSession(legacy as SessionRecord);
+    const legacy = { ...session } as SessionRecord;
+    delete (legacy as { reviewPastePrompt?: SessionRecord["reviewPastePrompt"] }).reviewPastePrompt;
+    const restored = normalizeSession(legacy);
     expect(restored.reviewPastePrompt).toBeNull();
   });
 });
