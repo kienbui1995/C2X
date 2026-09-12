@@ -7,6 +7,7 @@ export * from "@/core/protocol";
 export * from "@/core/records";
 export * from "@/core/review-import";
 export * from "@/core/git-meta";
+export * from "@/core/harness";
 export * from "@/core/providers/catalog";
 export * from "@/core/providers/router";
 export * from "@/core/savings";
