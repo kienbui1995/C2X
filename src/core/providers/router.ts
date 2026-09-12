@@ -58,6 +58,7 @@ function executeDecision(harness: HarnessId): RouteDecision {
     case "claude-code":
     case "grok-build":
     case "opencode":
+    case "kiro-cli":
       return {
         role: "execute",
         provider: harness,

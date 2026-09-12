@@ -22,7 +22,13 @@ export const WEB_SUBSCRIPTION_PLANNERS = [
 ] as const;
 export type WebSubscriptionPlanner = (typeof WEB_SUBSCRIPTION_PLANNERS)[number];
 
-export const HARNESS_IDS = ["codex", "claude-code", "grok-build", "opencode"] as const;
+export const HARNESS_IDS = [
+  "codex",
+  "claude-code",
+  "grok-build",
+  "opencode",
+  "kiro-cli",
+] as const;
 export type HarnessId = (typeof HARNESS_IDS)[number];
 
 /** Default collaboration team. Any non-empty subset of `HARNESS_IDS` is valid. */

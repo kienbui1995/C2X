@@ -16,7 +16,7 @@ export const copy = {
     harness: "Harness chạy",
     harnessTeam: "Đội harness",
     harnessTeamLead:
-      "Chọn Codex, Claude Code, Grok Build, OpenCode — một cái hoặc vài cái cùng phiên. Planner chat web chia PLAN thành packet khi chọn nhiều hơn một; mỗi tool chỉ thấy brief của mình.",
+      "Bật một hoặc nhiều harness trong cùng phiên (mặc định Codex + Claude Code; có thể thêm Grok Build, OpenCode, Kiro CLI). Planner chat web chia PLAN thành packet; mỗi tool chỉ thấy brief của mình — gộp hạn mức khan, không đốt một tool cho tất cả.",
     budget: "Ngân sách token",
     workspace: "Workspace",
     demoWorkspace: "App demo Nhiệm vụ",
@@ -31,7 +31,7 @@ export const copy = {
     webTurns: "Lượt chat web",
     emptyTitle: "Chưa có phiên",
     emptyBody:
-      "Một hạn mức Codex, Claude Code, Grok Build hay OpenCode là ít — đừng bắt một tool nghĩ + chạy + review. Chọn bất kỳ tập hợp nào: ChatGPT / Claude / Gemini web (quota chat lớn) lập kế hoạch và chia packet; mỗi harness khan chỉ nhận brief của mình để chạy.",
+      "Hạn mức Codex, Claude Code, Grok Build, OpenCode hay Kiro CLI là ít — đừng bắt một tool nghĩ + chạy + review. Gộp chúng thành đội: ChatGPT / Claude / Gemini web (quota chat lớn) lập kế hoạch và chia packet; mỗi harness khan chỉ nhận brief của mình để chạy.",
     packTitle: "Context đã nén",
     omitted: "Bỏ qua",
     secrets: "File nhạy cảm bị chặn",
@@ -105,7 +105,7 @@ export const copy = {
     harness: "Execution harness",
     harnessTeam: "Harness team",
     harnessTeamLead:
-      "Pick Codex, Claude Code, Grok Build, OpenCode — any one or several in the same session. The web-chat planner splits the PLAN into packets when more than one is selected; each tool only sees its own brief.",
+      "Enable one or more harnesses in the same session (default Codex + Claude Code; optionally Grok Build, OpenCode, Kiro CLI). The web-chat planner splits the PLAN into packets; each tool only sees its own brief — combine scarce quotas instead of burning one tool for everything.",
     budget: "Token budget",
     workspace: "Workspace",
     demoWorkspace: "Nhiệm vụ demo app",
@@ -120,7 +120,7 @@ export const copy = {
     webTurns: "Web-chat turns",
     emptyTitle: "No session yet",
     emptyBody:
-      "One Codex, Claude Code, Grok Build, or OpenCode quota is scarce — do not make one tool think, run, and review. Pick any subset: ChatGPT / Claude / Gemini web (large chat quota) plans and splits packets; each scarce harness only gets its own execute brief.",
+      "Codex, Claude Code, Grok Build, OpenCode, or Kiro CLI quota is scarce — do not make one tool think, run, and review. Combine them as a team: ChatGPT / Claude / Gemini web (large chat quota) plans and splits packets; each scarce harness only gets its own execute brief.",
     packTitle: "Packed context",
     omitted: "Omitted",
     secrets: "Sensitive files blocked",

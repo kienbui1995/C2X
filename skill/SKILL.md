@@ -1,6 +1,6 @@
 ---
 name: frugal-codex
-description: Use Frugal Codex (C2X) so ChatGPT/Claude/Gemini web chats plan and review, and a selectable harness team (Codex, Claude Code, Grok Build, OpenCode) only executes per-harness briefs.
+description: Use Frugal Codex (C2X) so ChatGPT/Claude/Gemini web chats plan and review, and a selectable harness team (Codex, Claude Code, Grok Build, OpenCode, Kiro CLI) only executes per-harness briefs.
 ---
 
 # Frugal Codex
@@ -10,14 +10,14 @@ The checkout lives at: replace-with-absolute-path
 ## When to use
 
 Any implementation, review, or debugging task where a single harness quota
-(Codex, Claude Code, Grok Build, or OpenCode) would otherwise be burned on
-planning — or on doing the entire job. Combine scarce harness quotas: web
-chats think, the planner splits packets, each selected harness executes only
-its brief.
+(Codex, Claude Code, Grok Build, OpenCode, or Kiro CLI) would otherwise be
+burned on planning — or on doing the entire job. Combine scarce harness
+quotas: web chats think, the planner splits packets, each selected harness
+executes only its brief.
 
 ## Rules
 
-1. Codex, Claude Code, Grok Build, and OpenCode do not plan or review. They only execute their packet.
+1. Codex, Claude Code, Grok Build, OpenCode, and Kiro CLI do not plan or review. They only execute their packet.
 2. Prefer an enabled web/subscription planner (`chatgpt-web`, `claude-web`,
    `gemini-web`) before any paid API. `auto` already does this.
 3. Never paste file bodies, diffs, or logs into the planner chat. Use the packed
@@ -39,15 +39,16 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 
 ```bash
 npx tsx src/cli/c2x.ts plan --goal "…" --planner auto
-npx tsx src/cli/c2x.ts plan --goal "…" --planner mock --team codex,claude-code,grok-build,opencode
+npx tsx src/cli/c2x.ts plan --goal "…" --planner mock --team codex,claude-code,grok-build,opencode,kiro-cli
 npx tsx src/cli/c2x.ts plan --goal "…" --planner claude-web --harness claude-code
+npx tsx src/cli/c2x.ts plan --goal "…" --planner mock --harness kiro-cli
 npx tsx src/cli/c2x.ts pack --goal "…"
 npx tsx src/cli/c2x.ts estimate --goal "…"
-npx tsx src/cli/c2x.ts route --choice auto --team grok-build,opencode
+npx tsx src/cli/c2x.ts route --choice auto --team grok-build,opencode,kiro-cli
 ```
 
 Default team is Codex + Claude Code. `--harness` keeps a single-harness session.
-`--team` accepts any subset of `codex,claude-code,grok-build,opencode`.
+`--team` accepts any subset of `codex,claude-code,grok-build,opencode,kiro-cli`.
 Copy the printed brief for **this** harness only (`OWNER` must match). Then:
 
 ```bash

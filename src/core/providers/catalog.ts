@@ -240,6 +240,15 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
   },
+  {
+    id: "kiro-cli",
+    name: "Kiro CLI",
+    nameVi: "Kiro CLI",
+    blurb: "Kiro CLI — execution harness. AWS Kiro coding CLI. Same execute-only role as Codex: edit, shell, test, git. Never plan or review.",
+    blurbVi: "Kiro CLI — harness thực thi. CLI coding AWS Kiro. Cùng vai trò chỉ chạy như Codex: sửa file, shell, test, git. Không lập kế hoạch hay review.",
+    quotaVi: "Hạn mức harness khan hiếm",
+    quotaEn: "Scarce harness quota",
+  },
 ];
 
 export function getProvider(id: ProviderId): ProviderCatalogEntry {
@@ -272,7 +281,8 @@ export function getHarness(id: HarnessId): HarnessCatalogEntry {
     case "codex":
     case "claude-code":
     case "grok-build":
-    case "opencode": {
+    case "opencode":
+    case "kiro-cli": {
       const found = HARNESS_CATALOG.find((entry) => entry.id === id);
       if (!found) {
         throw new Error(`Missing harness catalog entry: ${id}`);

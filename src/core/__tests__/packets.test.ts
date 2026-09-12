@@ -19,6 +19,7 @@ import {
 } from "@/core/types";
 
 const FOUR_TEAM: HarnessId[] = ["codex", "claude-code", "grok-build", "opencode"];
+const ALL_HARNESSES: HarnessId[] = [...FOUR_TEAM, "kiro-cli"];
 
 const DEMO_GOAL =
   "Sửa createTask để việc mới thật sự được lưu, giữ bộ lọc status trên URL khi reload, và thêm test cho empty state.";
@@ -98,9 +99,9 @@ describe("splitWorkPackets", () => {
 });
 
 describe("harness catalog", () => {
-  it("lists four first-class execution harnesses with blurbs", () => {
-    expect(HARNESS_IDS).toEqual(FOUR_TEAM);
-    expect(HARNESS_CATALOG.map((entry) => entry.id)).toEqual(FOUR_TEAM);
+  it("lists five first-class execution harnesses including kiro-cli", () => {
+    expect(HARNESS_IDS).toEqual(ALL_HARNESSES);
+    expect(HARNESS_CATALOG.map((entry) => entry.id)).toEqual(ALL_HARNESSES);
     for (const id of HARNESS_IDS) {
       const entry = getHarness(id);
       expect(entry.id).toBe(id);
@@ -109,6 +110,10 @@ describe("harness catalog", () => {
       expect(entry.quotaEn.length).toBeGreaterThan(0);
       expect(entry.quotaVi.length).toBeGreaterThan(0);
     }
+    const kiro = getHarness("kiro-cli");
+    expect(kiro.name).toBe("Kiro CLI");
+    expect(kiro.blurbVi).toMatch(/Kiro CLI — harness thực thi/);
+    expect(kiro.blurb).toMatch(/Kiro CLI — execution harness/i);
   });
 
   it("lets the user add or drop any harness while keeping at least one", () => {
@@ -120,6 +125,8 @@ describe("harness catalog", () => {
       "opencode",
     ]);
     expect(toggleHarnessInTeam(["opencode"], "grok-build")).toEqual(["grok-build", "opencode"]);
+    expect(toggleHarnessInTeam(["codex"], "kiro-cli")).toEqual(["codex", "kiro-cli"]);
+    expect(toggleHarnessInTeam(ALL_HARNESSES, "kiro-cli")).toEqual(FOUR_TEAM);
   });
 });
 
@@ -141,10 +148,35 @@ describe("mockPlanFromPack", () => {
     expect(plan.packets[0]?.owner).toBe("claude-code");
   });
 
+  it("emits a kiro-cli packet when that harness is selected alone", () => {
+    const plan = mockPlanFromPack(packedDemo(), "c2x_kiro", ["kiro-cli"]);
+    expect(plan.packets).toHaveLength(1);
+    expect(plan.packets[0]?.owner).toBe("kiro-cli");
+    expect(plan.packets[0]?.files.length).toBeGreaterThan(0);
+    expect(planToBriefs(plan).map((brief) => brief.owner)).toEqual(["kiro-cli"]);
+  });
+
+  it("emits a kiro-cli packet when it is combined with other harnesses", () => {
+    const plan = mockPlanFromPack(packedDemo(), "c2x_kiro_mix", ["codex", "kiro-cli"]);
+    expect(plan.packets.map((packet) => packet.owner)).toEqual(["codex", "kiro-cli"]);
+    expect(plan.packets.every((packet) => packet.files.length > 0 || plan.packets.length === 2)).toBe(
+      true,
+    );
+    const owned = plan.packets.flatMap((packet) => packet.files);
+    expect(new Set(owned).size).toBe(owned.length);
+  });
+
   it("plans a 4-harness team without collapsing to one brief", () => {
     const plan = mockPlanFromPack(packedDemo(), "c2x_quad", FOUR_TEAM);
     expect(plan.packets).toHaveLength(4);
     expect(planToBriefs(plan).map((brief) => brief.owner)).toEqual(FOUR_TEAM);
+  });
+
+  it("plans a 5-harness team including kiro-cli", () => {
+    const plan = mockPlanFromPack(packedDemo(), "c2x_five", ALL_HARNESSES);
+    expect(plan.packets).toHaveLength(5);
+    expect(planToBriefs(plan).map((brief) => brief.owner)).toEqual(ALL_HARNESSES);
+    expect(plan.packets.some((packet) => packet.owner === "kiro-cli")).toBe(true);
   });
 });
 
@@ -208,22 +240,23 @@ describe("routeRole and routeExecuteTeam", () => {
         expect(decision.provider).not.toBe("claude-code");
         expect(decision.provider).not.toBe("grok-build");
         expect(decision.provider).not.toBe("opencode");
+        expect(decision.provider).not.toBe("kiro-cli");
       }
     }
   });
 
-  it("never routes plan or review to Grok Build or OpenCode", () => {
-    for (const harness of FOUR_TEAM) {
+  it("never routes plan or review to any execution harness including kiro-cli", () => {
+    for (const harness of ALL_HARNESSES) {
       for (const role of ["plan", "review"] as const) {
         const decision = routeRole({
           role,
           choice: "auto",
           harness,
-          harnessTeam: FOUR_TEAM,
+          harnessTeam: ALL_HARNESSES,
           config,
           hasKey: () => true,
         });
-        expect(FOUR_TEAM).not.toContain(decision.provider);
+        expect(ALL_HARNESSES).not.toContain(decision.provider);
       }
     }
   });
@@ -236,6 +269,10 @@ describe("routeRole and routeExecuteTeam", () => {
     const four = routeExecuteTeam(FOUR_TEAM);
     expect(four.map((item) => item.provider)).toEqual(FOUR_TEAM);
     expect(four.every((item) => item.role === "execute")).toBe(true);
+
+    const five = routeExecuteTeam(ALL_HARNESSES);
+    expect(five.map((item) => item.provider)).toEqual(ALL_HARNESSES);
+    expect(five.every((item) => item.role === "execute")).toBe(true);
   });
 });
 

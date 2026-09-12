@@ -3,8 +3,8 @@
 Inspired by [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt):
 thinking stays off the execution harness. C2X adds a token packer, a provider
 router, a **harness team** that shares one PLAN, and a **quota-split** model so
-scarce Codex / Claude Code / Grok Build / OpenCode allowances are not burned on
-plan/review — or on doing the entire job in one tool.
+scarce Codex / Claude Code / Grok Build / OpenCode / Kiro CLI allowances are
+not burned on plan/review — or on doing the entire job in one tool.
 
 The constraint: a single harness quota runs out; ChatGPT web, Gemini web, and
 Claude web already include large chat allowances on subscriptions (or free
@@ -20,7 +20,8 @@ tiers) the user already pays for.
            ├─► brief OWNER=codex        ──► Codex (its files only)
            ├─► brief OWNER=claude-code  ──► Claude Code (its files only)
            ├─► brief OWNER=grok-build   ──► Grok Build (execute only)
-           └─► brief OWNER=opencode     ──► OpenCode (execute only)
+           ├─► brief OWNER=opencode     ──► OpenCode (execute only)
+           └─► brief OWNER=kiro-cli     ──► Kiro CLI (execute only)
            │
            ▼
      EXECUTING per harness ──► EXECUTED merge metadata
@@ -29,8 +30,9 @@ tiers) the user already pays for.
      same web planner reviews
 ```
 
-The roster is `HARNESS_IDS`: `codex`, `claude-code`, `grok-build`, `opencode`.
-Default team is still Codex + Claude Code; the others are opt-in teammates.
+The roster is `HARNESS_IDS`: `codex`, `claude-code`, `grok-build`, `opencode`,
+`kiro-cli`. Default team is still Codex + Claude Code; the others are opt-in
+teammates.
 Adding another id means catalog + exhaustive `never` switches. The wire format
 uses `owner=<harness-id>` rather than hardcoded Codex/Claude Code sections.
 
@@ -40,7 +42,7 @@ uses `owner=<harness-id>` rather than hardcoded Codex/Claude Code sections.
 | --- | --- | --- |
 | Plan | Web/subscription planners first, then local, then paid APIs | any `HarnessId` |
 | Review | Same as plan | any `HarnessId` |
-| Execute | Any subset of `codex`, `claude-code`, `grok-build`, `opencode` | planners |
+| Execute | Any subset of `codex`, `claude-code`, `grok-build`, `opencode`, `kiro-cli` | planners |
 
 Default team is Codex + Claude Code. The control room can pick any one harness
 or several together. A single-harness team is still valid.

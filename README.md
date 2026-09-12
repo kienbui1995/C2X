@@ -1,8 +1,8 @@
 # Frugal Codex (C2X)
 
 Chat web nghĩ. Nhiều harness chạy cùng phiên. Đừng đốt một hạn mức Codex,
-Claude Code, Grok Build hay OpenCode cho phần nghĩ — **gộp** chúng. Chọn bất
-kỳ tập hợp nào trong bốn harness.
+Claude Code, Grok Build, OpenCode hay Kiro CLI cho phần nghĩ — **gộp** chúng.
+Chọn bất kỳ tập hợp nào trong năm harness.
 
 Vấn đề thật: một harness làm hết (nghĩ + sửa + test + review) thì hạn mức hết
 nhanh. **ChatGPT web**, **Gemini web** và **Claude web** đã có nhiều lượt chat
@@ -11,7 +11,7 @@ kèm theo gói bạn đang trả. C2X tách vai và **chia việc giữa các ha
 | Vai | Ai | Hạn mức |
 | --- | --- | --- |
 | Plan + review | `chatgpt-web`, `claude-web`, `gemini-web` (rồi mới tới API) | Quota chat lớn / subscription |
-| Execute | Bất kỳ tập hợp `codex` \| `claude-code` \| `grok-build` \| `opencode` | Mỗi tool chỉ chạy packet của mình |
+| Execute | Bất kỳ tập hợp `codex` \| `claude-code` \| `grok-build` \| `opencode` \| `kiro-cli` | Mỗi tool chỉ chạy packet của mình |
 
 Planner chia PLAN thành **work packet** (file không chồng khi có thể). Ví dụ:
 Codex sửa `createTask`; Claude Code viết test empty-state. Mỗi harness chỉ thấy
@@ -39,11 +39,12 @@ planner giả lập và chế độ dán ChatGPT / Claude / Gemini web.
 npm test
 npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock
 npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock --harness codex
-npx tsx src/cli/c2x.ts route --choice auto --team codex,claude-code,grok-build,opencode
+npx tsx src/cli/c2x.ts route --choice auto --team codex,claude-code,grok-build,opencode,kiro-cli
+npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock --harness kiro-cli
 ```
 
-Mặc định CLI dùng đội `codex,claude-code`. `--harness codex` vẫn là một harness
-(regression). `--team` chọn bất kỳ tập hợp nào trong bốn id.
+Mặc định CLI dùng đội `codex,claude-code`. `--harness kiro-cli` (hoặc `codex`)
+vẫn là một harness. `--team` chọn bất kỳ tập hợp nào trong năm id.
 
 ## Cách tách hạn mức
 
@@ -51,8 +52,8 @@ Mặc định CLI dùng đội `codex,claude-code`. `--harness codex` vẫn là 
 2. Chọn planner: `auto` (ưu tiên chat web / subscription đang bật), `chatgpt-web`,
    `claude-web`, `gemini-web`, hoặc API nếu bạn muốn.
 3. Chọn **đội harness** (multi-select): `codex`, `claude-code`, `grok-build`,
-   `opencode` — một cái hoặc vài cái. Router **không bao giờ** gửi plan/review
-   sang harness.
+   `opencode`, `kiro-cli` — một cái hoặc vài cái. Router **không bao giờ** gửi
+   plan/review sang harness.
 4. **Đóng gói & lập kế hoạch** — dashboard hiện token, packet / làn việc theo
    từng harness, lượt harness giữ lại / lượt chat web.
 5. Sao chép **brief từng harness**. Dán đúng tool đó. Đừng dán repo, đừng đưa
@@ -104,7 +105,7 @@ brief có `OWNER`. Thêm harness mới: mở rộng `HARNESS_IDS` + catalog (swi
 src/core/          packer, packets, protocol, router, savings, providers
 src/app/           dashboard Next.js
 src/cli/c2x.ts     CLI
-skill/SKILL.md     skill cho Codex / Claude Code / Grok Build / OpenCode
+skill/SKILL.md     skill cho Codex / Claude Code / Grok Build / OpenCode / Kiro CLI
 ```
 
 ## License

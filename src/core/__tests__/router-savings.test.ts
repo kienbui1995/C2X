@@ -72,6 +72,16 @@ describe("routeRole", () => {
       hasKey: () => false,
     });
     expect(toOpenCode.provider).toBe("opencode");
+
+    const toKiro = routeRole({
+      role: "execute",
+      choice: "auto",
+      harness: "kiro-cli",
+      config,
+      hasKey: () => false,
+    });
+    expect(toKiro.provider).toBe("kiro-cli");
+    expect(toKiro.role).toBe("execute");
   });
 
   it("auto-picks a web/subscription planner when one is enabled", () => {
