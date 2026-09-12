@@ -876,7 +876,7 @@ git commit -m "fix: cap C2X control messages and keep the dashboard on localhost
 - Consumes: `SessionRecord` hiện tại (`pastePrompt: string | null`)
 - Produces: `SessionRecord.reviewPastePrompt: string | null` — luôn có sau `createSession` / `normalizeSession`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Tạo `src/core/__tests__/review-paste.test.ts`:
 
@@ -904,13 +904,13 @@ describe("session.reviewPastePrompt", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
 
 Expected: FAIL — `reviewPastePrompt` không tồn tại trên type/object.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Trong `SessionRecord` (sau `pastePrompt`) thêm:
 
@@ -927,13 +927,13 @@ Trong `SessionRecord` (sau `pastePrompt`) thêm:
     reviewPastePrompt: raw.reviewPastePrompt ?? null,
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/types.ts src/core/session.ts src/core/__tests__/review-paste.test.ts

@@ -220,6 +220,47 @@ export function extractControlBlock(text: string): string {
   return text.slice(start).trim();
 }
 
+export function buildReviewPastePrompt(input: {
+  pack: ContextPack;
+  taskId: string;
+  iteration: number;
+  changedFiles: string[];
+  tests: string;
+  diffStat?: string;
+}): string {
+  const files =
+    input.changedFiles.map((path) => `- ${path}`).join("\n") || "- (none)";
+  const diff = input.diffStat?.trim()
+    ? `\nDIFF_STAT:\n${input.diffStat.trim()}\n`
+    : "";
+  return `${PLANNER_SYSTEM_PROMPT}
+
+GOAL:
+${input.pack.goal}
+
+CHANGED_FILES:
+${files}
+
+TESTS:
+${input.tests}
+${diff}
+PACKED TREE:
+${input.pack.tree}
+
+Reply with a single [C2X] control message. STATE must be DONE, PLAN, or BLOCKED.
+TASK_ID: ${input.taskId}
+ITERATION: ${input.iteration}
+
+[C2X]
+STATE: DONE|PLAN|BLOCKED
+TASK_ID: ${input.taskId}
+ITERATION: ${input.iteration}
+
+SUMMARY:
+...
+`;
+}
+
 export function buildWebPastePrompt(
   pack: ContextPack,
   taskId: string,
