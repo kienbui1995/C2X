@@ -22,6 +22,7 @@ import {
   completeHarnessRun,
   createSession,
   mergedExecutionReport,
+  reusedPack,
   touchSession,
 } from "@/core/session";
 import { getSession, loadConfig, upsertSession } from "@/core/store";
@@ -145,10 +146,10 @@ export async function importPlan(input: {
     throw new Error(`Imported message must be PLAN (got ${message.state}).`);
   }
   const existing = input.sessionId ? await getSession(input.sessionId) : null;
-  const pack = existing?.pack;
-  if (!existing || !pack) {
+  if (!existing) {
     throw new Error("Import needs an existing packed session. Run plan first.");
   }
+  const pack = reusedPack(existing);
   const fallback = mockPlanFromPack(pack, existing.id, existing.harnessTeam);
   const plan = parsePlannerOutput(input.raw, fallback);
   const briefs = planToBriefs(plan);

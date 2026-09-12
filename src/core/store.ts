@@ -2,7 +2,21 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { mergeConfig } from "@/core/config";
 import { normalizeSession } from "@/core/session";
-import type { AppConfig, SessionRecord } from "@/core/types";
+import type { AppConfig, ContextPack, SessionRecord } from "@/core/types";
+
+const livePacks = new Map<string, ContextPack>();
+
+function withLivePack(session: SessionRecord): SessionRecord {
+  if (!session.pack) {
+    return session;
+  }
+  const live = livePacks.get(session.id) ?? session.pack;
+  livePacks.set(session.id, live);
+  if (live === session.pack) {
+    return session;
+  }
+  return { ...session, pack: live };
+}
 
 function dataDir(): string {
   return process.env.FRUGAL_DATA_DIR || path.join(process.cwd(), "data");
@@ -40,7 +54,9 @@ export async function loadSessions(): Promise<SessionRecord[]> {
   try {
     const raw = await readFile(sessionsPath(), "utf8");
     const parsed = JSON.parse(raw) as SessionRecord[];
-    return Array.isArray(parsed) ? parsed.map((item) => normalizeSession(item)) : [];
+    return Array.isArray(parsed)
+      ? parsed.map((item) => withLivePack(normalizeSession(item)))
+      : [];
   } catch {
     return [];
   }
@@ -52,7 +68,7 @@ export async function saveSessions(sessions: SessionRecord[]): Promise<void> {
 }
 
 export async function upsertSession(session: SessionRecord): Promise<SessionRecord> {
-  const normalized = normalizeSession(session);
+  const normalized = withLivePack(normalizeSession(session));
   const sessions = await loadSessions();
   const index = sessions.findIndex((item) => item.id === normalized.id);
   if (index === -1) {

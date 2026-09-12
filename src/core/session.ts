@@ -4,6 +4,7 @@ import { createTaskId } from "@/core/protocol";
 import {
   isHarnessId,
   resolveHarnessTeam,
+  type ContextPack,
   type HarnessId,
   type HarnessRun,
   type SessionEvent,
@@ -12,6 +13,13 @@ import {
   type PlannerChoice,
   type ProviderId,
 } from "@/core/types";
+
+export function reusedPack(session: SessionRecord): ContextPack {
+  if (!session.pack) {
+    throw new Error("Session has no pack to reuse; do not walk the repo.");
+  }
+  return session.pack;
+}
 
 function pendingRuns(team: readonly HarnessId[]): HarnessRun[] {
   return team.map((owner) => ({

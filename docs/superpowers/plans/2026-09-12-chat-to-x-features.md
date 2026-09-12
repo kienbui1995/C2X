@@ -119,7 +119,7 @@ tunnel, or ChatGPT connector. No unofficial ChatGPT reverse-proxy.
 
 `CONTRIBUTING.md`: `npm install && npm test && npm run typecheck` không key; planner ≠ harness; không smart-split `PACKETS`; không spawn harness **hay ChatGPT**; cầu mặc định = dán/brief local (spec §20) — **cấm** PR tunnel/OAuth/Computer Use “cho nhanh”; **How to add a harness (10 min)** — copy nguyên §19 spec (id → một entry `HARNESS_BY_ID` → adapter hiếm → không đụng UI/CLI/router/splitter).
 
-- [ ] **Step 1: Write a failing check that data briefs would be tracked**
+- [x] **Step 1: Write a failing check that data briefs would be tracked**
 
 Không cần test runtime. Fail hữu hình: `.gitignore` hiện là `/data/*.json`. Tạo file tạm không commit:
 
@@ -131,11 +131,11 @@ git check-ignore -v data/briefs/should-not-be-public.c2x.md
 
 Expected hiện tại: không in gì (file **không** bị ignore) — đó là fail của slice 0.
 
-- [ ] **Step 2: Confirm ignore fails**
+- [x] **Step 2: Confirm ignore fails**
 
 Run lệnh trên. Expected: empty → briefs sẽ lọt nếu public.
 
-- [ ] **Step 3: Write the files; fix gitignore**
+- [x] **Step 3: Write the files; fix gitignore**
 
 `.gitignore`:
 
@@ -147,7 +147,7 @@ Run lệnh trên. Expected: empty → briefs sẽ lọt nếu public.
 
 Xóa `data/briefs/should-not-be-public.c2x.md` sau khi verify. Không commit `sessions.json`.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 git check-ignore -v data/sessions.json data/briefs/x.c2x.md
@@ -158,7 +158,7 @@ npx vitest run
 
 Expected: ignore khớp; `.env.example` không chứa secret; tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add NOTICE CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md .gitignore .env.example README.md
