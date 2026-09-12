@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { planToBriefs, renderCodexBrief } from "@/core/brief";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
-import { binariesForHarness, detectHarness, writeHarnessBrief } from "@/core/harness";
+import { binariesForHarness, detectHarness, installSkill, writeHarnessBrief } from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { getHarness } from "@/core/providers/catalog";
@@ -68,5 +68,19 @@ describe("writeHarnessBrief", () => {
     expect(text).toMatch(/OWNER:\s*codex/);
     expect(text).not.toMatch(/OWNER:\s*claude-code/);
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe("installSkill", () => {
+  it("copies SKILL.md into a fake skill home and embeds the repo path", async () => {
+    const skillHome = await mkdtemp(path.join(os.tmpdir(), "c2x-skill-"));
+    const repoRoot = path.join(skillHome, "repo");
+    const dest = await installSkill({ repoRoot, skillHome });
+    expect(dest).toBe(path.join(skillHome, "chat-to-x", "SKILL.md"));
+    const text = await readFile(dest, "utf8");
+    expect(text).toContain(repoRoot);
+    expect(text).not.toContain("replace-with-absolute-path");
+    expect(text).toMatch(/c2x skill-install/);
+    await rm(skillHome, { recursive: true, force: true });
   });
 });

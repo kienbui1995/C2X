@@ -1,11 +1,13 @@
 #!/usr/bin/env npx tsx
 
 import { readFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { Command } from "commander";
 import { planToBrief, planToBriefs, renderCodexBrief } from "@/core/brief";
 import { mergeConfig } from "@/core/config";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
-import { detectHarnessTeam, writeHarnessBrief } from "@/core/harness";
+import { detectHarnessTeam, installSkill, writeHarnessBrief } from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
@@ -279,6 +281,20 @@ program
       dataDir: dataDir(),
     });
     process.stdout.write(`${briefPath}\n`);
+  });
+
+program
+  .command("skill-install")
+  .description("Copy the chat-to-x skill into ~/.codex/skills/chat-to-x/")
+  .action(async () => {
+    const dest = await installSkill({
+      repoRoot: process.cwd(),
+      skillHome: path.join(os.homedir(), ".codex/skills"),
+    });
+    process.stdout.write(`${dest}\n`);
+    process.stdout.write(
+      "Claude Code: copy the same SKILL.md to ~/.claude/skills/chat-to-x/ (C2X does not auto-install there).\n",
+    );
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

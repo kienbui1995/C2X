@@ -2132,7 +2132,7 @@ c2x brief --session <id> --owner <id>
 `doctor` in `id\tok|missing\tbinary-or-hint`.  
 `brief` ghi file, in absolute path.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { readFile } from "node:fs/promises";
@@ -2182,17 +2182,17 @@ Bản đúng:
   expect(briefPath).toBe(path.join(dir, "briefs", `${session.id}.codex.c2x.md`));
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
 
 Expected: FAIL — `writeHarnessBrief` missing.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `mkdir(..., { recursive: true })` rồi `writeFile`. CLI commands như trên; `doctor` map `detectHarnessTeam(teamFromOpts(opts) or HARNESS_IDS)` — dùng cache detect; không spawn `which`.
 
-- [ ] **Step 4: Run tests + help**
+- [x] **Step 4: Run tests + help**
 
 ```bash
 npx vitest run
@@ -2202,7 +2202,7 @@ npx tsx src/cli/c2x.ts brief --help
 
 Expected: tests PASS; `doctor` in 5 dòng (ok hoặc missing).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/harness.ts src/cli/c2x.ts src/core/__tests__/harness-detect.test.ts
@@ -2218,7 +2218,7 @@ git commit -m "feat: write per-harness briefs and c2x doctor"
 
 `skill-install` copy `skill/SKILL.md` → `path.join(os.homedir(), ".codex/skills/chat-to-x/SKILL.md")`, replace dòng checkout bằng `process.cwd()`.
 
-- [ ] **Step 1: Test skill-install vào homedir giả**
+- [x] **Step 1: Test skill-install vào homedir giả**
 
 Đừng ghi `~` thật trong test. Export:
 
@@ -2231,13 +2231,13 @@ export async function installSkill(input: {
 
 Test: `skillHome` tạm, file chứa `repoRoot`.
 
-- [ ] **Step 2: Run test — fail missing export**
+- [x] **Step 2: Run test — fail missing export**
 
-- [ ] **Step 3: Implement `installSkill` in `src/core/harness.ts`; CLI wraps it với `os.homedir()`**
+- [x] **Step 3: Implement `installSkill` in `src/core/harness.ts`; CLI wraps it với `os.homedir()`**
 
-- [ ] **Step 4: `npx vitest run && npx tsc --noEmit`**
+- [x] **Step 4: `npx vitest run && npx tsc --noEmit`**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skill/SKILL.md src/cli/c2x.ts src/core/harness.ts src/core/__tests__/harness-detect.test.ts src/components/studio-client.tsx

@@ -7,6 +7,10 @@ description: Use chat-to-x (C2X) so ChatGPT/Claude/Gemini web chats plan and rev
 
 The checkout lives at: replace-with-absolute-path
 
+Install this skill with `c2x skill-install` (writes `~/.codex/skills/chat-to-x/SKILL.md`
+and replaces the checkout path). Claude Code: copy the same file to
+`~/.claude/skills/chat-to-x/` — C2X does not auto-install there.
+
 ## When to use
 
 Any implementation, review, or debugging task where a single harness quota

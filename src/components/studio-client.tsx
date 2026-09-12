@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { renderCodexBrief } from "@/core/brief";
+import type { HarnessDetectResult } from "@/core/harness";
 import { HARNESS_CATALOG, getHarness, isPastePlanner, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { planToMessage } from "@/core/protocol";
 import { formatTokens } from "@/core/tokens";
@@ -84,8 +85,12 @@ function runStateLabel(
   }
 }
 
-export function StudioClient() {
+export function StudioClient({ doctor = [] }: { doctor?: HarnessDetectResult[] }) {
   const { t, lang } = useLanguage();
+  const doctorById = useMemo(
+    () => Object.fromEntries(doctor.map((item) => [item.id, item])),
+    [doctor],
+  );
   const [goal, setGoal] = useState(DEFAULT_GOAL);
   const [plannerChoice, setPlannerChoice] = useState<PlannerChoice>("auto");
   const [harnessTeam, setHarnessTeam] = useState<HarnessId[]>([...DEFAULT_HARNESS_TEAM]);
@@ -302,6 +307,7 @@ export function StudioClient() {
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
               {HARNESS_CATALOG.map((entry) => {
                 const checked = harnessTeam.includes(entry.id);
+                const detect = doctorById[entry.id];
                 return (
                   <label
                     key={entry.id}
@@ -313,6 +319,16 @@ export function StudioClient() {
                       <p className="text-xs text-muted-foreground">
                         {lang === "vi" ? entry.blurbVi : entry.blurb}
                       </p>
+                      {detect ? (
+                        <p
+                          className="mt-1 font-mono text-[11px]"
+                          data-doctor-id={entry.id}
+                          data-doctor-ok={detect.ok ? "true" : "false"}
+                        >
+                          {t.doctorTitle}: {detect.ok ? t.doctorReady : t.doctorMissing}
+                          {detect.ok && detect.binary ? ` · ${detect.binary}` : ""}
+                        </p>
+                      ) : null}
                     </div>
                     <Switch
                       checked={checked}
@@ -327,6 +343,7 @@ export function StudioClient() {
                 );
               })}
             </div>
+            <p className="text-xs text-muted-foreground">{t.skillInstallHint}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <Field label={t.planner}>
@@ -709,6 +726,11 @@ export function StudioClient() {
                       <Section title={t.files} items={packet.files} />
                       <Section title={t.tests} items={packet.tests} />
                       <Section title={t.criteria} items={packet.successCriteria} />
+                      <p className="font-mono text-[11px] text-muted-foreground">
+                        {t.briefCliHint
+                          .replace("{session}", session.id)
+                          .replace("{owner}", packet.owner)}
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"

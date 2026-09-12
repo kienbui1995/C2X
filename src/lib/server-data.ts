@@ -1,7 +1,8 @@
 import { hasProviderKey } from "@/core/config";
+import { detectHarnessTeam, type HarnessDetectResult } from "@/core/harness";
 import { HARNESS_CATALOG, PROVIDER_CATALOG, modelForProvider } from "@/core/providers/catalog";
 import { loadConfig, loadSessions } from "@/core/store";
-import type { AppConfig, HarnessId, ProviderId } from "@/core/types";
+import { HARNESS_IDS, type AppConfig, type HarnessId, type ProviderId } from "@/core/types";
 
 export type ProviderRow = {
   id: ProviderId;
@@ -53,6 +54,10 @@ export async function getProviderRows(): Promise<ProviderRow[]> {
     configured: hasProviderKey(config, entry.id),
     model: modelForProvider(entry.id, config),
   }));
+}
+
+export async function getDoctorStatus(): Promise<HarnessDetectResult[]> {
+  return detectHarnessTeam([...HARNESS_IDS]);
 }
 
 export async function getHarnessRows(): Promise<HarnessRow[]> {

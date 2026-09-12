@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { renderCodexBrief } from "@/core/brief";
 import { getHarness } from "@/core/providers/catalog";
@@ -109,5 +109,20 @@ export async function writeHarnessBrief(input: {
   const dest = path.join(input.dataDir, "briefs", `${input.session.id}.${input.owner}.c2x.md`);
   await mkdir(path.dirname(dest), { recursive: true });
   await writeFile(dest, renderCodexBrief(brief), "utf8");
+  return dest;
+}
+
+export async function installSkill(input: {
+  repoRoot: string;
+  skillHome: string;
+}): Promise<string> {
+  const source = path.join(input.repoRoot, "skill", "SKILL.md");
+  const dest = path.join(input.skillHome, "chat-to-x", "SKILL.md");
+  const raw = existsSync(source)
+    ? await readFile(source, "utf8")
+    : await readFile(path.join(process.cwd(), "skill", "SKILL.md"), "utf8");
+  const text = raw.replace("replace-with-absolute-path", input.repoRoot);
+  await mkdir(path.dirname(dest), { recursive: true });
+  await writeFile(dest, text, "utf8");
   return dest;
 }

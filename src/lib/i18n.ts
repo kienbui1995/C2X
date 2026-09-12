@@ -95,6 +95,12 @@ export const copy = {
     waitingPackets: "Chưa có packet. Nhập [C2X] PLAN từ chat web, hoặc chạy planner giả lập.",
     mergeTitle: "Metadata đã gộp",
     teamNeedOne: "Giữ ít nhất một harness.",
+    doctorTitle: "Doctor (PATH máy chủ, không spawn)",
+    doctorReady: "sẵn sàng",
+    doctorMissing: "thiếu",
+    briefCliHint: "Brief: sao chép hoặc `c2x brief --session {session} --owner {owner}`",
+    skillInstallHint:
+      "Cài skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md sang ~/.claude/skills/chat-to-x/.",
   },
   en: {
     product: "chat-to-x",
@@ -190,5 +196,11 @@ export const copy = {
     waitingPackets: "No packets yet. Import a [C2X] PLAN from a web chat, or run the mock planner.",
     mergeTitle: "Merged metadata",
     teamNeedOne: "Keep at least one harness.",
+    doctorTitle: "Doctor (server PATH, no spawn)",
+    doctorReady: "ready",
+    doctorMissing: "missing",
+    briefCliHint: "Brief: copy or `c2x brief --session {session} --owner {owner}`",
+    skillInstallHint:
+      "Install skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md to ~/.claude/skills/chat-to-x/.",
   },
 } as const;
