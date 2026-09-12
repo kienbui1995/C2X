@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { importPlan } from "@/core/run-loop";
+import { importControlMessage } from "@/core/run-loop";
 
 export async function POST(request: Request) {
   try {
@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     if (!body.raw?.trim()) {
       return NextResponse.json({ error: "raw plan is required" }, { status: 400 });
     }
-    const session = await importPlan({
+    const session = await importControlMessage({
       sessionId: body.sessionId,
       raw: body.raw,
     });

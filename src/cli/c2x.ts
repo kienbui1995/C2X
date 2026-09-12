@@ -1,5 +1,6 @@
 #!/usr/bin/env npx tsx
 
+import { readFile } from "node:fs/promises";
 import { Command } from "commander";
 import { planToBrief, planToBriefs, renderCodexBrief } from "@/core/brief";
 import { mergeConfig } from "@/core/config";
@@ -8,8 +9,9 @@ import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
-import { runPlan } from "@/core/run-loop";
+import { importControlMessage, runPlan, runReview } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
+import { getSession } from "@/core/store";
 import { formatTokens, formatUsd } from "@/core/tokens";
 import {
   isPlannerChoice,
@@ -168,6 +170,47 @@ program
     } else {
       process.stdout.write(`${session.id} ${session.state}\n`);
     }
+  });
+
+program
+  .command("import")
+  .requiredOption("--session <id>")
+  .requiredOption("--raw-file <path>", "path to a [C2X] block, or - for stdin")
+  .action(async (opts: { session: string; rawFile: string }) => {
+    const raw =
+      opts.rawFile === "-"
+        ? await new Promise<string>((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            process.stdin.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+            process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+            process.stdin.on("error", reject);
+          })
+        : await readFile(opts.rawFile, "utf8");
+    const session = await importControlMessage({ sessionId: opts.session, raw });
+    process.stdout.write(`${session.id} ${session.state}\n`);
+  });
+
+program
+  .command("review-prompt")
+  .requiredOption("--session <id>")
+  .action(async (opts: { session: string }) => {
+    const existing = await getSession(opts.session);
+    if (!existing) {
+      throw new Error(`unknown session: ${opts.session}`);
+    }
+    const session =
+      existing.reviewPastePrompt && existing.state === "REVIEW"
+        ? existing
+        : await runReview({
+            sessionId: opts.session,
+            changedFiles: [],
+            tests: "not run",
+          });
+    if (!session.reviewPastePrompt) {
+      throw new Error("No review paste prompt. Use a web/subscription planner.");
+    }
+    process.stdout.write(session.reviewPastePrompt);
+    process.stdout.write("\n");
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

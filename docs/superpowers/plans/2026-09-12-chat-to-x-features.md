@@ -1284,7 +1284,7 @@ Khi `importedRaw` có mặt: `applyImportedReview`.
 
 Planner `mock` / API giữ hành vi cũ (`mockReview` / `completePlanner`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Dùng `FRUGAL_DATA_DIR` tạm vì `run-loop` ghi store:
 
@@ -1397,13 +1397,13 @@ Looks good.
 
 Lưu ý: `importPlan` hiện yêu cầu session đã pack — `runPlan` với `chatgpt-web` đã pack và để `INIT`. Test dựa vào điều đó.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
 
 Expected: FAIL — `importControlMessage` chưa export, hoặc `runReview` gọi `mockReview` → `DONE`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Trong `src/core/run-loop.ts`:
 
@@ -1457,13 +1457,13 @@ export async function importControlMessage(input: {
 
 Giữ nhánh `mock` / API bên dưới. `importPlan` **không** xóa; `importControlMessage` ủy quyền.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts src/core/__tests__/router-savings.test.ts src/core/__tests__/packets.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/run-loop.ts src/core/__tests__/review-paste.test.ts
