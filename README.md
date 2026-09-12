@@ -116,3 +116,7 @@ skill/SKILL.md     skill cho Codex / Claude Code / Grok Build / OpenCode / Kiro 
 MIT. Dự án cộng đồng, không liên kết OpenAI hay Anthropic.
 
 English notes live in [docs/architecture.md](docs/architecture.md).
+
+Kế hoạch tính năng tiếp theo (chưa implement):
+[thiết kế](docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md) ·
+[plan](docs/superpowers/plans/2026-09-12-chat-to-x-features.md).

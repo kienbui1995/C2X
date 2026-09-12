@@ -1,0 +1,1588 @@
+# chat-to-x Features Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Đóng vòng C2X thật — chat web làm PLAN *và* REVIEW, harness chỉ execute packet của mình, có bản ghi git/test local — mà không fork OAuth/tunnel của C2C.
+
+**Architecture:** Mặt điều khiển vẫn là khối `[C2X]` ngắn. Slice 1 thêm prompt + import REVIEW cho planner dán. Slice 2 thêm workspace root + `ExecutionRecord` từ `git status` / `git diff --stat`. Slice 3 thêm adapter detect/ghi brief (không spawn). Packer, router, catalog 5 harness giữ nguyên.
+
+**Tech Stack:** TypeScript, Next.js 16 (dashboard + `src/app/api/*`), Commander CLI `src/cli/c2x.ts`, vitest (`src/core/__tests__/**/*.test.ts`), JSON store `data/` (`FRUGAL_DATA_DIR` / `C2X_DATA_DIR`).
+
+## Global Constraints
+
+- Node.js 20+. Không thêm dependency npm trừ khi một task nói rõ.
+- Imports luôn ở đầu file. Switch trên union/enum phải có `default: assertNever(...)`.
+- `routeRole("plan"|"review")` không được trả `HarnessId`. Không phá test trong `packets.test.ts` / `router-savings.test.ts`.
+- Không OAuth, không Cloudflare tunnel, không cookie, không reverse-proxy, không MCP ghi.
+- Dashboard không nhận filesystem path từ browser.
+- Không spawn Codex / Claude Code / Grok / OpenCode / Kiro từ process C2X trong các slice của plan này.
+- Copy UI/docs mặc định tiếng Việt; id protocol (`[C2X]`, `OWNER`, `HARNESS_IDS`) giữ English.
+- Session JSON cũ phải `normalizeSession` được (field mới có default).
+- Control message không chứa thân file / diff đầy đủ / log. Dùng `assertControlBudget` khi encode `EXECUTED` / brief / PLAN.
+
+Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/2026-09-12-chat-to-x-features-design.md)
+
+---
+
+## File structure (khóa trước khi làm)
+
+**Slice 1 — giữ, chỉ mở rộng**
+
+- `src/core/types.ts` — thêm `reviewPastePrompt` trên `SessionRecord`
+- `src/core/session.ts` — default + normalize field mới
+- `src/core/planner.ts` — `buildReviewPastePrompt`
+- `src/core/review-import.ts` — **mới**: parse/apply khối REVIEW; không đụng store
+- `src/core/run-loop.ts` — `importControlMessage`; `runReview` không `mockReview` khi planner là paste
+- `src/core/index.ts` — export module mới
+- `src/app/api/import-plan/route.ts` — gọi `importControlMessage`
+- `src/app/api/review/route.ts` — paste → gắn prompt, chưa DONE
+- `src/cli/c2x.ts` — `import`, `review-prompt`
+- `src/components/studio-client.tsx` + `src/lib/i18n.ts` — copy/import REVIEW
+- `src/core/__tests__/review-paste.test.ts` — **mới**
+
+**Slice 2**
+
+- `src/core/types.ts` — `ExecutionRecord`, `workspaceRoot` trên config/session
+- `src/core/git-meta.ts` — **mới**: porcelain + diff --stat
+- `src/core/records.ts` — **mới**: merge record vào session
+- `src/core/workspace.ts` — root + `.c2xignore`
+- `src/core/sensitive.ts` — đọc extra ignore
+- `src/core/config.ts` / `store.ts` — `workspaceRoot`, `C2X_DATA_DIR`
+- `src/app/api/record/route.ts` — **mới**
+- `src/cli/c2x.ts` — `record`
+- `src/core/__tests__/records.test.ts`, `workspace-root.test.ts` — **mới**
+
+**Slice 3**
+
+- `src/core/harness.ts` — **mới**: detect + write brief, switch exhaustive trên `HARNESS_IDS`
+- `src/cli/c2x.ts` — `doctor`, `brief`
+- `src/core/__tests__/harness-detect.test.ts` — **mới**
+
+**Slice 4–7:** `src/core/packets.ts`, `src/core/protocol.ts`, `package.json` `bin`, checkpoint trên session. Chi tiết ở Chunk 4.
+
+---
+
+## Chunk 1: Slice 1 — vòng dán PLAN + REVIEW
+
+Đóng mục tiêu 2. Planner `chatgpt-web` / `claude-web` / `gemini-web` phải có lượt REVIEW thật (copy prompt, dán `[C2X]` về). Không được gọi `mockReview` rồi đánh `DONE`.
+
+### Task 1: `reviewPastePrompt` trên session
+
+**Files:**
+- Modify: `src/core/types.ts` (`SessionRecord`)
+- Modify: `src/core/session.ts` (`createSession`, `normalizeSession`)
+- Test: `src/core/__tests__/review-paste.test.ts`
+
+**Interfaces:**
+- Consumes: `SessionRecord` hiện tại (`pastePrompt: string | null`)
+- Produces: `SessionRecord.reviewPastePrompt: string | null` — luôn có sau `createSession` / `normalizeSession`
+
+- [ ] **Step 1: Write the failing test**
+
+Tạo `src/core/__tests__/review-paste.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { createSession, normalizeSession } from "@/core/session";
+import type { SessionRecord } from "@/core/types";
+
+describe("session.reviewPastePrompt", () => {
+  it("starts null on a new session and survives normalize of legacy JSON", () => {
+    const session = createSession({
+      goal: "Sửa createTask",
+      planner: "chatgpt-web",
+      plannerChoice: "chatgpt-web",
+      harnessTeam: ["codex", "claude-code"],
+      budgetTokens: 4000,
+      workspaceSource: "demo",
+    });
+    expect(session.reviewPastePrompt).toBeNull();
+
+    const { reviewPastePrompt: _dropped, ...legacy } = session;
+    const restored = normalizeSession(legacy as SessionRecord);
+    expect(restored.reviewPastePrompt).toBeNull();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
+
+Expected: FAIL — `reviewPastePrompt` không tồn tại trên type/object.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Trong `SessionRecord` (sau `pastePrompt`) thêm:
+
+```ts
+  pastePrompt: string | null;
+  reviewPastePrompt: string | null;
+```
+
+`createSession`: `reviewPastePrompt: null`.
+
+`normalizeSession` return thêm:
+
+```ts
+    reviewPastePrompt: raw.reviewPastePrompt ?? null,
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/types.ts src/core/session.ts src/core/__tests__/review-paste.test.ts
+git commit -m "feat: add reviewPastePrompt on C2X sessions"
+```
+
+### Task 2: `buildReviewPastePrompt`
+
+**Files:**
+- Modify: `src/core/planner.ts` (sau `buildReviewUserPrompt`)
+- Test: `src/core/__tests__/review-paste.test.ts`
+
+**Interfaces:**
+- Consumes: `ContextPack`, `taskId`, `iteration`, `changedFiles: string[]`, `tests: string`, `diffStat?: string`
+- Produces:
+
+```ts
+export function buildReviewPastePrompt(input: {
+  pack: ContextPack;
+  taskId: string;
+  iteration: number;
+  changedFiles: string[];
+  tests: string;
+  diffStat?: string;
+}): string;
+```
+
+Hàm phải nhúng `PLANNER_SYSTEM_PROMPT`, `TASK_ID`, `CHANGED_FILES`, `TESTS`, `PACKED TREE`. Không được chứa `-----BEGIN` hay nội dung kiểu thân file (`export function`). Được phép có `DIFF_STAT` một khối ngắn.
+
+- [ ] **Step 1: Write the failing test**
+
+Thêm vào `review-paste.test.ts`:
+
+```ts
+import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
+import { packWorkspace } from "@/core/packer";
+import { PLANNER_SYSTEM_PROMPT, buildReviewPastePrompt } from "@/core/planner";
+
+describe("buildReviewPastePrompt", () => {
+  it("asks the web planner for DONE|PLAN|BLOCKED without dumping file bodies", () => {
+    const pack = packWorkspace({
+      goal: "Sửa createTask",
+      files: DEMO_FILES,
+      budgetTokens: 2000,
+    });
+    const prompt = buildReviewPastePrompt({
+      pack,
+      taskId: "c2x_rev1",
+      iteration: 1,
+      changedFiles: ["src/lib/tasks.ts"],
+      tests: "codex: not run\nclaude-code: 12 passed",
+      diffStat: "1 file changed, 8 insertions(+)",
+    });
+
+    expect(prompt).toContain(PLANNER_SYSTEM_PROMPT);
+    expect(prompt).toContain("TASK_ID: c2x_rev1");
+    expect(prompt).toContain("src/lib/tasks.ts");
+    expect(prompt).toContain("12 passed");
+    expect(prompt).toContain("1 file changed, 8 insertions(+)");
+    expect(prompt).toMatch(/STATE:\s*DONE\|PLAN\|BLOCKED|DONE, PLAN, or BLOCKED|DONE\|PLAN\|BLOCKED/);
+    expect(prompt).not.toMatch(/-----BEGIN/);
+    expect(prompt).not.toContain("function createTask");
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
+
+Expected: FAIL — `buildReviewPastePrompt` is not exported.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Thêm vào `src/core/planner.ts`:
+
+```ts
+export function buildReviewPastePrompt(input: {
+  pack: ContextPack;
+  taskId: string;
+  iteration: number;
+  changedFiles: string[];
+  tests: string;
+  diffStat?: string;
+}): string {
+  const files =
+    input.changedFiles.map((path) => `- ${path}`).join("\n") || "- (none)";
+  const diff = input.diffStat?.trim()
+    ? `\nDIFF_STAT:\n${input.diffStat.trim()}\n`
+    : "";
+  return `${PLANNER_SYSTEM_PROMPT}
+
+GOAL:
+${input.pack.goal}
+
+CHANGED_FILES:
+${files}
+
+TESTS:
+${input.tests}
+${diff}
+PACKED TREE:
+${input.pack.tree}
+
+Reply with a single [C2X] control message. STATE must be DONE, PLAN, or BLOCKED.
+TASK_ID: ${input.taskId}
+ITERATION: ${input.iteration}
+
+[C2X]
+STATE: DONE|PLAN|BLOCKED
+TASK_ID: ${input.taskId}
+ITERATION: ${input.iteration}
+
+SUMMARY:
+...
+`;
+}
+```
+
+Không nối `pack.excerpts[].content` vào prompt review (tránh dump thân file). Tree + metadata là đủ cho slice 1.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/planner.ts src/core/__tests__/review-paste.test.ts
+git commit -m "feat: build web-chat REVIEW paste prompts"
+```
+
+### Task 3: `applyImportedReview` thuần
+
+**Files:**
+- Create: `src/core/review-import.ts`
+- Modify: `src/core/index.ts`
+- Test: `src/core/__tests__/review-paste.test.ts`
+
+**Interfaces:**
+- Consumes: `parseControlMessage`, `extractControlBlock`, `messageToReview`, `applyPlan` / `planToBriefs` / `parsePlannerOutput`, `touchSession`
+- Produces:
+
+```ts
+export function applyImportedReview(session: SessionRecord, raw: string): SessionRecord;
+```
+
+Quy tắc (khớp spec §6.1):
+
+- `DONE` | `BLOCKED` khi `session.state` là `EXECUTED` hoặc `REVIEW` → ghi `review`, `state` = verdict.
+- `PLAN` khi session đã `EXECUTED`/`REVIEW` → iteration mới qua `parsePlannerOutput` + `applyPlan` (reset runs).
+- `PLAN` khi chưa có plan (`INIT`) → không dùng hàm này (vẫn `importPlan`).
+- State khác → throw `Error` có chữ `REVIEW` hoặc `PLAN`.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { planToBriefs } from "@/core/brief";
+import { mockPlanFromPack } from "@/core/planner";
+import { applyImportedReview } from "@/core/review-import";
+import { createSession } from "@/core/session";
+
+function sessionAfterExecute() {
+  const pack = packWorkspace({
+    goal: "Sửa createTask",
+    files: DEMO_FILES,
+    budgetTokens: 2000,
+  });
+  const plan = mockPlanFromPack(pack, "c2x_rev1", ["codex"]);
+  const briefs = planToBriefs(plan);
+  let session = createSession({
+    goal: pack.goal,
+    planner: "chatgpt-web",
+    plannerChoice: "chatgpt-web",
+    harnessTeam: ["codex"],
+    budgetTokens: 2000,
+    workspaceSource: "demo",
+  });
+  session = {
+    ...session,
+    state: "EXECUTED",
+    pack,
+    plan,
+    briefs,
+    brief: briefs[0] ?? null,
+    harnessRuns: [
+      {
+        owner: "codex",
+        state: "executed",
+        changedFiles: ["src/lib/tasks.ts"],
+        tests: "12 passed",
+      },
+    ],
+  };
+  return session;
+}
+
+describe("applyImportedReview", () => {
+  it("accepts a web-chat DONE block after EXECUTED", () => {
+    const next = applyImportedReview(
+      sessionAfterExecute(),
+      `[C2X]
+STATE: DONE
+TASK_ID: c2x_rev1
+ITERATION: 1
+
+SUMMARY:
+Changed files match the brief.
+`,
+    );
+    expect(next.state).toBe("DONE");
+    expect(next.review?.state).toBe("DONE");
+    expect(next.review?.summary).toMatch(/match/i);
+  });
+
+  it("rejects INIT as a review import", () => {
+    expect(() =>
+      applyImportedReview(
+        sessionAfterExecute(),
+        `[C2X]
+STATE: INIT
+TASK_ID: c2x_rev1
+ITERATION: 0
+
+GOAL:
+nope
+`,
+      ),
+    ).toThrow(/DONE|PLAN|BLOCKED|REVIEW/i);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
+
+Expected: FAIL — Cannot find module `@/core/review-import`.
+
+- [ ] **Step 3: Write minimal implementation**
+
+`src/core/review-import.ts`:
+
+```ts
+import { planToBriefs } from "@/core/brief";
+import { extractControlBlock, parsePlannerOutput } from "@/core/planner";
+import { messageToReview, parseControlMessage } from "@/core/protocol";
+import { applyPlan, touchSession } from "@/core/session";
+import { estimateSavings } from "@/core/savings";
+import type { SessionRecord } from "@/core/types";
+
+export function applyImportedReview(session: SessionRecord, raw: string): SessionRecord {
+  if (session.state !== "EXECUTED" && session.state !== "REVIEW") {
+    throw new Error("Review import needs EXECUTED or REVIEW.");
+  }
+  const message = parseControlMessage(extractControlBlock(raw));
+  if (message.state === "DONE" || message.state === "BLOCKED") {
+    const review = messageToReview(message);
+    return touchSession({ ...session, review }, {
+      state: review.state,
+      actor: "user",
+      note: review.summary || `Imported ${review.state} from a web chat.`,
+    });
+  }
+  if (message.state === "PLAN") {
+    if (!session.pack) {
+      throw new Error("Review PLAN import needs a packed session.");
+    }
+    const fallback = session.plan;
+    if (!fallback) {
+      throw new Error("Review PLAN import needs an existing PLAN.");
+    }
+    const plan = parsePlannerOutput(raw, fallback);
+    const briefs = planToBriefs(plan);
+    return applyPlan(
+      touchSession(session, {
+        state: "PLAN",
+        actor: "user",
+        note: "Imported next-iteration [C2X] PLAN from a web chat.",
+      }),
+      {
+        plan,
+        briefs,
+        brief: briefs[0] ?? null,
+        review: null,
+        savings: estimateSavings({
+          pack: session.pack,
+          brief: briefs[0] ?? null,
+          briefs,
+          planner: session.planner,
+        }),
+      },
+    );
+  }
+  throw new Error(`Review import must be DONE, PLAN, or BLOCKED (got ${message.state}).`);
+}
+```
+
+Export từ `src/core/index.ts`: `export * from "@/core/review-import";`
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/review-import.ts src/core/index.ts src/core/__tests__/review-paste.test.ts
+git commit -m "feat: import DONE/PLAN/BLOCKED from web-chat review"
+```
+
+### Task 4: `importControlMessage` + `runReview` cho planner dán
+
+**Files:**
+- Modify: `src/core/run-loop.ts`
+- Test: `src/core/__tests__/review-paste.test.ts`
+
+**Interfaces:**
+- Consumes: `importPlan`, `applyImportedReview`, `buildReviewPastePrompt`, `mergedExecutionReport`
+- Produces:
+
+```ts
+export async function importControlMessage(input: {
+  sessionId?: string;
+  raw: string;
+}): Promise<SessionRecord>;
+
+export async function runReview(input: {
+  sessionId: string;
+  changedFiles: string[];
+  tests: string;
+  importedRaw?: string;
+}): Promise<SessionRecord>;
+```
+
+`importControlMessage`: nếu `parseControlMessage` → `PLAN` và session chưa `EXECUTED`/`REVIEW` thì gọi `importPlan`; nếu không thì `applyImportedReview` rồi `upsertSession`.
+
+`runReview` khi `isPastePlanner(session.planner)` và không có `importedRaw`:
+
+1. Hoàn tất runs nếu cần (như hiện tại).
+2. Gắn `reviewPastePrompt = buildReviewPastePrompt(...)`.
+3. `state: "REVIEW"`, `review` giữ `null`.
+4. **Không** gọi `mockReview`.
+
+Khi `importedRaw` có mặt: `applyImportedReview`.
+
+Planner `mock` / API giữ hành vi cũ (`mockReview` / `completePlanner`).
+
+- [ ] **Step 1: Write the failing test**
+
+Dùng `FRUGAL_DATA_DIR` tạm vì `run-loop` ghi store:
+
+```ts
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach } from "vitest";
+import { importControlMessage, runPlan, runReview } from "@/core/run-loop";
+import { upsertSession } from "@/core/store";
+
+let dataDir = "";
+
+beforeEach(async () => {
+  dataDir = await mkdtemp(path.join(os.tmpdir(), "c2x-"));
+  process.env.FRUGAL_DATA_DIR = dataDir;
+});
+
+afterEach(async () => {
+  delete process.env.FRUGAL_DATA_DIR;
+  await rm(dataDir, { recursive: true, force: true });
+});
+
+describe("runReview paste planner", () => {
+  it("does not mark DONE until a web-chat review block is imported", async () => {
+    let session = await runPlan({
+      goal: "Sửa createTask",
+      plannerChoice: "chatgpt-web",
+      harnessTeam: ["codex"],
+      budgetTokens: 2000,
+      workspaceSource: "demo",
+    });
+    session = await importControlMessage({
+      sessionId: session.id,
+      raw: `[C2X]
+STATE: PLAN
+TASK_ID: ${session.id}
+ITERATION: 1
+
+GOAL:
+Sửa createTask
+
+RATIONALE:
+Packed excerpts show the defect.
+
+ACTIONS:
+1. Fix createTask persistence.
+
+FILES_LIKELY_INVOLVED:
+- src/lib/tasks.ts
+
+TESTS:
+- unit
+
+SUCCESS_CRITERIA:
+- tasks persist
+
+RISKS:
+- none
+
+PACKETS:
+  ## owner=codex role=general
+  ACTIONS:
+  1. Fix createTask persistence.
+  FILES:
+  - src/lib/tasks.ts
+  TESTS:
+  - unit
+  SUCCESS_CRITERIA:
+  - persist
+`,
+    });
+    await upsertSession({
+      ...session,
+      state: "EXECUTED",
+      harnessRuns: session.harnessTeam.map((owner) => ({
+        owner,
+        state: "executed" as const,
+        changedFiles: ["src/lib/tasks.ts"],
+        tests: "12 passed",
+      })),
+    });
+
+    const waiting = await runReview({
+      sessionId: session.id,
+      changedFiles: ["src/lib/tasks.ts"],
+      tests: "12 passed",
+    });
+    expect(waiting.state).toBe("REVIEW");
+    expect(waiting.review).toBeNull();
+    expect(waiting.reviewPastePrompt).toContain(session.id);
+    expect(waiting.reviewPastePrompt).toContain("src/lib/tasks.ts");
+
+    const done = await importControlMessage({
+      sessionId: session.id,
+      raw: `[C2X]
+STATE: DONE
+TASK_ID: ${session.id}
+ITERATION: 1
+
+SUMMARY:
+Looks good.
+`,
+    });
+    expect(done.state).toBe("DONE");
+    expect(done.review?.state).toBe("DONE");
+  });
+});
+```
+
+Lưu ý: `importPlan` hiện yêu cầu session đã pack — `runPlan` với `chatgpt-web` đã pack và để `INIT`. Test dựa vào điều đó.
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
+
+Expected: FAIL — `importControlMessage` chưa export, hoặc `runReview` gọi `mockReview` → `DONE`.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Trong `src/core/run-loop.ts`:
+
+1. Import `applyImportedReview`, `buildReviewPastePrompt`.
+2. Thêm `importControlMessage`:
+
+```ts
+export async function importControlMessage(input: {
+  sessionId?: string;
+  raw: string;
+}): Promise<SessionRecord> {
+  const message = parseControlMessage(extractControlBlock(input.raw));
+  const existing = input.sessionId ? await getSession(input.sessionId) : null;
+  if (
+    existing &&
+    (existing.state === "EXECUTED" || existing.state === "REVIEW") &&
+    (message.state === "DONE" || message.state === "BLOCKED" || message.state === "PLAN")
+  ) {
+    return upsertSession(applyImportedReview(existing, input.raw));
+  }
+  return importPlan(input);
+}
+```
+
+3. Đổi đầu `runReview` (sau khi merge execute) với planner dán:
+
+```ts
+  if (isPastePlanner(existing.planner) && !input.importedRaw) {
+    const reviewPastePrompt = buildReviewPastePrompt({
+      pack: existing.pack,
+      taskId: existing.id,
+      iteration: existing.plan.iteration,
+      changedFiles,
+      tests,
+    });
+    return upsertSession(
+      touchSession(
+        { ...reviewing, review: null, reviewPastePrompt },
+        {
+          state: "REVIEW",
+          actor: "planner",
+          note: `${existing.planner}: copy the review prompt into that web chat, paste DONE|PLAN|BLOCKED back.`,
+        },
+      ),
+    );
+  }
+  if (input.importedRaw) {
+    return upsertSession(applyImportedReview(reviewing, input.importedRaw));
+  }
+```
+
+Giữ nhánh `mock` / API bên dưới. `importPlan` **không** xóa; `importControlMessage` ủy quyền.
+
+- [ ] **Step 4: Run tests**
+
+Run: `npx vitest run src/core/__tests__/review-paste.test.ts src/core/__tests__/router-savings.test.ts src/core/__tests__/packets.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/run-loop.ts src/core/__tests__/review-paste.test.ts
+git commit -m "feat: keep paste-planner review on the web chat"
+```
+
+### Task 5: API + CLI import / review-prompt
+
+**Files:**
+- Modify: `src/app/api/import-plan/route.ts`
+- Modify: `src/app/api/review/route.ts`
+- Modify: `src/cli/c2x.ts`
+- Test: `src/core/__tests__/review-paste.test.ts` (không cần HTTP test; CLI logic trích hàm thuần nếu cần — gọi `importControlMessage` đã cover)
+
+**Interfaces:**
+- `POST /api/import-plan` body `{ sessionId?, raw }` → `importControlMessage`
+- `POST /api/review` giữ `{ sessionId, changedFiles?, tests? }` → `runReview` (paste sẽ trả `review: null` + `reviewPastePrompt`)
+- CLI:
+
+```text
+c2x import --session <id> --raw-file <path>
+c2x review-prompt --session <id>
+```
+
+`review-prompt` load session, nếu thiếu `reviewPastePrompt` thì gọi `runReview` rồi in prompt.
+
+- [ ] **Step 1: Write the failing CLI smoke via unit-level parse**
+
+Không bắt buộc parse Commander. Thêm test rằng `importControlMessage` là entry duy nhất (đã có). Verify tay CLI sau Step 3.
+
+Thêm assertion file-level: sau khi sửa route, grep trong đầu bạn — `import-plan/route.ts` phải import `importControlMessage`.
+
+Viết test store-level cho `runReview` đã có. Bước fail của task này: đổi route trước khi implement CLI sẽ làm `npx tsx src/cli/c2x.ts import --help` FAIL (unknown command).
+
+- [ ] **Step 2: Run to verify CLI fails**
+
+Run: `npx tsx src/cli/c2x.ts import --help`
+
+Expected: FAIL / unknown command `import`.
+
+- [ ] **Step 3: Write minimal implementation**
+
+`src/app/api/import-plan/route.ts`: thay `importPlan` bằng `importControlMessage`.
+
+`src/app/api/review/route.ts`: không đổi contract; hành vi mới đến từ `runReview`.
+
+Cuối `src/cli/c2x.ts`, trước `program.parseAsync`:
+
+```ts
+import { readFile } from "node:fs/promises";
+import { importControlMessage, runReview } from "@/core/run-loop";
+import { getSession } from "@/core/store";
+
+program
+  .command("import")
+  .requiredOption("--session <id>")
+  .requiredOption("--raw-file <path>", "path to a [C2X] block, or - for stdin")
+  .action(async (opts: { session: string; rawFile: string }) => {
+    const raw =
+      opts.rawFile === "-"
+        ? await new Promise<string>((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            process.stdin.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+            process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+            process.stdin.on("error", reject);
+          })
+        : await readFile(opts.rawFile, "utf8");
+    const session = await importControlMessage({ sessionId: opts.session, raw });
+    process.stdout.write(`${session.id} ${session.state}\n`);
+  });
+
+program
+  .command("review-prompt")
+  .requiredOption("--session <id>")
+  .action(async (opts: { session: string }) => {
+    const existing = await getSession(opts.session);
+    if (!existing) {
+      throw new Error(`unknown session: ${opts.session}`);
+    }
+    const session =
+      existing.reviewPastePrompt && existing.state === "REVIEW"
+        ? existing
+        : await runReview({
+            sessionId: opts.session,
+            changedFiles: [],
+            tests: "not run",
+          });
+    if (!session.reviewPastePrompt) {
+      throw new Error("No review paste prompt. Use a web/subscription planner.");
+    }
+    process.stdout.write(session.reviewPastePrompt);
+    process.stdout.write("\n");
+  });
+```
+
+`readFile` import ở **đầu file** `c2x.ts`, không import trong action.
+
+- [ ] **Step 4: Run tests + CLI help**
+
+Run:
+
+```bash
+npx vitest run
+npx tsx src/cli/c2x.ts import --help
+npx tsx src/cli/c2x.ts review-prompt --help
+```
+
+Expected: tests PASS; help in `session` và `raw-file` / `session`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/app/api/import-plan/route.ts src/app/api/review/route.ts src/cli/c2x.ts
+git commit -m "feat: accept imported REVIEW via API and c2x CLI"
+```
+
+### Task 6: Dashboard + i18n vòng REVIEW
+
+**Files:**
+- Modify: `src/lib/i18n.ts` — thêm key, không xóa key cũ
+- Modify: `src/components/studio-client.tsx` — tab Review: copy `reviewPastePrompt`, ô nhập dùng lại `importRaw` (đã gọi `/api/import-plan`)
+
+**Interfaces:**
+- Consumes: `session.reviewPastePrompt`, `POST /api/import-plan`, `POST /api/review`
+- Produces: key i18n (thêm, không rename hàng loạt):
+
+```ts
+copyReview: string;
+importAny: string;
+importAnyPlaceholder: string;
+waitingWebReview: string;
+```
+
+vi:
+
+```ts
+copyReview: "Sao chép prompt review",
+importAny: "Nhập [C2X] PLAN hoặc REVIEW",
+importAnyPlaceholder: "Dán khối [C2X] / [C2C] STATE: PLAN|DONE|BLOCKED …",
+waitingWebReview: "Copy prompt review sang chat web. Đừng giả lập DONE.",
+```
+
+en:
+
+```ts
+copyReview: "Copy review prompt",
+importAny: "Import [C2X] PLAN or REVIEW",
+importAnyPlaceholder: "Paste a [C2X] / [C2C] STATE: PLAN|DONE|BLOCKED block…",
+waitingWebReview: "Copy the review prompt into the web chat. Do not fake DONE.",
+```
+
+`onSimulateAll`: vẫn execute-all + `POST /api/review`. Với planner dán, response sẽ `REVIEW` + prompt — UI phải hiện prompt, không giả summary DONE. Với `mock`, giữ `mockReview`.
+
+`onImport` đã POST `/api/import-plan` — không đổi URL.
+
+- [ ] **Step 1: Write the failing test**
+
+Không có test component runner. Fail = typecheck nếu thiếu key (copy `as const` — thêm cả `vi` và `en`).
+
+Chạy sau khi sửa i18n một phía: `npx tsc --noEmit` sẽ fail nếu studio reference key chưa có.
+
+Thêm vào studio tab `review` (trước khi có key) đoạn `t.waitingWebReview` để Step 2 fail.
+
+- [ ] **Step 2: Run typecheck to verify it fails**
+
+Run: `npx tsc --noEmit`
+
+Expected: FAIL trên `waitingWebReview` nếu mới chỉ sửa tsx.
+
+- [ ] **Step 3: Write minimal implementation**
+
+1. Thêm 4 key vào **cả** `copy.vi` và `copy.en`.
+2. Tab Review trong `studio-client.tsx`:
+
+- Nếu `session.reviewPastePrompt`: `<pre>` + nút copy (`copyReview`).
+- Nếu `session.review`: badge + summary như hiện tại.
+- Nếu paste planner, đã `EXECUTED`/`REVIEW`, chưa review: hiện `t.waitingWebReview` + nút “Chuẩn bị review” gọi `POST /api/review` (không gọi execute giả nếu user đã record).
+- Ô import: đổi label sang `t.importAny` / `t.importAnyPlaceholder`.
+
+Đừng xóa nút “Giả lập đã chạy” — vẫn dùng cho demo/`mock`.
+
+- [ ] **Step 4: Verify**
+
+```bash
+npx tsc --noEmit
+npx vitest run
+```
+
+Expected: PASS
+
+Tay (khi có browser): Phòng điều khiển → planner `chatgpt-web` → Đóng gói → dán PLAN mẫu → Giả lập lane → tab Review có prompt → dán DONE → state `DONE`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/i18n.ts src/components/studio-client.tsx
+git commit -m "feat: show web-chat REVIEW paste in the control room"
+```
+
+---
+
+## Chunk 2: Slice 2 — workspace root + execution records
+
+Mục tiêu 1 có số thật. `EXECUTED` control message vẫn metadata-only. Diff body không được đưa vào `[C2X]`.
+
+### Task 7: Kiểu `ExecutionRecord`
+
+**Files:**
+- Modify: `src/core/types.ts`
+- Modify: `src/core/session.ts`
+- Test: `src/core/__tests__/records.test.ts`
+
+**Interfaces:**
+- Produces:
+
+```ts
+export const EXECUTION_EXIT_STATUSES = ["ok", "fail", "unknown"] as const;
+export type ExecutionExitStatus = (typeof EXECUTION_EXIT_STATUSES)[number];
+
+export function isExecutionExitStatus(value: string): value is ExecutionExitStatus;
+
+export type ExecutionRecord = {
+  taskId: string;
+  iteration: number;
+  owner: HarnessId;
+  changedFiles: string[];
+  tests: string;
+  exitStatus: ExecutionExitStatus;
+  recordedAt: string;
+  diffStat: string;
+};
+```
+
+`SessionRecord.records: ExecutionRecord[]`  
+`AppConfig.workspaceRoot: string` (default `""` = cwd)
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { describe, expect, it } from "vitest";
+import { createSession, normalizeSession } from "@/core/session";
+import { isExecutionExitStatus, type SessionRecord } from "@/core/types";
+
+describe("ExecutionRecord on session", () => {
+  it("normalizes missing records to an empty array", () => {
+    expect(isExecutionExitStatus("ok")).toBe(true);
+    expect(isExecutionExitStatus("nope")).toBe(false);
+    const session = createSession({
+      goal: "x",
+      planner: "mock",
+      plannerChoice: "mock",
+      harnessTeam: ["codex"],
+      budgetTokens: 4000,
+      workspaceSource: "demo",
+    });
+    expect(session.records).toEqual([]);
+    const { records: _r, ...legacy } = session;
+    expect(normalizeSession(legacy as SessionRecord).records).toEqual([]);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/records.test.ts`
+
+Expected: FAIL — module/types missing fields.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Thêm types + `isExecutionExitStatus` (so với `EXECUTION_EXIT_STATUSES`).  
+`createSession`: `records: []`.  
+`normalizeSession`: `records: raw.records ?? []`.  
+`mergeConfig`: `workspaceRoot: typeof partial?.workspaceRoot === "string" ? partial.workspaceRoot : ""`.  
+`DEFAULT_CONFIG.workspaceRoot = ""`.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/core/__tests__/records.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/types.ts src/core/session.ts src/core/config.ts src/core/__tests__/records.test.ts
+git commit -m "feat: add ExecutionRecord and workspaceRoot fields"
+```
+
+### Task 8: `collectGitMetadata`
+
+**Files:**
+- Create: `src/core/git-meta.ts`
+- Test: `src/core/__tests__/records.test.ts`
+
+**Interfaces:**
+- Produces:
+
+```ts
+export async function collectGitMetadata(root: string): Promise<{
+  changedFiles: string[];
+  diffStat: string;
+  isGit: boolean;
+}>;
+```
+
+Chạy (không shell string):
+
+```ts
+import { spawn } from "node:child_process";
+```
+
+`git -C <root> rev-parse --is-inside-work-tree` → nếu fail, `{ changedFiles: [], diffStat: "", isGit: false }`.  
+`git -C <root> status --porcelain` → lấy path cột cuối.  
+`git -C <root> diff --stat HEAD` → `diffStat` (trim, cắt 2000 ký tự).
+
+Không trả nội dung hunk.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { mkdir, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { collectGitMetadata } from "@/core/git-meta";
+
+const execFileAsync = promisify(execFile);
+
+describe("collectGitMetadata", () => {
+  it("reads porcelain paths and a stat line from a temp repo", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "c2x-git-"));
+    await execFileAsync("git", ["-C", root, "init"]);
+    await execFileAsync("git", ["-C", root, "config", "user.email", "c2x@example.com"]);
+    await execFileAsync("git", ["-C", root, "config", "user.name", "c2x"]);
+    await writeFile(path.join(root, "README.md"), "one\n", "utf8");
+    await execFileAsync("git", ["-C", root, "add", "README.md"]);
+    await execFileAsync("git", ["-C", root, "commit", "-m", "init"]);
+    await writeFile(path.join(root, "README.md"), "two\n", "utf8");
+    await writeFile(path.join(root, "src-new.ts"), "export const x = 1;\n", "utf8");
+
+    const meta = await collectGitMetadata(root);
+    expect(meta.isGit).toBe(true);
+    expect(meta.changedFiles.some((item) => item.endsWith("README.md"))).toBe(true);
+    expect(meta.diffStat.length).toBeGreaterThan(0);
+    expect(meta.diffStat).not.toContain("export const x");
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("returns isGit false outside a repository", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "c2x-nogit-"));
+    const meta = await collectGitMetadata(root);
+    expect(meta.isGit).toBe(false);
+    expect(meta.changedFiles).toEqual([]);
+    await rm(root, { recursive: true, force: true });
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/records.test.ts`
+
+Expected: FAIL — `@/core/git-meta` missing.
+
+- [ ] **Step 3: Write minimal implementation**
+
+`src/core/git-meta.ts`: helper `runGit(root, args): Promise<{ ok: boolean; stdout: string }>` dùng `spawn` + `cwd` không cần nếu đã `-C`. Parse porcelain: mỗi dòng non-empty, path = phần sau cột status (`line.slice(3).replace(/^"|"$/g, "").split(" -> ").at(-1)`).
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/core/__tests__/records.test.ts`
+
+Expected: PASS (`git` phải có trên PATH của agent — môi trường Cloud có git).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/git-meta.ts src/core/__tests__/records.test.ts
+git commit -m "feat: collect local git status and diff --stat"
+```
+
+### Task 9: `applyExecutionRecord` + ignore + workspace root
+
+**Files:**
+- Create: `src/core/records.ts`
+- Modify: `src/core/workspace.ts`
+- Modify: `src/core/sensitive.ts`
+- Modify: `src/core/store.ts` (`C2X_DATA_DIR`)
+- Modify: `src/core/run-loop.ts` (`runRecord`)
+- Create: `src/app/api/record/route.ts`
+- Modify: `src/cli/c2x.ts`
+- Test: `src/core/__tests__/records.test.ts`, `src/core/__tests__/workspace-root.test.ts`
+
+**Interfaces:**
+- Produces:
+
+```ts
+export function applyExecutionRecord(
+  session: SessionRecord,
+  record: ExecutionRecord,
+): SessionRecord;
+
+export async function runRecord(input: {
+  sessionId: string;
+  owner: HarnessId;
+  changedFiles?: string[];
+  tests?: string;
+  exitStatus?: ExecutionExitStatus;
+  workspaceRoot?: string;
+}): Promise<SessionRecord>;
+
+export function resolveWorkspaceRoot(input?: {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  configRoot?: string;
+}): string;
+
+export async function loadC2xIgnore(root: string): Promise<string[]>;
+```
+
+`applyExecutionRecord` gọi `completeHarnessRun` với `record.changedFiles` / `record.tests`, đồng thời `records = [...session.records.filter(not same owner+iteration), record]`.
+
+`runRecord`:
+
+1. Load session; `owner` phải ∈ `harnessTeam`.
+2. `root = resolveWorkspaceRoot({ cwd: input.workspaceRoot, env: process.env, configRoot: config.workspaceRoot })`.
+3. `meta = await collectGitMetadata(root)` trừ khi caller truyền `changedFiles`.
+4. Nếu `changedFiles` trống và không git: lấy `packet.files` của owner.
+5. Lọc path khỏi packet teammate khác (không ghi nhận file của owner khác).
+6. `tests` mặc định `exitStatus === "fail" ? "failed" : meta.isGit ? "recorded" : "unknown"`.
+7. `upsertSession(applyExecutionRecord(...))`.
+
+`resolveWorkspaceRoot`: `input.cwd` → `env.C2X_WORKSPACE` → `configRoot` non-empty → `process.cwd()`.
+
+`loadWorkspaceFiles("repo")` dùng `resolveWorkspaceRoot` + `loadC2xIgnore` đưa vào `isIgnoredPath(rel, extra)`.
+
+`dataDir()`: `process.env.C2X_DATA_DIR || process.env.FRUGAL_DATA_DIR || <cwd>/data`.
+
+`POST /api/record` body: `{ sessionId, owner, tests?, exitStatus? }` — **không** nhận `workspaceRoot` từ client.
+
+CLI: `c2x record --session <id> --owner <id> [--cwd <path>] [--tests <text>] [--exit-status ok|fail|unknown]`
+
+- [ ] **Step 1: Write the failing tests**
+
+`workspace-root.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { resolveWorkspaceRoot } from "@/core/workspace";
+
+describe("resolveWorkspaceRoot", () => {
+  it("prefers explicit cwd, then C2X_WORKSPACE, then config, then process.cwd", () => {
+    expect(resolveWorkspaceRoot({ cwd: "/tmp/a", env: { C2X_WORKSPACE: "/tmp/b" }, configRoot: "/tmp/c" })).toBe("/tmp/a");
+    expect(resolveWorkspaceRoot({ env: { C2X_WORKSPACE: "/tmp/b" }, configRoot: "/tmp/c" })).toBe("/tmp/b");
+    expect(resolveWorkspaceRoot({ configRoot: "/tmp/c", env: {} })).toBe("/tmp/c");
+    expect(resolveWorkspaceRoot({ env: {} })).toBe(process.cwd());
+  });
+});
+```
+
+Trong `records.test.ts`: session PLAN 2 harness; `applyExecutionRecord` cho `codex` → state `EXECUTING`; record không chứa `diffStat` trong `encodeControlMessage` EXECUTED — gọi `executedMessage` và `expect(raw).not.toContain("@@")`.
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `npx vitest run src/core/__tests__/workspace-root.test.ts src/core/__tests__/records.test.ts`
+
+Expected: FAIL — exports missing.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Đúng chữ ký trên. `executedMessage` không thêm field `DIFF`. `diffStat` chỉ sống trên `ExecutionRecord` và đi vào `buildReviewPastePrompt({ diffStat })` khi gộp:
+
+```ts
+const diffStat = session.records.map((item) => `${item.owner}: ${item.diffStat}`).filter((line) => !line.endsWith(": ")).join("\n");
+```
+
+Nối vào `runReview` paste prompt.
+
+`.c2xignore`: đọc file nếu tồn tại, mỗi dòng non-empty không bắt đầu `#`.
+
+`loadWorkspaceFiles`: truyền extra ignore.
+
+API `src/app/api/record/route.ts` — validate `sessionId` + `isHarnessId(owner)`.
+
+- [ ] **Step 4: Run tests**
+
+```bash
+npx vitest run
+npx tsc --noEmit
+```
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/records.ts src/core/workspace.ts src/core/sensitive.ts src/core/store.ts src/core/run-loop.ts src/app/api/record/route.ts src/cli/c2x.ts src/core/__tests__/records.test.ts src/core/__tests__/workspace-root.test.ts src/core/index.ts
+git commit -m "feat: record per-harness git metadata for review"
+```
+
+### Task 10: Dashboard ghi nhận + prompt review có DIFF_STAT
+
+**Files:**
+- Modify: `src/components/studio-client.tsx`
+- Modify: `src/lib/i18n.ts`
+- Modify: `src/core/run-loop.ts` (`runReview` truyền `diffStat` gộp)
+
+**Interfaces:**
+- Nút trên mỗi lane: `POST /api/record` `{ sessionId, owner }` label `recordFromGit` / `recordFromGitEn`.
+- Không thêm input path.
+
+vi: `recordFromGit: "Ghi nhận từ git"`  
+en: `recordFromGit: "Record from git"`
+
+- [ ] **Step 1: Reference the new i18n key in studio before adding it**
+
+(TDD typecheck như Task 6.)
+
+- [ ] **Step 2: `npx tsc --noEmit` fails**
+
+Expected: FAIL trên `t.recordFromGit`.
+
+- [ ] **Step 3: Add keys + button**
+
+`onRecord(owner)` → `/api/record`. Sau record, nếu cả đội `executed` thì `POST /api/review` để tạo `reviewPastePrompt` (paste) hoặc `mockReview` (mock).
+
+- [ ] **Step 4: `npx tsc --noEmit && npx vitest run`**
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/components/studio-client.tsx src/lib/i18n.ts src/core/run-loop.ts
+git commit -m "feat: record harness lanes from git in the control room"
+```
+
+---
+
+## Chunk 3: Slice 3 — adapter harness (detect + ghi brief)
+
+Mục tiêu 3–4: catalog → runtime. Không spawn.
+
+### Task 11: `detectHarness` exhaustive
+
+**Files:**
+- Create: `src/core/harness.ts`
+- Test: `src/core/__tests__/harness-detect.test.ts`
+
+**Interfaces:**
+
+```ts
+export type HarnessDetectResult = {
+  id: HarnessId;
+  ok: boolean;
+  binary: string | null;
+  hintVi: string;
+  hintEn: string;
+};
+
+export function binariesForHarness(id: HarnessId): string[];
+export async function detectHarness(id: HarnessId): Promise<HarnessDetectResult>;
+export async function detectHarnessTeam(
+  team: readonly HarnessId[],
+): Promise<HarnessDetectResult[]>;
+```
+
+`binariesForHarness` switch + `assertNever`:
+
+- `codex` → `["codex"]`
+- `claude-code` → `["claude"]`
+- `grok-build` → `["grok", "grok-build"]`
+- `opencode` → `["opencode"]`
+- `kiro-cli` → `["kiro"]`
+
+Detect: `which`/`where` không dùng. Dùng `existsSync` trên `PATH` split (`process.env.PATH`, delimiter `path.delimiter`) + `pathext` Windows nếu có. Test không phụ thuộc máy có `codex`: test `binariesForHarness` + detect với `PATH` trỏ vào dir tạm chứa file executable giả tên `claude`.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { chmod, mkdir, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { binariesForHarness, detectHarness } from "@/core/harness";
+import { HARNESS_IDS } from "@/core/types";
+
+describe("binariesForHarness", () => {
+  it("lists at least one binary name for every harness id", () => {
+    for (const id of HARNESS_IDS) {
+      expect(binariesForHarness(id).length).toBeGreaterThan(0);
+    }
+    expect(binariesForHarness("grok-build")).toEqual(["grok", "grok-build"]);
+    expect(binariesForHarness("kiro-cli")).toEqual(["kiro"]);
+  });
+});
+
+describe("detectHarness", () => {
+  it("finds a fake claude binary on PATH and stays ok:false when missing", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "c2x-bin-"));
+    const fake = path.join(dir, "claude");
+    await writeFile(fake, "#!/bin/sh\necho ok\n", "utf8");
+    await chmod(fake, 0o755);
+    const prev = process.env.PATH;
+    process.env.PATH = dir;
+    const found = await detectHarness("claude-code");
+    process.env.PATH = "/nonexistent-c2x-path";
+    const missing = await detectHarness("claude-code");
+    process.env.PATH = prev;
+    expect(found.ok).toBe(true);
+    expect(found.binary).toBe(fake);
+    expect(missing.ok).toBe(false);
+    expect(missing.binary).toBeNull();
+    expect(missing.hintVi.length).toBeGreaterThan(10);
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+```
+
+Import `mkdtemp`/`rm` từ `node:fs/promises` ở đầu file test.
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
+
+Expected: FAIL — module missing.
+
+- [ ] **Step 3: Write minimal implementation**
+
+`src/core/harness.ts` với switch exhaustive, scan PATH, hint vi/en: “Không thấy {binary}. Sao chép brief `{id}` vào tool đó — C2X không spawn harness.”
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/harness.ts src/core/__tests__/harness-detect.test.ts src/core/index.ts
+git commit -m "feat: detect Codex/Claude/Grok/OpenCode/Kiro binaries"
+```
+
+### Task 12: `writeHarnessBrief` + CLI `brief` / `doctor`
+
+**Files:**
+- Modify: `src/core/harness.ts`
+- Modify: `src/cli/c2x.ts`
+- Test: `src/core/__tests__/harness-detect.test.ts`
+
+**Interfaces:**
+
+```ts
+export async function writeHarnessBrief(input: {
+  session: SessionRecord;
+  owner: HarnessId;
+  dataDir: string;
+}): Promise<string>;
+```
+
+Path: `path.join(dataDir, "briefs", `${session.id}.${owner}.c2x.md`)`.  
+Nội dung: `renderCodexBrief` của brief `owner`. Throw nếu owner không có brief.
+
+CLI:
+
+```text
+c2x doctor [--team a,b]
+c2x brief --session <id> --owner <id>
+```
+
+`doctor` in `id\tok|missing\tbinary-or-hint`.  
+`brief` ghi file, in absolute path.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { readFile } from "node:fs/promises";
+import { writeHarnessBrief } from "@/core/harness";
+import { mockPlanFromPack } from "@/core/planner";
+import { planToBriefs, renderCodexBrief } from "@/core/brief";
+
+it("writes only that owner brief under data/briefs", async () => {
+  const pack = packWorkspace({
+    goal: "Sửa createTask",
+    files: DEMO_FILES,
+    budgetTokens: 2000,
+  });
+  const plan = mockPlanFromPack(pack, "c2x_b1", ["codex", "claude-code"]);
+  const session = {
+    ...createSession({
+      goal: pack.goal,
+      planner: "mock",
+      plannerChoice: "mock",
+      harnessTeam: ["codex", "claude-code"],
+      budgetTokens: 2000,
+      workspaceSource: "demo",
+    }),
+    plan,
+    briefs: planToBriefs(plan),
+  };
+  const dir = await mkdtemp(path.join(os.tmpdir(), "c2x-data-"));
+  const briefPath = await writeHarnessBrief({ session, owner: "codex", dataDir: dir });
+  expect(briefPath).toBe(path.join(dir, "briefs", "c2x_b1.codex.c2x.md"));
+  const text = await readFile(briefPath, "utf8");
+  expect(text).toBe(renderCodexBrief(session.briefs[0]!));
+  expect(text).toMatch(/OWNER:\s*codex/);
+  expect(text).not.toMatch(/OWNER:\s*claude-code/);
+  await rm(dir, { recursive: true, force: true });
+});
+```
+
+Dùng `taskId` từ `createSession` — **không** hard-code `c2x_b1` trong expect path. Sửa test: `mockPlanFromPack(pack, session.id, ...)` sau khi tạo session, hoặc expect `path.join(dir, "briefs", `${session.id}.codex.c2x.md`)`.
+
+Bản đúng:
+
+```ts
+  const created = createSession({ /* ... */ });
+  const plan = mockPlanFromPack(pack, created.id, ["codex", "claude-code"]);
+  const session = { ...created, plan, briefs: planToBriefs(plan), brief: planToBriefs(plan)[0] ?? null };
+  const briefPath = await writeHarnessBrief({ session, owner: "codex", dataDir: dir });
+  expect(briefPath).toBe(path.join(dir, "briefs", `${session.id}.codex.c2x.md`));
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
+
+Expected: FAIL — `writeHarnessBrief` missing.
+
+- [ ] **Step 3: Write minimal implementation**
+
+`mkdir(..., { recursive: true })` rồi `writeFile`. CLI commands như trên; `doctor` map `detectHarnessTeam(teamFromOpts(opts) or HARNESS_IDS)`.
+
+- [ ] **Step 4: Run tests + help**
+
+```bash
+npx vitest run
+npx tsx src/cli/c2x.ts doctor
+npx tsx src/cli/c2x.ts brief --help
+```
+
+Expected: tests PASS; `doctor` in 5 dòng (ok hoặc missing).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/harness.ts src/cli/c2x.ts src/core/__tests__/harness-detect.test.ts
+git commit -m "feat: write per-harness briefs and c2x doctor"
+```
+
+### Task 13: Skill path + dashboard hint detect
+
+**Files:**
+- Modify: `skill/SKILL.md` — thay “replace-with-absolute-path” instruction: `c2x skill-install` (lệnh thật).
+- Modify: `src/cli/c2x.ts` — `skill-install`
+- Modify: `src/components/studio-client.tsx` — dưới mỗi lane, nếu muốn, chỉ hiện text tĩnh “Brief: copy hoặc `c2x brief --session … --owner …`”. Không gọi detect từ browser (tránh lệ PATH server).
+
+`skill-install` copy `skill/SKILL.md` → `path.join(os.homedir(), ".codex/skills/chat-to-x/SKILL.md")`, replace dòng checkout bằng `process.cwd()`.
+
+- [ ] **Step 1: Test skill-install vào homedir giả**
+
+Đừng ghi `~` thật trong test. Export:
+
+```ts
+export async function installSkill(input: {
+  repoRoot: string;
+  skillHome: string;
+}): Promise<string>;
+```
+
+Test: `skillHome` tạm, file chứa `repoRoot`.
+
+- [ ] **Step 2: Run test — fail missing export**
+
+- [ ] **Step 3: Implement `installSkill` in `src/core/harness.ts`; CLI wraps it với `os.homedir()`**
+
+- [ ] **Step 4: `npx vitest run && npx tsc --noEmit`**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add skill/SKILL.md src/cli/c2x.ts src/core/harness.ts src/core/__tests__/harness-detect.test.ts src/components/studio-client.tsx
+git commit -m "feat: install the chat-to-x skill with the real repo path"
+```
+
+---
+
+## Chunk 4: Slice 4–7 (làm sau khi 1–3 xanh)
+
+Mỗi slice dưới đây vẫn là một đơn vị review riêng. Đừng làm trước khi user duyệt spec và 1–3 xong.
+
+### Task 14: Slice 4 — heuristic packet generic
+
+**Files:**
+- Modify: `src/core/packets.ts` (`packetActions`, `packetTests`, `packetCriteria`)
+- Modify: `src/core/__tests__/packets.test.ts`
+
+**Interfaces:** giữ `splitWorkPackets(...)`. Bỏ nhánh `/createTask|create|thêm/` sinh câu “Fix createTask so new rows persist…”. Thay bằng câu gắn `goal` (cắt 120 ký tự) + vai trò.
+
+Cảnh báo chồng file: `export function packetOverlapWarning(packets: WorkPacket[]): string | null` — `null` nếu `packetsHaveDisjointFiles`.
+
+- [ ] **Step 1: Đổi test demo**
+
+`packets.test.ts` hiện expect file `tasks.ts` / test paths — **giữ** (vẫn đúng vì fixture Nhiệm vụ). Thêm test:
+
+```ts
+  it("does not mention createTask when the goal is unrelated", () => {
+    const packets = splitWorkPackets({
+      team: ["codex"],
+      files: ["src/theme.ts"],
+      goal: "Add a dark mode toggle",
+      taskId: "c2x_dark",
+    });
+    expect(packets[0]?.actions.join(" ")).not.toMatch(/createTask/i);
+    expect(packets[0]?.actions.join(" ")).toMatch(/dark mode/i);
+  });
+```
+
+- [ ] **Step 2: Run — fail vì action vẫn nói createTask / persist store**
+
+- [ ] **Step 3: Generic actions; `packetOverlapWarning`**
+
+- [ ] **Step 4: `npx vitest run src/core/__tests__/packets.test.ts`**
+
+- [ ] **Step 5: Commit** `fix: stop hard-coding Nhiệm vụ actions into every packet`
+
+### Task 15: Slice 5 — `bin` + lệnh `sessions`
+
+**Files:**
+- Modify: `package.json` — `"bin": { "c2x": "src/cli/c2x.ts" }`, **giữ** `"private": true`
+- Modify: `src/cli/c2x.ts` — `sessions` in `id state planner team`
+
+- [ ] **Step 1: Test** `sessions` qua `loadSessions` (store temp) — CLI command mỏng, test `loadSessions` đã có gián tiếp. Thêm `it` đọc JSON sau `runPlan` mock.
+
+- [ ] **Step 2: `npx tsx src/cli/c2x.ts sessions` fail nếu command thiếu**
+
+- [ ] **Step 3: Implement command; thêm bin field**
+
+- [ ] **Step 4: `npx tsx src/cli/c2x.ts sessions` exits 0**
+
+- [ ] **Step 5: Commit** `feat: expose c2x bin and list sessions`
+
+Không `npm publish`.
+
+### Task 16: Slice 6 — checkpoint + HANDOFF + maxIterations
+
+**Files:**
+- Modify: `src/core/types.ts` — `iterationLimit: number` trên session (default 12)
+- Modify: `src/core/protocol.ts` — `handoffMessage(...)`
+- Modify: `src/core/run-loop.ts` — từ chối PLAN mới khi `iteration >= iterationLimit` → `BLOCKED` với `NEEDS: confirm continue`
+- Test: `src/core/__tests__/protocol.test.ts`
+
+**Interfaces:**
+
+```ts
+export function handoffMessage(input: {
+  taskId: string;
+  iteration: number;
+  originalGoal: string;
+  progress: string;
+  currentState: ProtocolState;
+  knownIssues: string;
+  nextExpectedStep: string;
+}): string;
+```
+
+Sections đúng C2C: `ORIGINAL_GOAL`, `PROGRESS`, `CURRENT_STATE`, `KNOWN_ISSUES`, `NEXT_EXPECTED_STEP`. Tag `[C2X]`. `assertControlBudget`.
+
+- [ ] **Step 1: Test round-trip parse `HANDOFF` + budget < 1200**
+
+- [ ] **Step 2: Fail — helper missing**
+
+- [ ] **Step 3: Implement encode; CLI `c2x handoff --session <id>` in message**
+
+- [ ] **Step 4: vitest protocol + review-paste vẫn PASS**
+
+- [ ] **Step 5: Commit** `feat: emit [C2X] HANDOFF from a local checkpoint`
+
+### Task 17: Slice 7 — không code trừ khi user xin
+
+MCP loopback (không tunnel) là subsystem riêng: OAuth, 9 tool đọc, path containment. **Không** thêm file trong đợt này. Nếu user duyệt C, mở plan mới `docs/superpowers/plans/YYYY-MM-DD-c2x-loopback-mcp.md`.
+
+---
+
+## Thứ tự implement và verify
+
+Làm Task 1 → 13 trước. Sau mỗi chunk: `npx vitest run && npx tsc --noEmit`.
+
+Verify tích lũy (không phải một screenshot):
+
+1. `chatgpt-web` + 2 harness: import PLAN → 2 brief `OWNER` khác file.
+2. Import `DONE` trước execute → lỗi. Sau execute + `runReview` → prompt, `review === null`. Import `DONE` → `DONE`.
+3. Repo git tạm: `c2x record` điền `changedFiles`; `[C2X] EXECUTED` không có hunk.
+4. `c2x doctor` / `c2x brief` không spawn process harness.
+5. `routeRole` plan/review vẫn không phải harness (`router-savings.test.ts`).
+
+## Coverage vs spec
+
+| Spec | Task |
+| --- | --- |
+| §6 vòng dán REVIEW | 2–6 |
+| §6.1 importControlMessage | 4–5 |
+| §6.2 buildReviewPastePrompt | 2 |
+| §6.3 reviewPastePrompt | 1 |
+| §7 records + git + root + ignore | 7–10 |
+| §8 adapter + doctor + skill | 11–13 |
+| §9 packet generic | 14 |
+| §10 bin / HANDOFF | 15–16 |
+| §11 / §7 MCP không làm | 17 (cố ý không code) |
+| Router/catalog giữ | mọi task; regression test bắt buộc |
+
+## Self-review (plan)
+
+- Không còn bước “add validation” / “TBD” / “similar to Task N”.
+- Tên hàm nhất quán: `buildReviewPastePrompt`, `applyImportedReview`, `importControlMessage`, `collectGitMetadata`, `applyExecutionRecord`, `runRecord`, `resolveWorkspaceRoot`, `detectHarness`, `writeHarnessBrief`, `installSkill`, `handoffMessage`.
+- `SessionRecord.reviewPastePrompt` và `records` xuất hiện từ Task 1 và 7; Task 4/9 tiêu thụ đúng tên đó.
+- `import-plan` URL giữ để dashboard cũ không gãy; hành vi mở rộng.

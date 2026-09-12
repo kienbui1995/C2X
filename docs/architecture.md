@@ -108,3 +108,12 @@ receive account credentials.
 Control messages accept `[C2X]` and legacy `[C2C]`. You can still run the
 original C2C bridge for ChatGPT Computer Use; this repo is the multi-provider,
 multi-harness, quota-splitting base on top of that idea.
+
+## Next features (not implemented in this checkout)
+
+Design (Vietnamese): [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](superpowers/specs/2026-09-12-chat-to-x-features-design.md)
+
+Implementation plan: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](superpowers/plans/2026-09-12-chat-to-x-features.md)
+
+First three slices: close the web-chat PLAN+REVIEW paste loop; local git
+execution records; detect/write harness briefs (no spawn, no OAuth/tunnel).
