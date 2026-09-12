@@ -1490,7 +1490,7 @@ c2x review-prompt --session <id>
 
 `review-prompt` load session, nếu thiếu `reviewPastePrompt` thì gọi `runReview` rồi in prompt.
 
-- [ ] **Step 1: Write the failing CLI smoke via unit-level parse**
+- [x] **Step 1: Write the failing CLI smoke via unit-level parse**
 
 Không bắt buộc parse Commander. Thêm test rằng `importControlMessage` là entry duy nhất (đã có). Verify tay CLI sau Step 3.
 
@@ -1498,13 +1498,13 @@ Thêm assertion file-level: sau khi sửa route, grep trong đầu bạn — `im
 
 Viết test store-level cho `runReview` đã có. Bước fail của task này: đổi route trước khi implement CLI sẽ làm `npx tsx src/cli/c2x.ts import --help` FAIL (unknown command).
 
-- [ ] **Step 2: Run to verify CLI fails**
+- [x] **Step 2: Run to verify CLI fails**
 
 Run: `npx tsx src/cli/c2x.ts import --help`
 
 Expected: FAIL / unknown command `import`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `src/app/api/import-plan/route.ts`: thay `importPlan` bằng `importControlMessage`.
 
@@ -1561,7 +1561,7 @@ program
 
 `readFile` import ở **đầu file** `c2x.ts`, không import trong action.
 
-- [ ] **Step 4: Run tests + CLI help**
+- [x] **Step 4: Run tests + CLI help**
 
 Run:
 
@@ -1573,7 +1573,7 @@ npx tsx src/cli/c2x.ts review-prompt --help
 
 Expected: tests PASS; help in `session` và `raw-file` / `session`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/app/api/import-plan/route.ts src/app/api/review/route.ts src/cli/c2x.ts

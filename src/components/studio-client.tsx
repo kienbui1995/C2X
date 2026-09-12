@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { renderCodexBrief } from "@/core/brief";
-import { HARNESS_CATALOG, getHarness, PROVIDER_CATALOG } from "@/core/providers/catalog";
+import { HARNESS_CATALOG, getHarness, isPastePlanner, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { planToMessage } from "@/core/protocol";
 import { formatTokens } from "@/core/tokens";
 import {
@@ -187,6 +187,27 @@ export function StudioClient() {
         harness: owner,
       });
       setSession(executed.session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.error);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onPrepareReview() {
+    if (!session) {
+      return;
+    }
+    setBusy("review");
+    setError(null);
+    try {
+      const files = session.plan?.packets.flatMap((packet) => packet.files) ?? [];
+      const result = await postJson<{ session: SessionRecord }>("/api/review", {
+        sessionId: session.id,
+        changedFiles: files,
+        tests: session.harnessRuns.map((run) => `${run.owner}: ${run.tests || "not run"}`).join("\n") || "not run",
+      });
+      setSession(result.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
     } finally {
@@ -535,11 +556,11 @@ export function StudioClient() {
                     </Button>
                   ) : null}
                   <div className="space-y-2">
-                    <Label>{t.importPlan}</Label>
+                    <Label>{t.importAny}</Label>
                     <Textarea
                       value={importRaw}
                       onChange={(event) => setImportRaw(event.target.value)}
-                      placeholder={t.importPlaceholder}
+                      placeholder={t.importAnyPlaceholder}
                       className="min-h-28 font-mono text-xs"
                     />
                     <Button
@@ -548,20 +569,71 @@ export function StudioClient() {
                       onClick={() => void onImport()}
                       disabled={busy !== null || !importRaw.trim()}
                     >
-                      {t.applyImport}
+                      {t.importAny}
                     </Button>
                   </div>
                 </TabsContent>
-                <TabsContent value="review" className="mt-3 space-y-2">
+                <TabsContent value="review" className="mt-3 space-y-3">
+                  {session.reviewPastePrompt ? (
+                    <>
+                      <pre className="max-h-64 overflow-auto rounded-lg bg-muted/40 p-3 font-mono text-[11px] leading-5">
+                        {session.reviewPastePrompt}
+                      </pre>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void copyText("review", session.reviewPastePrompt || "")}
+                      >
+                        <Copy />
+                        {copied === "review" ? t.copied : t.copyReview}
+                      </Button>
+                    </>
+                  ) : null}
                   {session.review ? (
                     <>
                       <Badge>{session.review.state}</Badge>
                       <p className="text-sm">{session.review.summary}</p>
                       <Section title={t.risks} items={session.review.issues} />
                     </>
-                  ) : (
+                  ) : null}
+                  {!session.review &&
+                  isPastePlanner(session.planner) &&
+                  (session.state === "EXECUTED" || session.state === "REVIEW") ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">{t.waitingWebReview}</p>
+                      {!session.reviewPastePrompt ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={busy !== null}
+                          onClick={() => void onPrepareReview()}
+                        >
+                          {busy === "review" ? <LoaderCircle className="animate-spin" /> : null}
+                          {busy === "review" ? t.reviewing : t.prepareReview}
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {!session.review && !session.reviewPastePrompt && !isPastePlanner(session.planner) ? (
                     <p className="text-sm text-muted-foreground">{t.simulate}</p>
-                  )}
+                  ) : null}
+                  <div className="space-y-2">
+                    <Label>{t.importAny}</Label>
+                    <Textarea
+                      value={importRaw}
+                      onChange={(event) => setImportRaw(event.target.value)}
+                      placeholder={t.importAnyPlaceholder}
+                      className="min-h-28 font-mono text-xs"
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void onImport()}
+                      disabled={busy !== null || !importRaw.trim()}
+                    >
+                      {t.importAny}
+                    </Button>
+                  </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
