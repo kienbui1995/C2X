@@ -1090,7 +1090,7 @@ Quy tắc (khớp spec §6.1):
 - `PLAN` khi chưa có plan (`INIT`) → không dùng hàm này (vẫn `importPlan`).
 - State khác → throw `Error` có chữ `REVIEW` hoặc `PLAN`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { planToBriefs } from "@/core/brief";
@@ -1169,13 +1169,13 @@ nope
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
 
 Expected: FAIL — Cannot find module `@/core/review-import`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `src/core/review-import.ts`:
 
@@ -1234,13 +1234,13 @@ export function applyImportedReview(session: SessionRecord, raw: string): Sessio
 
 Export từ `src/core/index.ts`: `export * from "@/core/review-import";`
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/review-import.ts src/core/index.ts src/core/__tests__/review-paste.test.ts

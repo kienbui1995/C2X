@@ -4,6 +4,7 @@ import { packWorkspace } from "@/core/packer";
 import {
   PLANNER_SYSTEM_PROMPT,
   buildPlanUserPrompt,
+  buildReviewPastePrompt,
   buildReviewUserPrompt,
   buildWebPastePrompt,
   extractControlBlock,
@@ -12,6 +13,7 @@ import {
   parsePlannerOutput,
 } from "@/core/planner";
 import { isPastePlanner } from "@/core/providers/catalog";
+import { applyImportedReview } from "@/core/review-import";
 import { completePlanner } from "@/core/providers/complete";
 import { resolvePlanner } from "@/core/providers/router";
 import { messageToReview, parseControlMessage } from "@/core/protocol";
@@ -175,6 +177,22 @@ export async function importPlan(input: {
   return upsertSession(next);
 }
 
+export async function importControlMessage(input: {
+  sessionId?: string;
+  raw: string;
+}): Promise<SessionRecord> {
+  const message = parseControlMessage(extractControlBlock(input.raw));
+  const existing = input.sessionId ? await getSession(input.sessionId) : null;
+  if (
+    existing &&
+    (existing.state === "EXECUTED" || existing.state === "REVIEW") &&
+    (message.state === "DONE" || message.state === "BLOCKED" || message.state === "PLAN")
+  ) {
+    return upsertSession(applyImportedReview(existing, input.raw));
+  }
+  return importPlan(input);
+}
+
 export async function runExecute(input: {
   sessionId: string;
   harness?: HarnessId;
@@ -210,6 +228,7 @@ export async function runReview(input: {
   sessionId: string;
   changedFiles: string[];
   tests: string;
+  importedRaw?: string;
 }): Promise<SessionRecord> {
   const existing = await getSession(input.sessionId);
   if (!existing?.pack || !existing.plan) {
@@ -239,6 +258,29 @@ export async function runReview(input: {
     actor: "planner",
     note: "Planner is reviewing the merged execution report.",
   });
+
+  if (isPastePlanner(existing.planner) && !input.importedRaw) {
+    const reviewPastePrompt = buildReviewPastePrompt({
+      pack: reusedPack(existing),
+      taskId: existing.id,
+      iteration: existing.plan.iteration,
+      changedFiles,
+      tests,
+    });
+    return upsertSession(
+      touchSession(
+        { ...reviewing, review: null, reviewPastePrompt },
+        {
+          state: "REVIEW",
+          actor: "planner",
+          note: `${existing.planner}: copy the review prompt into that web chat, paste DONE|PLAN|BLOCKED back.`,
+        },
+      ),
+    );
+  }
+  if (input.importedRaw) {
+    return upsertSession(applyImportedReview(reviewing, input.importedRaw));
+  }
 
   let review = mockReview({
     taskId: existing.id,
