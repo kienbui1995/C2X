@@ -2292,7 +2292,7 @@ Mỗi slice dưới đây vẫn là một đơn vị review riêng. Đừng làm
 - Modify: `src/cli/c2x.ts` — `sessions` in `id state planner team`
 - Modify: `README.md` — stranger chạy `npx chat-to-x` / `npm run c2x -- …`. Một dòng: **không** `npx c2x` (npm `c2x` là CSS→XPath).
 
-- [ ] **Step 1: Assert package.json will not publish as `c2x`**
+- [x] **Step 1: Assert package.json will not publish as `c2x`**
 
 Thêm test hoặc check trong `src/core/__tests__/harness-detect.test.ts` (hoặc file nhỏ `package-meta.test.ts`):
 
@@ -2315,15 +2315,15 @@ describe("npm package identity", () => {
 
 Sau khi thêm `bin`, cập nhật test: `expect(pkg.bin?.["chat-to-x"]).toBe("src/cli/c2x.ts")`.
 
-- [ ] **Step 2: Run test — `bin.chat-to-x` missing (fail sau Step 3 kỳ vọng pass)**
+- [x] **Step 2: Run test — `bin.chat-to-x` missing (fail sau Step 3 kỳ vọng pass)**
 
 Run: `npx vitest run src/core/__tests__/package-meta.test.ts`
 
 Expected lần đầu: FAIL nếu file chưa có; sau Step 3: `private` true, name `chat-to-x`.
 
-- [ ] **Step 3: Implement `sessions` + `bin`; không `npm publish`**
+- [x] **Step 3: Implement `sessions` + `bin`; không `npm publish`**
 
-- [ ] **Step 4:**
+- [x] **Step 4:**
 
 ```bash
 npx tsx src/cli/c2x.ts sessions
@@ -2332,7 +2332,7 @@ npx vitest run src/core/__tests__/package-meta.test.ts
 
 Expected: exit 0; `name` vẫn `chat-to-x`.
 
-- [ ] **Step 5: Commit** `feat: expose chat-to-x bin alias and list sessions`
+- [x] **Step 5: Commit** `feat: expose chat-to-x bin alias and list sessions`
 
 Không `npm publish`. Không đổi `"name"` thành `c2x`.
 

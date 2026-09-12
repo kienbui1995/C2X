@@ -29,9 +29,12 @@ describe("ExecutionRecord on session", () => {
       workspaceSource: "demo",
     });
     expect(session.records).toEqual([]);
+    expect(session.iterationLimit).toBe(12);
     const legacy = { ...session } as SessionRecord;
     delete (legacy as { records?: SessionRecord["records"] }).records;
+    delete (legacy as { iterationLimit?: SessionRecord["iterationLimit"] }).iterationLimit;
     expect(normalizeSession(legacy).records).toEqual([]);
+    expect(normalizeSession(legacy).iterationLimit).toBe(12);
   });
 });
 

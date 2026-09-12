@@ -12,7 +12,27 @@ import {
   type WorkspaceSource,
   type PlannerChoice,
   type ProviderId,
+  type ReviewVerdict,
 } from "@/core/types";
+
+export function blockAtIterationLimit(session: SessionRecord): SessionRecord {
+  const review: ReviewVerdict = {
+    taskId: session.id,
+    iteration: session.plan?.iteration ?? 0,
+    state: "BLOCKED",
+    summary: `Iteration ${session.plan?.iteration ?? 0} reached the limit ${session.iterationLimit}. Confirm continue.`,
+    issues: [`iteration ${session.plan?.iteration ?? 0} >= ${session.iterationLimit}`],
+    nextActions: ["confirm continue"],
+  };
+  return touchSession(
+    { ...session, review },
+    {
+      state: "BLOCKED",
+      actor: "system",
+      note: "NEEDS: confirm continue — iterationLimit reached.",
+    },
+  );
+}
 
 export function reusedPack(session: SessionRecord): ContextPack {
   if (!session.pack) {
@@ -82,6 +102,7 @@ export function createSession(input: {
       },
     ],
     savings: null,
+    iterationLimit: 12,
   };
 }
 
@@ -162,6 +183,7 @@ export function normalizeSession(raw: SessionRecord): SessionRecord {
     harnessRuns,
     records: raw.records ?? [],
     reviewPastePrompt: raw.reviewPastePrompt ?? null,
+    iterationLimit: raw.iterationLimit ?? 12,
   };
 }
 

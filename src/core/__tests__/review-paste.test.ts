@@ -225,3 +225,58 @@ Looks good.
     expect(done.review?.state).toBe("DONE");
   });
 });
+
+describe("iterationLimit", () => {
+  it("blocks a new PLAN when the session is already at iterationLimit", async () => {
+    let session = await runPlan({
+      goal: "Add a dark mode toggle",
+      plannerChoice: "mock",
+      harnessTeam: ["codex"],
+      budgetTokens: 2000,
+      workspaceSource: "demo",
+    });
+    session = await upsertSession({ ...session, iterationLimit: 1 });
+    const blocked = await importControlMessage({
+      sessionId: session.id,
+      raw: `[C2X]
+STATE: PLAN
+TASK_ID: ${session.id}
+ITERATION: 2
+
+GOAL:
+Add a dark mode toggle
+
+RATIONALE:
+Next loop.
+
+ACTIONS:
+1. Continue.
+
+FILES_LIKELY_INVOLVED:
+- src/theme.ts
+
+TESTS:
+- unit
+
+SUCCESS_CRITERIA:
+- dark mode works
+
+RISKS:
+- none
+
+PACKETS:
+  ## owner=codex role=general
+  ACTIONS:
+  1. Continue.
+  FILES:
+  - src/theme.ts
+  TESTS:
+  - unit
+  SUCCESS_CRITERIA:
+  - dark mode works
+`,
+    });
+    expect(blocked.state).toBe("BLOCKED");
+    expect(blocked.review?.nextActions.join(" ") ?? "").toMatch(/confirm continue/i);
+  });
+});

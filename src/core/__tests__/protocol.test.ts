@@ -4,8 +4,11 @@ import { mockPlanFromPack } from "@/core/planner";
 import { packWorkspace } from "@/core/packer";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import {
+  CONTROL_BUDGET_DEFAULT,
+  assertControlBudget,
   canTransition,
   encodeControlMessage,
+  handoffMessage,
   messageToPlan,
   parseControlMessage,
 } from "@/core/protocol";
@@ -60,5 +63,34 @@ Looks good.
     const brief = planToBrief(mockPlanFromPack(pack, "c2x_brief"));
     expect(brief.tokenEstimate).toBeLessThan(pack.packedTokens);
     expect(renderCodexBrief(brief).startsWith("[C2X]")).toBe(true);
+  });
+});
+
+describe("handoffMessage", () => {
+  it("round-trips a HANDOFF checkpoint under the 1200-token budget", () => {
+    const raw = handoffMessage({
+      taskId: "c2x_hand",
+      iteration: 3,
+      originalGoal: "Add a dark mode toggle",
+      progress: "PLAN imported; brief copied to opencode.",
+      currentState: "EXECUTED",
+      knownIssues: "Tests not run.",
+      nextExpectedStep: "Paste REVIEW into the web chat.",
+    });
+    expect(raw).toContain("[C2X]");
+    expect(raw).toMatch(/STATE:\s*HANDOFF/);
+    expect(raw).toContain("ORIGINAL_GOAL");
+    expect(raw).toContain("Add a dark mode toggle");
+    expect(raw).toContain("PROGRESS");
+    expect(raw).toContain("CURRENT_STATE");
+    expect(raw).toContain("EXECUTED");
+    expect(raw).toContain("KNOWN_ISSUES");
+    expect(raw).toContain("NEXT_EXPECTED_STEP");
+    const parsed = parseControlMessage(raw);
+    expect(parsed.state).toBe("HANDOFF");
+    expect(parsed.taskId).toBe("c2x_hand");
+    expect(parsed.iteration).toBe(3);
+    expect(parsed.sections.ORIGINAL_GOAL).toContain("dark mode");
+    assertControlBudget(raw, CONTROL_BUDGET_DEFAULT);
   });
 });

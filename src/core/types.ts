@@ -224,6 +224,7 @@ export type SessionRecord = {
   fallbackReason: string | null;
   events: SessionEvent[];
   savings: TokenLedger | null;
+  iterationLimit: number;
 };
 
 export type ProviderStatus = {

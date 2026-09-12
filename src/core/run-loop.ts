@@ -22,6 +22,7 @@ import { messageToReview, parseControlMessage } from "@/core/protocol";
 import { estimateSavings } from "@/core/savings";
 import {
   applyPlan,
+  blockAtIterationLimit,
   completeAllHarnessRuns,
   completeHarnessRun,
   createSession,
@@ -155,8 +156,14 @@ export async function importPlan(input: {
     throw new Error("Import needs an existing packed session. Run plan first.");
   }
   const pack = reusedPack(existing);
+  if (existing.plan && existing.plan.iteration >= existing.iterationLimit) {
+    return upsertSession(blockAtIterationLimit(existing));
+  }
   const fallback = mockPlanFromPack(pack, existing.id, existing.harnessTeam);
   const plan = parsePlannerOutput(input.raw, fallback);
+  if (plan.iteration >= existing.iterationLimit && existing.plan) {
+    return upsertSession(blockAtIterationLimit(existing));
+  }
   const briefs = planToBriefs(plan);
   const next = applyPlan(
     touchSession(existing, {

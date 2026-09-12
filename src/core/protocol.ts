@@ -168,6 +168,56 @@ export function initMessage(taskId: string, goal: string): string {
   });
 }
 
+export function handoffMessage(input: {
+  taskId: string;
+  iteration: number;
+  originalGoal: string;
+  progress: string;
+  currentState: ProtocolState;
+  knownIssues: string;
+  nextExpectedStep: string;
+}): string {
+  const raw = encodeControlMessage({
+    state: "HANDOFF",
+    taskId: input.taskId,
+    iteration: input.iteration,
+    sections: {
+      ORIGINAL_GOAL: input.originalGoal,
+      PROGRESS: input.progress,
+      CURRENT_STATE: input.currentState,
+      KNOWN_ISSUES: input.knownIssues,
+      NEXT_EXPECTED_STEP: input.nextExpectedStep,
+    },
+  });
+  assertControlBudget(raw);
+  return raw;
+}
+
+export function nextExpectedStep(state: ProtocolState): string {
+  switch (state) {
+    case "INIT":
+      return "Pack the workspace and import a [C2X] PLAN.";
+    case "PLAN":
+      return "Copy each owner brief into that harness, then c2x record.";
+    case "EXECUTING":
+      return "Finish remaining harness lanes, then c2x record.";
+    case "EXECUTED":
+      return "Prepare REVIEW (paste prompt or mock) and import DONE|PLAN|BLOCKED.";
+    case "REVIEW":
+      return "Paste DONE, PLAN, or BLOCKED from the web chat.";
+    case "DONE":
+      return "Optional: emit HANDOFF and stop.";
+    case "BLOCKED":
+      return "Confirm continue, or import a new PLAN after raising iterationLimit.";
+    case "ERROR":
+      return "Inspect the last event, then restart from INIT or HANDOFF.";
+    case "HANDOFF":
+      return "Resume from CURRENT_STATE in a new chat.";
+    default:
+      return assertNever(state, `Unhandled protocol state: ${state}`);
+  }
+}
+
 export function executedMessage(input: {
   taskId: string;
   iteration: number;

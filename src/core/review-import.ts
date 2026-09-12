@@ -2,7 +2,7 @@ import { planToBriefs } from "@/core/brief";
 import { extractControlBlock, parsePlannerOutput } from "@/core/planner";
 import { messageToReview, parseControlMessage } from "@/core/protocol";
 import { estimateSavings } from "@/core/savings";
-import { applyPlan, reusedPack, touchSession } from "@/core/session";
+import { applyPlan, blockAtIterationLimit, reusedPack, touchSession } from "@/core/session";
 import type { SessionRecord } from "@/core/types";
 
 export function applyImportedReview(session: SessionRecord, raw: string): SessionRecord {
@@ -24,7 +24,13 @@ export function applyImportedReview(session: SessionRecord, raw: string): Sessio
     if (!fallback) {
       throw new Error("Review PLAN import needs an existing PLAN.");
     }
+    if (fallback.iteration >= session.iterationLimit) {
+      return blockAtIterationLimit(session);
+    }
     const plan = parsePlannerOutput(raw, fallback);
+    if (plan.iteration >= session.iterationLimit) {
+      return blockAtIterationLimit(session);
+    }
     const briefs = planToBriefs(plan);
     return applyPlan(
       touchSession(session, {

@@ -12,6 +12,7 @@ import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
+import { handoffMessage, nextExpectedStep } from "@/core/protocol";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
 import { dataDir, getSession, loadSessions } from "@/core/store";
@@ -297,6 +298,29 @@ program
       dataDir: dataDir(),
     });
     process.stdout.write(`${briefPath}\n`);
+  });
+
+program
+  .command("handoff")
+  .requiredOption("--session <id>")
+  .action(async (opts: { session: string }) => {
+    const session = await getSession(opts.session);
+    if (!session) {
+      throw new Error(`unknown session: ${opts.session}`);
+    }
+    const raw = handoffMessage({
+      taskId: session.id,
+      iteration: session.plan?.iteration ?? 0,
+      originalGoal: session.goal,
+      progress: session.events.at(-1)?.note || session.state,
+      currentState: session.state,
+      knownIssues: session.review?.issues.join("; ") || session.fallbackReason || "none",
+      nextExpectedStep: nextExpectedStep(session.state),
+    });
+    process.stdout.write(raw);
+    if (!raw.endsWith("\n")) {
+      process.stdout.write("\n");
+    }
   });
 
 program
