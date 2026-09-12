@@ -22,8 +22,19 @@ export const WEB_SUBSCRIPTION_PLANNERS = [
 ] as const;
 export type WebSubscriptionPlanner = (typeof WEB_SUBSCRIPTION_PLANNERS)[number];
 
-export const HARNESS_IDS = ["codex", "claude-code"] as const;
+export const HARNESS_IDS = ["codex", "claude-code", "grok-build", "opencode"] as const;
 export type HarnessId = (typeof HARNESS_IDS)[number];
+
+/** Default collaboration team. Any non-empty subset of `HARNESS_IDS` is valid. */
+export const DEFAULT_HARNESS_TEAM: HarnessId[] = ["codex", "claude-code"];
+
+export const HARNESS_PACKET_ROLES = ["implement", "test", "general"] as const;
+export type HarnessPacketRole = (typeof HARNESS_PACKET_ROLES)[number];
+
+export const HARNESS_RUN_STATES = ["pending", "executing", "executed"] as const;
+export type HarnessRunState = (typeof HARNESS_RUN_STATES)[number];
+
+export type SessionActor = "planner" | "system" | "user" | HarnessId;
 
 export const PLANNER_CHOICES = ["auto", ...PROVIDER_IDS] as const;
 export type PlannerChoice = (typeof PLANNER_CHOICES)[number];
@@ -76,6 +87,16 @@ export type ContextPack = {
   compressionRatio: number;
 };
 
+export type WorkPacket = {
+  id: string;
+  owner: HarnessId;
+  role: HarnessPacketRole;
+  actions: string[];
+  files: string[];
+  tests: string[];
+  successCriteria: string[];
+};
+
 export type ExecutionPlan = {
   taskId: string;
   iteration: number;
@@ -86,11 +107,13 @@ export type ExecutionPlan = {
   tests: string[];
   successCriteria: string[];
   risks: string[];
+  packets: WorkPacket[];
 };
 
 export type ExecutionBrief = {
   taskId: string;
   iteration: number;
+  owner: HarnessId;
   goal: string;
   actions: string[];
   files: string[];
@@ -98,6 +121,13 @@ export type ExecutionBrief = {
   successCriteria: string[];
   doNot: string[];
   tokenEstimate: number;
+};
+
+export type HarnessRun = {
+  owner: HarnessId;
+  state: HarnessRunState;
+  changedFiles: string[];
+  tests: string;
 };
 
 export type ReviewVerdict = {
@@ -141,7 +171,7 @@ export type TokenLedger = {
 export type SessionEvent = {
   at: string;
   state: ProtocolState;
-  actor: "planner" | "codex" | "claude-code" | "system" | "user";
+  actor: SessionActor;
   note: string;
 };
 
@@ -153,12 +183,15 @@ export type SessionRecord = {
   planner: ProviderId;
   plannerChoice: PlannerChoice;
   harness: HarnessId;
+  harnessTeam: HarnessId[];
   budgetTokens: number;
   workspaceSource: WorkspaceSource;
   state: ProtocolState;
   pack: ContextPack | null;
   plan: ExecutionPlan | null;
   brief: ExecutionBrief | null;
+  briefs: ExecutionBrief[];
+  harnessRuns: HarnessRun[];
   review: ReviewVerdict | null;
   pastePrompt: string | null;
   usedFallback: boolean;
@@ -178,6 +211,7 @@ export type AppConfig = {
   enabledProviders: ProviderId[];
   defaultPlanner: PlannerChoice;
   defaultHarness: HarnessId;
+  defaultHarnessTeam: HarnessId[];
   defaultBudget: number;
   keys: Partial<Record<ProviderId, string>>;
   openaiCompatibleBaseUrl: string;
@@ -221,6 +255,67 @@ export function isPlannerChoice(value: string): value is PlannerChoice {
 
 export function isHarnessId(value: string): value is HarnessId {
   return (HARNESS_IDS as readonly string[]).includes(value);
+}
+
+export function isHarnessPacketRole(value: string): value is HarnessPacketRole {
+  return (HARNESS_PACKET_ROLES as readonly string[]).includes(value);
+}
+
+export function isHarnessRunState(value: string): value is HarnessRunState {
+  return (HARNESS_RUN_STATES as readonly string[]).includes(value);
+}
+
+export function normalizeHarnessTeam(value: unknown): HarnessId[] {
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[,\s]+/)
+      : [];
+  const seen = new Set<HarnessId>();
+  for (const item of list) {
+    const id = String(item).trim();
+    if (isHarnessId(id)) {
+      seen.add(id);
+    }
+  }
+  const ordered = HARNESS_IDS.filter((id) => seen.has(id));
+  return ordered.length > 0 ? [...ordered] : [...DEFAULT_HARNESS_TEAM];
+}
+
+export function resolveHarnessTeam(input: {
+  harnessTeam?: unknown;
+  harness?: unknown;
+  fallbackTeam?: readonly HarnessId[];
+}): HarnessId[] {
+  if (Array.isArray(input.harnessTeam) && input.harnessTeam.length > 0) {
+    return normalizeHarnessTeam(input.harnessTeam);
+  }
+  if (typeof input.harnessTeam === "string" && input.harnessTeam.trim().length > 0) {
+    return normalizeHarnessTeam(input.harnessTeam);
+  }
+  if (typeof input.harness === "string" && isHarnessId(input.harness)) {
+    return [input.harness];
+  }
+  if (input.fallbackTeam && input.fallbackTeam.length > 0) {
+    return normalizeHarnessTeam(input.fallbackTeam);
+  }
+  return [...DEFAULT_HARNESS_TEAM];
+}
+
+export function toggleHarnessInTeam(
+  team: readonly HarnessId[],
+  id: HarnessId,
+): HarnessId[] {
+  const seen = new Set(normalizeHarnessTeam(team));
+  if (seen.has(id)) {
+    if (seen.size <= 1) {
+      return HARNESS_IDS.filter((item) => seen.has(item));
+    }
+    seen.delete(id);
+  } else {
+    seen.add(id);
+  }
+  return HARNESS_IDS.filter((item) => seen.has(item));
 }
 
 export function isWebSubscriptionPlannerId(

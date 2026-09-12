@@ -1,16 +1,51 @@
 import { renderPackForPlanner } from "@/core/packer";
+import { filesFromPack, parseWorkPackets, splitWorkPackets } from "@/core/packets";
 import { createTaskId, listItems, parseControlMessage, planToMessage } from "@/core/protocol";
 import { estimateTokens } from "@/core/tokens";
-import type { ContextPack, ExecutionPlan, ReviewVerdict } from "@/core/types";
+import {
+  DEFAULT_HARNESS_TEAM,
+  resolveHarnessTeam,
+  type ContextPack,
+  type ExecutionPlan,
+  type HarnessId,
+  type ReviewVerdict,
+} from "@/core/types";
 
 export const PLANNER_SYSTEM_PROMPT = `You are the planning and review layer of a Frugal Codex (C2X) session.
-The execution harness (Codex or Claude Code) owns edits, shell, tests, and git.
+The execution harness team (Codex, Claude Code, Grok Build, OpenCode — any subset) owns edits, shell, tests, and git.
 You own reasoning, planning, and review. Never spend harness quota on thinking.
-Reply with a single [C2X] control message. No file dumps. No diffs.
-Plans must be finite and executable (not 40-step epics).
-After EXECUTED, do not trust claims — judge from the supplied diff stats.`;
+Split the PLAN into per-harness work packets with disjoint file ownership when possible.
+Each harness must only see its own packet. Reply with a single [C2X] control message.
+No file dumps. No diffs. Plans must be finite and executable (not 40-step epics).
+After EXECUTED, do not trust claims — judge from the supplied merged diff stats.`;
 
-export function buildPlanUserPrompt(pack: ContextPack, taskId: string): string {
+export function buildPlanUserPrompt(
+  pack: ContextPack,
+  taskId: string,
+  team: readonly HarnessId[] = DEFAULT_HARNESS_TEAM,
+): string {
+  const harnessTeam = resolveHarnessTeam({ harnessTeam: team });
+  const packetStub = harnessTeam
+    .map((owner, index) => {
+      const role =
+        harnessTeam.length === 1
+          ? "general"
+          : index === 0
+            ? "implement"
+            : index === harnessTeam.length - 1
+              ? "test"
+              : "general";
+      return `## owner=${owner} role=${role}
+ACTIONS:
+1. ...
+FILES:
+- ...
+TESTS:
+- ...
+SUCCESS_CRITERIA:
+- ...`;
+    })
+    .join("\n\n");
   return `${renderPackForPlanner(pack)}
 
 Return only:
@@ -39,7 +74,10 @@ SUCCESS_CRITERIA:
 - ...
 
 RISKS:
-- ...`;
+- ...
+
+PACKETS:
+${packetStub}`;
 }
 
 export function buildReviewUserPrompt(input: {
@@ -65,39 +103,39 @@ TASK_ID: ${input.taskId}
 ITERATION: ${input.iteration}`;
 }
 
-export function mockPlanFromPack(pack: ContextPack, taskId = createTaskId()): ExecutionPlan {
-  const files = pack.excerpts.map((excerpt) => excerpt.path);
-  const mentionsCreate = /create|thêm|add|post/i.test(pack.goal);
-  const mentionsFilter = /filter|lọc|status|url/i.test(pack.goal);
-  const actions = [
-    mentionsCreate
-      ? "Fix createTask so new rows persist in the shared store, not a discarded copy."
-      : "Read the packed excerpts and apply the smallest change that matches the goal.",
-    mentionsFilter
-      ? "Keep the status filter on the URL when the board reloads; wire the control to search params."
-      : "Touch only files listed below unless a path is missing.",
-    "Add or extend tests for the empty state and the behavior named in the goal.",
-    "Stop when success criteria pass. Do not refactor unrelated files.",
-  ];
+export function mockPlanFromPack(
+  pack: ContextPack,
+  taskId = createTaskId(),
+  team: readonly HarnessId[] = DEFAULT_HARNESS_TEAM,
+): ExecutionPlan {
+  const harnessTeam = resolveHarnessTeam({ harnessTeam: team });
+  const files = filesFromPack(pack);
+  const packets = splitWorkPackets({
+    team: harnessTeam,
+    files,
+    goal: pack.goal,
+    taskId,
+  });
+  const ownedFiles = [...new Set(packets.flatMap((packet) => packet.files))];
+  const actions = [...new Set(packets.flatMap((packet) => packet.actions))];
+  const tests = [...new Set(packets.flatMap((packet) => packet.tests))];
+  const successCriteria = [...new Set(packets.flatMap((packet) => packet.successCriteria))];
   return {
     taskId,
     iteration: 1,
     goal: pack.goal,
     rationale:
-      "The packed excerpts already show the likely defect. Codex should execute this slice instead of re-reading the repo.",
-    actions,
-    filesLikelyInvolved: files.slice(0, 6),
-    tests: [
-      "Unit-test create/filter behavior from the packed modules.",
-      "Cover the empty list if the board can render no rows.",
-    ],
-    successCriteria: [
-      "Goal behavior works without a full-page rewrite.",
-      "Existing happy path still renders the task list.",
-    ],
+      harnessTeam.length > 1
+        ? "The packed excerpts already show the defect. Split execution across the harness team so each scarce quota only sees its packet."
+        : "The packed excerpts already show the likely defect. The selected harness should execute this slice instead of re-reading the repo.",
+    actions: actions.slice(0, 10),
+    filesLikelyInvolved: ownedFiles.slice(0, 12),
+    tests: tests.slice(0, 8),
+    successCriteria: successCriteria.slice(0, 8),
     risks: pack.omittedFiles.length
       ? [`Pack omitted ${pack.omittedFiles.length} files; open one only if a symbol is missing.`]
-      : ["Keep the execution brief under the control-plane budget."],
+      : ["Keep each per-harness brief under the control-plane budget."],
+    packets,
   };
 }
 
@@ -162,6 +200,9 @@ export function parsePlannerOutput(text: string, fallback: ExecutionPlan): Execu
         ? listItems(message.sections.SUCCESS_CRITERIA)
         : fallback.successCriteria,
       risks: listItems(message.sections.RISKS),
+      packets: parseWorkPackets(message.sections.PACKETS).length
+        ? parseWorkPackets(message.sections.PACKETS)
+        : fallback.packets,
     };
   } catch {
     return fallback;
@@ -179,8 +220,12 @@ export function extractControlBlock(text: string): string {
   return text.slice(start).trim();
 }
 
-export function buildWebPastePrompt(pack: ContextPack, taskId: string): string {
-  const planPrompt = buildPlanUserPrompt(pack, taskId);
+export function buildWebPastePrompt(
+  pack: ContextPack,
+  taskId: string,
+  team: readonly HarnessId[] = DEFAULT_HARNESS_TEAM,
+): string {
+  const planPrompt = buildPlanUserPrompt(pack, taskId, team);
   return `${PLANNER_SYSTEM_PROMPT}
 
 ${planPrompt}`;

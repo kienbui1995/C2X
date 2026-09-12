@@ -2,8 +2,9 @@
 
 Inspired by [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt):
 thinking stays off the execution harness. C2X adds a token packer, a provider
-router, and a **quota-split** model so one scarce Codex/Claude Code allowance is
-not burned on plan/review.
+router, a **harness team** that shares one PLAN, and a **quota-split** model so
+scarce Codex / Claude Code / Grok Build / OpenCode allowances are not burned on
+plan/review — or on doing the entire job in one tool.
 
 The constraint: a single harness quota runs out; ChatGPT web, Gemini web, and
 Claude web already include large chat allowances on subscriptions (or free
@@ -14,22 +15,35 @@ tiers) the user already pays for.
   (plan + review, large included chat quota)
            │ packed context
            ▼
-      Frugal packer ──► [C2X] PLAN < 2k tok
+      Frugal packer ──► [C2X] PLAN + PACKETS
+           │
+           ├─► brief OWNER=codex        ──► Codex (its files only)
+           ├─► brief OWNER=claude-code  ──► Claude Code (its files only)
+           ├─► brief OWNER=grok-build   ──► Grok Build (execute only)
+           └─► brief OWNER=opencode     ──► OpenCode (execute only)
            │
            ▼
-     harness brief ──► Codex or Claude Code (edit / test / git only)
+     EXECUTING per harness ──► EXECUTED merge metadata
            │
            ▼
-     EXECUTED metadata ──► same web planner reviews
+     same web planner reviews
 ```
+
+The roster is `HARNESS_IDS`: `codex`, `claude-code`, `grok-build`, `opencode`.
+Default team is still Codex + Claude Code; the others are opt-in teammates.
+Adding another id means catalog + exhaustive `never` switches. The wire format
+uses `owner=<harness-id>` rather than hardcoded Codex/Claude Code sections.
 
 ## Roles
 
 | Role | Who | Never |
 | --- | --- | --- |
-| Plan | Web/subscription planners first, then local, then paid APIs | `codex`, `claude-code` |
-| Review | Same as plan | `codex`, `claude-code` |
-| Execute | `codex` or `claude-code` | planners |
+| Plan | Web/subscription planners first, then local, then paid APIs | any `HarnessId` |
+| Review | Same as plan | any `HarnessId` |
+| Execute | Any subset of `codex`, `claude-code`, `grok-build`, `opencode` | planners |
+
+Default team is Codex + Claude Code. The control room can pick any one harness
+or several together. A single-harness team is still valid.
 
 `gemini` (API) is distinct from `gemini-web` (paste). `anthropic` (API) is
 distinct from `claude-web` (paste) and `claude-code` (harness). Paste planners
@@ -39,24 +53,51 @@ reverse proxies and no cookie theft.
 Auto-pick ranks ready planners by kind (`subscription` → `local` → `api`), then
 input price, then name.
 
+## Work packets
+
+The planner (including the mock planner) splits packed files into packets:
+
+| Team size | Split |
+| --- | --- |
+| 1 | One `general` packet owns every planned file |
+| 2+ | First harness `implement` (non-test files), last harness `test` (`*.test.*`, `test-hint`, `__tests__`). Middle teammates get remaining implement files. If the pack has only one class of files, files are partitioned so ownership stays disjoint. |
+
+Each packet carries owner, role, actions, files, tests, and success criteria.
+`planToBriefs` renders one `[C2X]` brief per owner so a harness never receives
+the teammate's packet.
+
+## Protocol
+
+```
+INIT → PLAN → EXECUTING → EXECUTED → REVIEW → PLAN | DONE | BLOCKED
+```
+
+- `PLAN` includes a `PACKETS` section (indented so inner `ACTIONS:` lines stay
+  inside that section).
+- `EXECUTING` may stay `EXECUTING` while other teammates are still running.
+- `EXECUTED` merges changed-file and test metadata from every harness run.
+- Review always returns to the web/API planner — never to a harness.
+
 ## Why this saves harness quota (and tokens)
 
 A typical harness-only turn dumps files into the same expensive context that
-also plans and reviews. That costs **tokens** and **turns**. C2X splits both:
+also plans and reviews. That costs **tokens** and **turns**. C2X splits both,
+and splits **execute** across the team:
 
 | Role | Who pays | Quota story |
 | --- | --- | --- |
 | Plan | ChatGPT / Claude / Gemini web, or a cheap API | Large included chats, or API tokens |
-| Execute | Codex or Claude Code, brief only | One scarce harness turn |
-| Review | Same planner, from git/test metadata | Another web-chat turn, not a harness turn |
+| Execute | Each selected harness, brief only | One scarce turn per teammate, scoped files |
+| Review | Same planner, from merged git/test metadata | Another web-chat turn, not a harness turn |
 
-Naive path: 3 harness turns (think + run + review). C2X: 1 harness turn +
-2 web-chat turns when the planner is a subscription paste target.
+Naive path: 3 harness turns on **one** tool (think + run + review). C2X: 1
+execute turn per teammate + 2 web-chat turns when the planner is a
+subscription paste target.
 
 ## Security
 
 The packer refuses `.env*`, keys, and SSH material. There is no write MCP in
-this slice — the selected harness remains the only writer. Keys live in
+this slice — the selected harnesses remain the only writers. Keys live in
 `data/config.json` or environment variables, never in git. Web planners never
 receive account credentials.
 
@@ -64,4 +105,4 @@ receive account credentials.
 
 Control messages accept `[C2X]` and legacy `[C2C]`. You can still run the
 original C2C bridge for ChatGPT Computer Use; this repo is the multi-provider,
-quota-splitting base on top of that idea.
+multi-harness, quota-splitting base on top of that idea.

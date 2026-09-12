@@ -56,6 +56,8 @@ function executeDecision(harness: HarnessId): RouteDecision {
   switch (harness) {
     case "codex":
     case "claude-code":
+    case "grok-build":
+    case "opencode":
       return {
         role: "execute",
         provider: harness,
@@ -67,24 +69,32 @@ function executeDecision(harness: HarnessId): RouteDecision {
   }
 }
 
+export function routeExecuteTeam(team: readonly HarnessId[]): RouteDecision[] {
+  const resolved = team.filter(isHarnessId);
+  return resolved.map((harness) => executeDecision(harness));
+}
+
 export function routeRole(input: {
   role: Role;
   choice: PlannerChoice;
   harness?: HarnessId;
+  harnessTeam?: readonly HarnessId[];
   config: AppConfig;
   hasKey: (id: ProviderId) => boolean;
 }): RouteDecision {
   switch (input.role) {
     case "execute":
-      return executeDecision(input.harness ?? input.config.defaultHarness);
+      return executeDecision(
+        input.harness ?? input.harnessTeam?.[0] ?? input.config.defaultHarness,
+      );
     case "plan":
     case "review": {
       if (input.choice !== "auto") {
         return {
           role: input.role,
           provider: input.choice,
-          reason: `You pinned ${input.choice} for ${input.role}. Codex and Claude Code never take this role.`,
-          reasonVi: `Bạn đã ghim ${input.choice} cho bước ${input.role}. Codex và Claude Code không bao giờ nhận vai này.`,
+          reason: `You pinned ${input.choice} for ${input.role}. Execution harnesses never take this role.`,
+          reasonVi: `Bạn đã ghim ${input.choice} cho bước ${input.role}. Harness chạy không bao giờ nhận vai này.`,
         };
       }
       const provider = cheapestReady(input.config, input.hasKey);

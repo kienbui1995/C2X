@@ -1,8 +1,10 @@
 import { PROVIDER_CATALOG } from "@/core/providers/catalog";
 import {
+  DEFAULT_HARNESS_TEAM,
   isHarnessId,
   isPlannerChoice,
   isProviderId,
+  resolveHarnessTeam,
   type AppConfig,
   type HarnessId,
   type PlannerChoice,
@@ -13,6 +15,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   enabledProviders: ["mock", "chatgpt-web", "claude-web", "gemini-web", "ollama"],
   defaultPlanner: "auto",
   defaultHarness: "codex",
+  defaultHarnessTeam: [...DEFAULT_HARNESS_TEAM],
   defaultBudget: 4000,
   keys: {},
   openaiCompatibleBaseUrl: "http://127.0.0.1:11434/v1",
@@ -52,7 +55,15 @@ export function mergeConfig(partial?: Partial<AppConfig> | null): AppConfig {
     keys: { ...DEFAULT_CONFIG.keys, ...partial?.keys },
     enabledProviders: normalizeEnabled(partial?.enabledProviders),
     defaultPlanner: normalizePlanner(partial?.defaultPlanner),
-    defaultHarness: normalizeHarness(partial?.defaultHarness),
+    defaultHarness: normalizeHarness(
+      partial?.defaultHarness ??
+        (partial?.defaultHarnessTeam && partial.defaultHarnessTeam[0]) ??
+        DEFAULT_CONFIG.defaultHarness,
+    ),
+    defaultHarnessTeam: normalizeTeam(
+      partial?.defaultHarnessTeam,
+      partial?.defaultHarness,
+    ),
     defaultBudget: Number(partial?.defaultBudget) || DEFAULT_CONFIG.defaultBudget,
   };
   return base;
@@ -81,6 +92,19 @@ function normalizeHarness(value: HarnessId | undefined): HarnessId {
     return value;
   }
   return "codex";
+}
+
+function normalizeTeam(
+  team: HarnessId[] | undefined,
+  harness: HarnessId | undefined,
+): HarnessId[] {
+  if (team && team.length > 0) {
+    return resolveHarnessTeam({ harnessTeam: team });
+  }
+  if (harness && isHarnessId(harness) && team !== undefined) {
+    return [harness];
+  }
+  return [...DEFAULT_CONFIG.defaultHarnessTeam];
 }
 
 export function keyFromEnv(id: ProviderId): string | undefined {

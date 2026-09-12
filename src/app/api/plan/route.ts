@@ -9,6 +9,7 @@ export async function POST(request: Request) {
       goal?: string;
       plannerChoice?: string;
       harness?: string;
+      harnessTeam?: string[];
       budgetTokens?: number;
       workspaceSource?: string;
       allowFallback?: boolean;
@@ -28,10 +29,14 @@ export async function POST(request: Request) {
     if (body.harness && !isHarnessId(body.harness)) {
       return NextResponse.json({ error: "unknown harness" }, { status: 400 });
     }
+    if (body.harnessTeam?.some((id) => !isHarnessId(id))) {
+      return NextResponse.json({ error: "unknown harness" }, { status: 400 });
+    }
     const session = await runPlan({
       goal,
       plannerChoice,
       harness: body.harness && isHarnessId(body.harness) ? body.harness : undefined,
+      harnessTeam: body.harnessTeam?.filter(isHarnessId),
       budgetTokens: clampBudget(Number(body.budgetTokens) || 4000),
       workspaceSource,
       allowFallback: body.allowFallback ?? true,

@@ -57,9 +57,10 @@ export async function getProviderRows(): Promise<ProviderRow[]> {
 
 export async function getHarnessRows(): Promise<HarnessRow[]> {
   const config = await loadConfig();
+  const team = config.defaultHarnessTeam ?? [config.defaultHarness];
   return HARNESS_CATALOG.map((entry) => ({
     ...entry,
-    selected: config.defaultHarness === entry.id,
+    selected: team.includes(entry.id),
   }));
 }
 

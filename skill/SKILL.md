@@ -1,6 +1,6 @@
 ---
 name: frugal-codex
-description: Use Frugal Codex (C2X) so ChatGPT/Claude/Gemini web chats plan and review, and Codex or Claude Code only executes a short brief.
+description: Use Frugal Codex (C2X) so ChatGPT/Claude/Gemini web chats plan and review, and a selectable harness team (Codex, Claude Code, Grok Build, OpenCode) only executes per-harness briefs.
 ---
 
 # Frugal Codex
@@ -10,42 +10,48 @@ The checkout lives at: replace-with-absolute-path
 ## When to use
 
 Any implementation, review, or debugging task where a single harness quota
-(Codex *or* Claude Code) would otherwise be burned on planning. Spread thinking
-across the large included chat allowances on ChatGPT web, Gemini web, and
-Claude web.
+(Codex, Claude Code, Grok Build, or OpenCode) would otherwise be burned on
+planning — or on doing the entire job. Combine scarce harness quotas: web
+chats think, the planner splits packets, each selected harness executes only
+its brief.
 
 ## Rules
 
-1. Codex and Claude Code do not plan or review. They only execute.
+1. Codex, Claude Code, Grok Build, and OpenCode do not plan or review. They only execute their packet.
 2. Prefer an enabled web/subscription planner (`chatgpt-web`, `claude-web`,
    `gemini-web`) before any paid API. `auto` already does this.
 3. Never paste file bodies, diffs, or logs into the planner chat. Use the packed
    prompt from `c2x`.
 4. Control messages stay under ~1 KB and start with `[C2X]` (legacy `[C2C]` is
-   accepted).
-5. After EXECUTED, ask the web-chat planner to review from changed-file and test
-   metadata, not from the harness summary alone.
+   accepted). A PLAN may include a `PACKETS` section; each execute brief has
+   `OWNER`.
+5. After each harness reports EXECUTED, merge metadata and ask the web-chat
+   planner to review. Do not review inside a harness.
+6. Do not show another harness's brief to this one. Quota is per tool.
 
 ## Loop
 
 ```text
-INIT → PLAN → EXECUTING → EXECUTED → REVIEW → PLAN | DONE | BLOCKED
+INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REVIEW → PLAN | DONE | BLOCKED
 ```
 
 ## Commands
 
 ```bash
-npx tsx src/cli/c2x.ts plan --goal "…" --planner auto --harness codex --workspace demo
+npx tsx src/cli/c2x.ts plan --goal "…" --planner auto
+npx tsx src/cli/c2x.ts plan --goal "…" --planner mock --team codex,claude-code,grok-build,opencode
 npx tsx src/cli/c2x.ts plan --goal "…" --planner claude-web --harness claude-code
 npx tsx src/cli/c2x.ts pack --goal "…"
 npx tsx src/cli/c2x.ts estimate --goal "…"
-npx tsx src/cli/c2x.ts route --choice auto --harness claude-code
+npx tsx src/cli/c2x.ts route --choice auto --team grok-build,opencode
 ```
 
-Copy the printed brief. Execute only those actions in Codex or Claude Code. Then:
+Default team is Codex + Claude Code. `--harness` keeps a single-harness session.
+`--team` accepts any subset of `codex,claude-code,grok-build,opencode`.
+Copy the printed brief for **this** harness only (`OWNER` must match). Then:
 
 ```bash
-# In the dashboard, or POST /api/review with changed files + test summary
+# Dashboard: Giả lập đã chạy on one lane or all, or POST /api/execute then /api/review
 ```
 
 ## Web chats (large quota)
@@ -62,6 +68,6 @@ npm install
 npm run dev
 ```
 
-Open the control room, pick a web planner and a harness, run Pack & plan on the
-demo workspace, copy the harness brief, then continue in this session from that
-brief only.
+Open the control room, pick a web planner and enable the harness team, run
+Pack & plan on the demo workspace, copy each harness brief, then continue in
+this session from **your** brief only.

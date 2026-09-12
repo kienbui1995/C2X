@@ -10,11 +10,15 @@ import type { ContextPack, ExecutionBrief, ProviderId, TokenLedger } from "@/cor
 export function estimateSavings(input: {
   pack: ContextPack;
   brief: ExecutionBrief | null;
+  briefs?: ExecutionBrief[];
   planner: ProviderId;
   plannerOutputTokens?: number;
 }): TokenLedger {
   const plannerMeta = getProvider(input.planner);
-  const briefTokens = input.brief?.tokenEstimate ?? estimateTokens(input.pack.goal) + 180;
+  const harnessCount = Math.max(1, input.briefs?.length ?? (input.brief ? 1 : 1));
+  const briefTokens = input.briefs?.length
+    ? input.briefs.reduce((sum, item) => sum + item.tokenEstimate, 0)
+    : input.brief?.tokenEstimate ?? estimateTokens(input.pack.goal) + 180;
   const plannerOutput = input.plannerOutputTokens ?? 700;
   const reviewPack = Math.min(900, Math.round(input.pack.packedTokens * 0.25) + 200);
 
@@ -45,7 +49,7 @@ export function estimateSavings(input: {
     costUsd(plannerOut, plannerMeta.usdPerMillionOut);
 
   const naiveHarnessTurns = 3;
-  const c2xHarnessTurns = 1;
+  const c2xHarnessTurns = harnessCount;
   const webChatTurns = isWebSubscriptionPlanner(input.planner) ? 2 : 0;
   const savedHarnessTurns = Math.max(0, naiveHarnessTurns - c2xHarnessTurns);
 

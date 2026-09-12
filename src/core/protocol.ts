@@ -1,8 +1,10 @@
+import { parseWorkPackets, renderWorkPackets } from "@/core/packets";
 import { estimateTokens } from "@/core/tokens";
 import {
   assertNever,
   isProtocolState,
   type ExecutionPlan,
+  type HarnessId,
   type ProtocolMessage,
   type ProtocolState,
   type ReviewVerdict,
@@ -23,7 +25,7 @@ export function allowedNextStates(state: ProtocolState): ProtocolState[] {
     case "PLAN":
       return ["EXECUTING", "BLOCKED", "ERROR"];
     case "EXECUTING":
-      return ["EXECUTED", "ERROR"];
+      return ["EXECUTING", "EXECUTED", "ERROR"];
     case "EXECUTED":
       return ["REVIEW", "ERROR"];
     case "REVIEW":
@@ -144,6 +146,7 @@ export function planToMessage(plan: ExecutionPlan): string {
       TESTS: plan.tests.map((item) => `- ${item}`).join("\n"),
       SUCCESS_CRITERIA: plan.successCriteria.map((item) => `- ${item}`).join("\n"),
       RISKS: plan.risks.map((item) => `- ${item}`).join("\n"),
+      PACKETS: renderWorkPackets(plan.packets),
     },
   });
 }
@@ -156,7 +159,7 @@ export function initMessage(taskId: string, goal: string): string {
     sections: {
       GOAL: goal,
       INSTRUCTION:
-        "Inspect only the packed excerpts. Write a finite executable PLAN for the execution harness (Codex or Claude Code). Do not dump files back.",
+        "Inspect only the packed excerpts. Write a finite PLAN with per-harness work packets (disjoint files when possible). Web/API planners think; each harness only executes its packet. Do not dump files back.",
     },
   });
 }
@@ -166,6 +169,8 @@ export function executedMessage(input: {
   iteration: number;
   changedFiles: number;
   tests: string;
+  team?: readonly HarnessId[];
+  reports?: string;
 }): string {
   return encodeControlMessage({
     state: "EXECUTED",
@@ -175,6 +180,8 @@ export function executedMessage(input: {
       RESULT: "Execution finished.",
       CHANGED_FILES: String(input.changedFiles),
       TESTS: input.tests,
+      HARNESS_TEAM: (input.team ?? []).join(", "),
+      REPORTS: input.reports ?? "",
     },
   });
 }
@@ -193,6 +200,7 @@ export function messageToPlan(message: ProtocolMessage): ExecutionPlan {
     tests: listItems(message.sections.TESTS),
     successCriteria: listItems(message.sections.SUCCESS_CRITERIA),
     risks: listItems(message.sections.RISKS),
+    packets: parseWorkPackets(message.sections.PACKETS),
   };
 }
 

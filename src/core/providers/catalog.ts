@@ -208,8 +208,8 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     id: "codex",
     name: "Codex",
     nameVi: "Codex",
-    blurb: "Scarce execution-harness quota. Edit, shell, test, git. Never plan or review here.",
-    blurbVi: "Hạn mức harness khan hiếm. Sửa file, shell, test, git. Không dùng để lập kế hoạch hay review.",
+    blurb: "Scarce execution-harness quota. Pair it with other harnesses on one plan; execute only your packet.",
+    blurbVi: "Hạn mức harness khan hiếm. Ghép với harness khác trên cùng một kế hoạch; chỉ chạy packet của mình.",
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
   },
@@ -217,8 +217,26 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     id: "claude-code",
     name: "Claude Code",
     nameVi: "Claude Code",
-    blurb: "Same role as Codex: execute only. Keep this quota for the harness, not for thinking.",
-    blurbVi: "Cùng vai trò Codex: chỉ chạy. Giữ hạn mức này cho harness, không đốt vào phần nghĩ.",
+    blurb: "Same execute-only role as Codex. Combine both quotas on one plan instead of burning one tool for everything.",
+    blurbVi: "Cùng vai trò chỉ chạy như Codex. Gộp hạn mức với Codex trên một kế hoạch, đừng bắt một tool làm hết.",
+    quotaVi: "Hạn mức harness khan hiếm",
+    quotaEn: "Scarce harness quota",
+  },
+  {
+    id: "grok-build",
+    name: "Grok Build",
+    nameVi: "Grok Build",
+    blurb: "xAI Grok coding harness. Execution only — edit, shell, test, git. Never plan or review.",
+    blurbVi: "Harness coding xAI Grok. Chỉ chạy: sửa file, shell, test, git. Không lập kế hoạch hay review.",
+    quotaVi: "Hạn mức harness khan hiếm",
+    quotaEn: "Scarce harness quota",
+  },
+  {
+    id: "opencode",
+    name: "OpenCode",
+    nameVi: "OpenCode",
+    blurb: "Open-source coding-agent harness. Execution only — edit, shell, test, git. Never plan or review.",
+    blurbVi: "Harness agent coding mã nguồn mở. Chỉ chạy: sửa file, shell, test, git. Không lập kế hoạch hay review.",
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
   },
@@ -252,7 +270,9 @@ export function getProvider(id: ProviderId): ProviderCatalogEntry {
 export function getHarness(id: HarnessId): HarnessCatalogEntry {
   switch (id) {
     case "codex":
-    case "claude-code": {
+    case "claude-code":
+    case "grok-build":
+    case "opencode": {
       const found = HARNESS_CATALOG.find((entry) => entry.id === id);
       if (!found) {
         throw new Error(`Missing harness catalog entry: ${id}`);

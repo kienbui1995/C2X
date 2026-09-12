@@ -40,7 +40,8 @@ export function SessionsClient({ initialSessions }: { initialSessions: SessionRe
                 <div className="space-y-1">
                   <CardTitle className="text-base">{session.goal}</CardTitle>
                   <CardDescription className="font-mono">
-                    {session.id} · {session.planner} → {session.harness ?? "codex"} ·{" "}
+                    {session.id} · {session.planner} →{" "}
+                    {(session.harnessTeam ?? [session.harness ?? "codex"]).join(" + ")} ·{" "}
                     {session.workspaceSource}
                   </CardDescription>
                 </div>

@@ -9,7 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { HarnessRow, ProviderRow, PublicConfig } from "@/lib/server-data";
-import { isHarnessId, type HarnessId, type PlannerChoice, type ProviderId } from "@/core/types";
+import {
+  isHarnessId,
+  toggleHarnessInTeam,
+  type HarnessId,
+  type PlannerChoice,
+  type ProviderId,
+} from "@/core/types";
 
 export function ProvidersClient({
   initialProviders,
@@ -38,7 +44,8 @@ export function ProvidersClient({
         body: JSON.stringify({
           enabledProviders: config.enabledProviders,
           defaultPlanner: config.defaultPlanner,
-          defaultHarness: config.defaultHarness,
+          defaultHarness: config.defaultHarnessTeam[0] ?? config.defaultHarness,
+          defaultHarnessTeam: config.defaultHarnessTeam,
           openaiCompatibleBaseUrl: config.openaiCompatibleBaseUrl,
           openaiCompatibleModel: config.openaiCompatibleModel,
           ollamaModel: config.ollamaModel,
@@ -61,7 +68,9 @@ export function ProvidersClient({
         setHarnesses((current) =>
           current.map((row) => ({
             ...row,
-            selected: json.config!.defaultHarness === row.id,
+            selected: (json.config!.defaultHarnessTeam ?? [json.config!.defaultHarness]).includes(
+              row.id,
+            ),
           })),
         );
       }
@@ -86,9 +95,25 @@ export function ProvidersClient({
     );
   }
 
-  function selectHarness(id: HarnessId) {
-    setConfig({ ...config, defaultHarness: id });
-    setHarnesses((current) => current.map((row) => ({ ...row, selected: row.id === id })));
+  function toggleTeam(id: HarnessId, enabled: boolean) {
+    const currentTeam = config.defaultHarnessTeam ?? [config.defaultHarness];
+    if (!enabled && currentTeam.length === 1) {
+      setError(t.teamNeedOne);
+      return;
+    }
+    const nextTeam = toggleHarnessInTeam(currentTeam, id);
+    setError(null);
+    setConfig({
+      ...config,
+      defaultHarnessTeam: nextTeam,
+      defaultHarness: nextTeam[0] ?? id,
+    });
+    setHarnesses((current) =>
+      current.map((row) => ({
+        ...row,
+        selected: nextTeam.includes(row.id),
+      })),
+    );
   }
 
   return (
@@ -116,17 +141,19 @@ export function ProvidersClient({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle>{lang === "vi" ? harness.nameVi : harness.name}</CardTitle>
-                    <CardDescription>{t.defaultHarness}</CardDescription>
+                    <CardDescription>{t.defaultTeam}</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">
                       {lang === "vi" ? harness.quotaVi : harness.quotaEn}
                     </Badge>
                     <Switch
-                      checked={config.defaultHarness === harness.id}
+                      checked={(config.defaultHarnessTeam ?? [config.defaultHarness]).includes(
+                        harness.id,
+                      )}
                       onCheckedChange={(checked) => {
-                        if (checked && isHarnessId(harness.id)) {
-                          selectHarness(harness.id);
+                        if (isHarnessId(harness.id)) {
+                          toggleTeam(harness.id, checked);
                         }
                       }}
                     />
@@ -213,8 +240,8 @@ export function ProvidersClient({
         ))}
       </section>
       <p className="text-xs text-muted-foreground">
-        default planner: {config.defaultPlanner as PlannerChoice} · {t.defaultHarness}:{" "}
-        {config.defaultHarness}
+        default planner: {config.defaultPlanner as PlannerChoice} · {t.defaultTeam}:{" "}
+        {(config.defaultHarnessTeam ?? [config.defaultHarness]).join(" + ")}
       </p>
     </div>
   );

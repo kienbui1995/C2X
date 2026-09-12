@@ -11,14 +11,16 @@ export async function GET() {
     configured: hasProviderKey(config, entry.id),
     model: modelForProvider(entry.id, config),
   }));
+  const team = config.defaultHarnessTeam ?? [config.defaultHarness];
   const harnesses = HARNESS_CATALOG.map((entry) => ({
     ...entry,
-    selected: config.defaultHarness === entry.id,
+    selected: team.includes(entry.id),
   }));
   return NextResponse.json({
     providers,
     harnesses,
     defaultPlanner: config.defaultPlanner,
     defaultHarness: config.defaultHarness,
+    defaultHarnessTeam: team,
   });
 }

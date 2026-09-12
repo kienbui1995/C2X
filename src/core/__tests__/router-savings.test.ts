@@ -4,7 +4,7 @@ import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { planToBrief } from "@/core/brief";
-import { PROVIDER_IDS, ROLES, type PlannerChoice } from "@/core/types";
+import { HARNESS_IDS, isHarnessId, PROVIDER_IDS, ROLES, type PlannerChoice } from "@/core/types";
 import { isWebSubscriptionPlanner } from "@/core/providers/catalog";
 import { resolvePlanner, routeRole } from "@/core/providers/router";
 import { estimateSavings } from "@/core/savings";
@@ -31,8 +31,7 @@ describe("routeRole", () => {
           config,
           hasKey: () => true,
         });
-        expect(decision.provider).not.toBe("codex");
-        expect(decision.provider).not.toBe("claude-code");
+        expect(HARNESS_IDS).not.toContain(decision.provider);
       }
     }
   });
@@ -55,6 +54,24 @@ describe("routeRole", () => {
       hasKey: () => false,
     });
     expect(toClaudeCode.provider).toBe("claude-code");
+
+    const toGrok = routeRole({
+      role: "execute",
+      choice: "chatgpt-web",
+      harness: "grok-build",
+      config,
+      hasKey: () => false,
+    });
+    expect(toGrok.provider).toBe("grok-build");
+
+    const toOpenCode = routeRole({
+      role: "execute",
+      choice: "auto",
+      harness: "opencode",
+      config,
+      hasKey: () => false,
+    });
+    expect(toOpenCode.provider).toBe("opencode");
   });
 
   it("auto-picks a web/subscription planner when one is enabled", () => {
@@ -65,7 +82,8 @@ describe("routeRole", () => {
       hasKey: (id) => id === "groq",
     });
     expect(WEB_PLANNERS).toContain(decision.provider);
-    if (decision.provider !== "codex" && decision.provider !== "claude-code") {
+    expect(HARNESS_IDS).not.toContain(decision.provider);
+    if (!isHarnessId(decision.provider)) {
       expect(isWebSubscriptionPlanner(decision.provider)).toBe(true);
     }
   });
@@ -108,8 +126,7 @@ describe("resolvePlanner", () => {
       config,
       hasKey: () => false,
     });
-    expect(planner).not.toBe("codex");
-    expect(planner).not.toBe("claude-code");
+    expect(HARNESS_IDS).not.toContain(planner);
     expect(WEB_PLANNERS).toContain(planner);
   });
 });

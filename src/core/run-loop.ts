@@ -1,4 +1,4 @@
-import { planToBrief } from "@/core/brief";
+import { planToBriefs } from "@/core/brief";
 import { hasProviderKey } from "@/core/config";
 import { packWorkspace } from "@/core/packer";
 import {
@@ -16,11 +16,19 @@ import { completePlanner } from "@/core/providers/complete";
 import { resolvePlanner } from "@/core/providers/router";
 import { messageToReview, parseControlMessage } from "@/core/protocol";
 import { estimateSavings } from "@/core/savings";
-import { applyPlan, createSession, touchSession } from "@/core/session";
+import {
+  applyPlan,
+  completeAllHarnessRuns,
+  completeHarnessRun,
+  createSession,
+  mergedExecutionReport,
+  touchSession,
+} from "@/core/session";
 import { getSession, loadConfig, upsertSession } from "@/core/store";
 import { loadWorkspaceFiles } from "@/core/workspace";
 import {
   isHarnessId,
+  resolveHarnessTeam,
   type HarnessId,
   type PlannerChoice,
   type SessionRecord,
@@ -31,6 +39,7 @@ export async function runPlan(input: {
   goal: string;
   plannerChoice: PlannerChoice;
   harness?: HarnessId;
+  harnessTeam?: readonly HarnessId[];
   budgetTokens: number;
   workspaceSource: WorkspaceSource;
   allowFallback?: boolean;
@@ -41,7 +50,11 @@ export async function runPlan(input: {
     config,
     hasKey: (id) => hasProviderKey(config, id),
   });
-  const harness: HarnessId = input.harness ?? config.defaultHarness;
+  const harnessTeam = resolveHarnessTeam({
+    harnessTeam: input.harnessTeam,
+    harness: input.harness,
+    fallbackTeam: config.defaultHarnessTeam,
+  });
   const files = await loadWorkspaceFiles(input.workspaceSource);
   const pack = packWorkspace({
     goal: input.goal,
@@ -52,14 +65,15 @@ export async function runPlan(input: {
     goal: input.goal,
     planner,
     plannerChoice: input.plannerChoice,
-    harness,
+    harness: harnessTeam[0],
+    harnessTeam,
     budgetTokens: input.budgetTokens,
     workspaceSource: input.workspaceSource,
   });
   session = { ...session, pack };
 
   if (isPastePlanner(planner)) {
-    const pastePrompt = buildWebPastePrompt(pack, session.id);
+    const pastePrompt = buildWebPastePrompt(pack, session.id, harnessTeam);
     session = touchSession(
       {
         ...session,
@@ -69,13 +83,13 @@ export async function runPlan(input: {
       {
         state: "INIT",
         actor: "planner",
-        note: `${planner}: copy the packed prompt into that web chat, paste the [C2X] PLAN back. ${harness} stays the execution harness.`,
+        note: `${planner}: copy the packed prompt into that web chat, paste the [C2X] PLAN back. Team ${harnessTeam.join(" + ")} stays on execute only.`,
       },
     );
     return upsertSession(session);
   }
 
-  const fallback = mockPlanFromPack(pack, session.id);
+  const fallback = mockPlanFromPack(pack, session.id, harnessTeam);
   let usedFallback = planner === "mock";
   let fallbackReason: string | null =
     planner === "mock" ? "Mock planner — no network call." : null;
@@ -88,7 +102,7 @@ export async function runPlan(input: {
       allowFallback: input.allowFallback,
       messages: [
         { role: "system", content: PLANNER_SYSTEM_PROMPT },
-        { role: "user", content: buildPlanUserPrompt(pack, session.id) },
+        { role: "user", content: buildPlanUserPrompt(pack, session.id, harnessTeam) },
       ],
     });
     usedFallback = completion.usedFallback;
@@ -100,22 +114,23 @@ export async function runPlan(input: {
     }
   }
 
-  const brief = planToBrief(plan);
+  const briefs = planToBriefs(plan);
   session = applyPlan(
     touchSession(session, {
       state: "PLAN",
       actor: usedFallback ? "system" : "planner",
       note: usedFallback
         ? `Fell back to mock planner${fallbackReason ? `: ${fallbackReason}` : "."}`
-        : `Planner ${planner} returned a PLAN.`,
+        : `Planner ${planner} returned a PLAN with ${plan.packets.length} work packets.`,
     }),
     {
       plan,
-      brief,
+      briefs,
+      brief: briefs[0] ?? null,
       usedFallback,
       fallbackReason,
       planner,
-      savings: estimateSavings({ pack, brief, planner }),
+      savings: estimateSavings({ pack, brief: briefs[0] ?? null, briefs, planner }),
     },
   );
   return upsertSession(session);
@@ -134,9 +149,9 @@ export async function importPlan(input: {
   if (!existing || !pack) {
     throw new Error("Import needs an existing packed session. Run plan first.");
   }
-  const fallback = mockPlanFromPack(pack, existing.id);
+  const fallback = mockPlanFromPack(pack, existing.id, existing.harnessTeam);
   const plan = parsePlannerOutput(input.raw, fallback);
-  const brief = planToBrief(plan);
+  const briefs = planToBriefs(plan);
   const next = applyPlan(
     touchSession(existing, {
       state: "PLAN",
@@ -145,12 +160,49 @@ export async function importPlan(input: {
     }),
     {
       plan,
-      brief,
+      briefs,
+      brief: briefs[0] ?? null,
       pastePrompt: existing.pastePrompt,
-      savings: estimateSavings({ pack, brief, planner: existing.planner }),
+      savings: estimateSavings({
+        pack,
+        brief: briefs[0] ?? null,
+        briefs,
+        planner: existing.planner,
+      }),
     },
   );
   return upsertSession(next);
+}
+
+export async function runExecute(input: {
+  sessionId: string;
+  harness?: HarnessId;
+  all?: boolean;
+  changedFiles?: string[];
+  tests?: string;
+}): Promise<SessionRecord> {
+  const existing = await getSession(input.sessionId);
+  if (!existing?.plan) {
+    throw new Error("Execute needs a session that already has a PLAN.");
+  }
+  if (input.all) {
+    return upsertSession(
+      completeAllHarnessRuns(existing, {
+        changedFiles: input.changedFiles,
+        tests: input.tests ?? "simulated pass",
+      }),
+    );
+  }
+  if (!input.harness || !isHarnessId(input.harness)) {
+    throw new Error("harness or all is required");
+  }
+  const packet = existing.plan.packets.find((item) => item.owner === input.harness);
+  return upsertSession(
+    completeHarnessRun(existing, input.harness, {
+      changedFiles: input.changedFiles?.length ? input.changedFiles : packet?.files ?? [],
+      tests: input.tests ?? "simulated pass",
+    }),
+  );
 }
 
 export async function runReview(input: {
@@ -163,23 +215,35 @@ export async function runReview(input: {
     throw new Error("Review needs a session that already has a PLAN.");
   }
   const config = await loadConfig();
-  const harness = isHarnessId(existing.harness) ? existing.harness : "codex";
-  const executed = touchSession(existing, {
-    state: "EXECUTED",
-    actor: harness,
-    note: `${harness} reported ${input.changedFiles.length} changed files.`,
-  });
+  let current = existing;
+  if (!current.harnessRuns.every((run) => run.state === "executed")) {
+    current = completeAllHarnessRuns(current, {
+      changedFiles: input.changedFiles,
+      tests: input.tests,
+    });
+  }
+  const merged = mergedExecutionReport(current);
+  const changedFiles = input.changedFiles.length > 0 ? input.changedFiles : merged.changedFiles;
+  const tests = input.tests.trim() && input.tests !== "not run" ? input.tests : merged.tests;
+  const executed =
+    current.state === "EXECUTED"
+      ? current
+      : touchSession(current, {
+          state: "EXECUTED",
+          actor: "system",
+          note: `Merged ${current.harnessTeam.join(" + ")} execution metadata.`,
+        });
   const reviewing = touchSession(executed, {
     state: "REVIEW",
     actor: "planner",
-    note: "Planner is reviewing the execution report.",
+    note: "Planner is reviewing the merged execution report.",
   });
 
   let review = mockReview({
     taskId: existing.id,
     iteration: existing.plan.iteration,
-    changedFiles: input.changedFiles,
-    tests: input.tests,
+    changedFiles,
+    tests,
   });
   let usedFallback = existing.planner === "mock" || isPastePlanner(existing.planner);
   let fallbackReason: string | null = usedFallback
@@ -198,8 +262,8 @@ export async function runReview(input: {
             pack: existing.pack,
             taskId: existing.id,
             iteration: existing.plan.iteration,
-            changedFiles: input.changedFiles,
-            tests: input.tests,
+            changedFiles,
+            tests,
           }),
         },
       ],

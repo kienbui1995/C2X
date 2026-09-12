@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { mergeConfig } from "@/core/config";
+import { normalizeSession } from "@/core/session";
 import type { AppConfig, SessionRecord } from "@/core/types";
 
 function dataDir(): string {
@@ -39,7 +40,7 @@ export async function loadSessions(): Promise<SessionRecord[]> {
   try {
     const raw = await readFile(sessionsPath(), "utf8");
     const parsed = JSON.parse(raw) as SessionRecord[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map((item) => normalizeSession(item)) : [];
   } catch {
     return [];
   }
@@ -51,15 +52,16 @@ export async function saveSessions(sessions: SessionRecord[]): Promise<void> {
 }
 
 export async function upsertSession(session: SessionRecord): Promise<SessionRecord> {
+  const normalized = normalizeSession(session);
   const sessions = await loadSessions();
-  const index = sessions.findIndex((item) => item.id === session.id);
+  const index = sessions.findIndex((item) => item.id === normalized.id);
   if (index === -1) {
-    sessions.unshift(session);
+    sessions.unshift(normalized);
   } else {
-    sessions[index] = session;
+    sessions[index] = normalized;
   }
   await saveSessions(sessions.slice(0, 80));
-  return session;
+  return normalized;
 }
 
 export async function getSession(id: string): Promise<SessionRecord | null> {
