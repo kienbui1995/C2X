@@ -4,6 +4,10 @@
   "private": true,
   "description": "Web chats think. Pick Codex, Claude Code, Grok Build, OpenCode, and/or Kiro CLI — any subset executes split packets. Combine scarce harness quotas instead of burning one tool for everything.",
   "license": "MIT",
+  "bin": {
+    "chat-to-x": "src/cli/c2x.ts",
+    "c2x": "src/cli/c2x.ts"
+  },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 45217",
     "build": "next build",

@@ -14,7 +14,7 @@ import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
-import { dataDir, getSession } from "@/core/store";
+import { dataDir, getSession, loadSessions } from "@/core/store";
 import { formatTokens, formatUsd } from "@/core/tokens";
 import {
   HARNESS_IDS,
@@ -248,6 +248,22 @@ program
     }
     process.stdout.write(session.reviewPastePrompt);
     process.stdout.write("\n");
+  });
+
+program
+  .command("sessions")
+  .description("List local C2X sessions")
+  .action(async () => {
+    const sessions = await loadSessions();
+    if (sessions.length === 0) {
+      process.stdout.write("(none)\n");
+      return;
+    }
+    for (const session of sessions) {
+      process.stdout.write(
+        `${session.id} ${session.state} ${session.planner} ${session.harnessTeam.join(",")}\n`,
+      );
+    }
   });
 
 program

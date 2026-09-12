@@ -50,9 +50,15 @@ Stranger CLI: `npx chat-to-x` hoặc `npm run c2x -- …`. **Không** chạy
 ```bash
 npm run c2x -- plan --goal "Sửa createTask" --planner mock
 npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness codex
+npm run c2x -- sessions
+npm run c2x -- doctor
+npm run c2x -- brief --session <id> --owner codex
+npm run c2x -- skill-install
 npm run c2x -- route --choice auto --team codex,claude-code,grok-build,opencode,kiro-cli
-npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness kiro-cli
+npx chat-to-x sessions
 ```
+
+Alias local `c2x` chỉ sau `npm install` của **chat-to-x**. **Không** `npx c2x`.
 
 Lệnh CLI ngắn là `c2x` (alias của chat-to-x). `npx tsx src/cli/c2x.ts …` cũng
 chạy được. Mặc định CLI dùng đội `codex,claude-code`. `--harness kiro-cli`
