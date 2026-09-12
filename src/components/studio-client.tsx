@@ -250,7 +250,7 @@ export function StudioClient() {
           />
           <div className="space-y-2" data-testid="harness-team">
             <Label>{t.harnessTeam}</Label>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
               {HARNESS_CATALOG.map((entry) => {
                 const checked = harnessTeam.includes(entry.id);
                 return (

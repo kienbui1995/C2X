@@ -5,7 +5,7 @@ import type { ExecutionBrief, ExecutionPlan, WorkPacket } from "@/core/types";
 const SHARED_DO_NOT = [
   "Do not re-plan. The web/API planner already decided the approach.",
   "Do not paste the repository into the next planner turn.",
-  "Do not spend Codex, Claude Code, Grok Build, or OpenCode quota on planning or review.",
+  "Do not spend Codex, Claude Code, Grok Build, OpenCode, or Kiro CLI quota on planning or review.",
 ];
 
 function withEstimate(brief: ExecutionBrief): ExecutionBrief {

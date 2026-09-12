@@ -25,8 +25,8 @@ export function ProtocolClient() {
           <CardTitle>C2C → C2X</CardTitle>
           <CardDescription>
             {lang === "vi"
-              ? "Giữ mô hình hai não: chat web nghĩ, đội harness chạy. Planner: chatgpt-web, claude-web, gemini-web (và API nếu cần). Execute: chọn Codex, Claude Code, Grok Build, OpenCode — một hoặc vài cái cùng phiên. Không bao giờ plan/review."
-              : "Keeps the two-brain split: web chats think, the harness team runs. Planners: chatgpt-web, claude-web, gemini-web (and APIs if needed). Execute: pick Codex, Claude Code, Grok Build, OpenCode — any subset in one session. Never plan/review."}
+              ? "Giữ mô hình hai não: chat web nghĩ, đội harness chạy. Planner: chatgpt-web, claude-web, gemini-web (và API nếu cần). Execute: chọn Codex, Claude Code, Grok Build, OpenCode, Kiro CLI — một hoặc vài cái cùng phiên. Không bao giờ plan/review."
+              : "Keeps the two-brain split: web chats think, the harness team runs. Planners: chatgpt-web, claude-web, gemini-web (and APIs if needed). Execute: pick Codex, Claude Code, Grok Build, OpenCode, Kiro CLI — any subset in one session. Never plan/review."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -50,8 +50,8 @@ export function ProtocolClient() {
           </p>
           <p>
             {lang === "vi"
-              ? "Đừng đốt hạn mức Codex, Claude Code, Grok Build hay OpenCode cho plan hay review. Gộp chúng: web nghĩ, mỗi harness chạy một packet. File nhạy cảm (.env, khóa SSH) bị chặn từ lớp packer."
-              : "Do not burn Codex, Claude Code, Grok Build, or OpenCode quota on plan or review. Combine them: web chats think, each harness runs one packet. Sensitive files (.env, SSH keys) are blocked in the packer."}
+              ? "Đừng đốt hạn mức Codex, Claude Code, Grok Build, OpenCode hay Kiro CLI cho plan hay review. Gộp chúng: web nghĩ, mỗi harness chạy một packet. File nhạy cảm (.env, khóa SSH) bị chặn từ lớp packer."
+              : "Do not burn Codex, Claude Code, Grok Build, OpenCode, or Kiro CLI quota on plan or review. Combine them: web chats think, each harness runs one packet. Sensitive files (.env, SSH keys) are blocked in the packer."}
           </p>
         </CardContent>
       </Card>

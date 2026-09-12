@@ -2,7 +2,7 @@
   "name": "frugal-codex",
   "version": "0.1.0",
   "private": true,
-  "description": "Web chats think. Pick Codex, Claude Code, Grok Build, and/or OpenCode — any subset executes split packets. Combine scarce harness quotas instead of burning one tool for everything.",
+  "description": "Web chats think. Pick Codex, Claude Code, Grok Build, OpenCode, and/or Kiro CLI — any subset executes split packets. Combine scarce harness quotas instead of burning one tool for everything.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 45217",
