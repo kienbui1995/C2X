@@ -64,7 +64,7 @@ export function assignPacketRoles(
 }
 
 function packetActions(role: HarnessPacketRole, files: string[], goal: string): string[] {
-  const mentionsCreate = /create|thêm|add|post/i.test(goal);
+  const mentionsCreate = /createTask/i.test(goal);
   const mentionsFilter = /filter|lọc|status|url/i.test(goal);
   const hasTasks = files.some((path) => path.includes("tasks"));
   switch (role) {

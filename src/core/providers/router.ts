@@ -53,21 +53,12 @@ function cheapestReady(config: AppConfig, hasKey: (id: ProviderId) => boolean): 
 
 function executeDecision(harness: HarnessId): RouteDecision {
   const entry = getHarness(harness);
-  switch (harness) {
-    case "codex":
-    case "claude-code":
-    case "grok-build":
-    case "opencode":
-    case "kiro-cli":
-      return {
-        role: "execute",
-        provider: harness,
-        reason: `${entry.name} is the execution harness only: edit, shell, test, git. Never plan or review here.`,
-        reasonVi: `${entry.nameVi} chỉ là harness chạy: sửa file, shell, test, git. Không lập kế hoạch hay review ở đây.`,
-      };
-    default:
-      return assertNever(harness, `Unknown harness: ${harness}`);
-  }
+  return {
+    role: "execute",
+    provider: harness,
+    reason: `${entry.name} is the execution harness only: edit, shell, test, git. Never plan or review here.`,
+    reasonVi: `${entry.nameVi} chỉ là harness chạy: sửa file, shell, test, git. Không lập kế hoạch hay review ở đây.`,
+  };
 }
 
 export function routeExecuteTeam(team: readonly HarnessId[]): RouteDecision[] {

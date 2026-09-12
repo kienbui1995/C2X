@@ -204,7 +204,7 @@ export function getProvider(id: ProviderId): ProviderCatalogEntry;
 - `opencode` → `["opencode"]`
 - `kiro-cli` → `["kiro"]`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `src/core/__tests__/catalog-registry.test.ts`:
 
@@ -285,13 +285,13 @@ describe("catalog registry", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/catalog-registry.test.ts`
 
 Expected: FAIL — `HARNESS_BY_ID` / `binaries` chưa export.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 1. Đổi `HarnessCatalogEntry` thêm `binaries: readonly string[]`.
 2. Thay mảng `HARNESS_CATALOG = [` bằng:
@@ -324,7 +324,7 @@ export function getHarness(id: HarnessId): HarnessCatalogEntry {
 
 Import `HARNESS_IDS` / `PROVIDER_IDS` ở **đầu** `catalog.ts`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 npx vitest run src/core/__tests__/catalog-registry.test.ts src/core/__tests__/packets.test.ts src/core/__tests__/router-savings.test.ts
@@ -333,7 +333,7 @@ npx tsc --noEmit
 
 Expected: PASS. `packets.test.ts` "lists five first-class…" vẫn đúng vì `HARNESS_CATALOG.map` theo `HARNESS_IDS`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/providers/catalog.ts src/core/providers/router.ts src/core/__tests__/catalog-registry.test.ts src/core/__tests__/packets.test.ts

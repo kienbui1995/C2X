@@ -4,7 +4,7 @@ import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { canTransition, messageToPlan, parseControlMessage, planToMessage } from "@/core/protocol";
-import { getHarness, HARNESS_CATALOG } from "@/core/providers/catalog";
+import { getHarness, HARNESS_BY_ID, HARNESS_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { mergeConfig } from "@/core/config";
 import { completeHarnessRun, createSession, mergedExecutionReport } from "@/core/session";
@@ -104,7 +104,9 @@ describe("harness catalog", () => {
     expect(HARNESS_CATALOG.map((entry) => entry.id)).toEqual(ALL_HARNESSES);
     for (const id of HARNESS_IDS) {
       const entry = getHarness(id);
+      expect(entry).toBe(HARNESS_BY_ID[id]);
       expect(entry.id).toBe(id);
+      expect(entry.binaries.length).toBeGreaterThan(0);
       expect(entry.blurb.length).toBeGreaterThan(12);
       expect(entry.blurbVi.length).toBeGreaterThan(12);
       expect(entry.quotaEn.length).toBeGreaterThan(0);

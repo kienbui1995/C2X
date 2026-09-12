@@ -1,5 +1,7 @@
 import {
   assertNever,
+  HARNESS_IDS,
+  PROVIDER_IDS,
   type AppConfig,
   type HarnessId,
   type ProviderCatalogEntry,
@@ -18,10 +20,11 @@ export type HarnessCatalogEntry = {
   blurbVi: string;
   quotaVi: string;
   quotaEn: string;
+  binaries: readonly string[];
 };
 
-export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
-  {
+export const PROVIDER_BY_ID = {
+  mock: {
     id: "mock",
     name: "Mock planner",
     nameVi: "Planner giả lập",
@@ -36,7 +39,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     quotaVi: "Local / không đốt hạn mức chat web",
     quotaEn: "Local / does not spend web-chat quota",
   },
-  {
+  "chatgpt-web": {
     id: "chatgpt-web",
     name: "ChatGPT web",
     nameVi: "ChatGPT web",
@@ -51,7 +54,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     quotaVi: "Quota chat lớn / subscription",
     quotaEn: "Large chat quota / subscription",
   },
-  {
+  "claude-web": {
     id: "claude-web",
     name: "Claude web",
     nameVi: "Claude web",
@@ -66,7 +69,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     quotaVi: "Quota chat lớn / subscription",
     quotaEn: "Large chat quota / subscription",
   },
-  {
+  "gemini-web": {
     id: "gemini-web",
     name: "Gemini web",
     nameVi: "Gemini web",
@@ -81,82 +84,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     quotaVi: "Quota chat lớn / subscription",
     quotaEn: "Large chat quota / subscription",
   },
-  {
-    id: "groq",
-    name: "Groq",
-    nameVi: "Groq",
-    kind: "api",
-    blurb: "Very cheap, fast OpenAI-compatible chat. Use only after web-chat quotas are off or you want an API.",
-    blurbVi: "Rẻ và nhanh, tương thích OpenAI. Chỉ dùng khi không bật planner chat web, hoặc bạn muốn API.",
-    defaultModel: "llama-3.3-70b-versatile",
-    usdPerMillionIn: 0.59,
-    usdPerMillionOut: 0.79,
-    envVar: "GROQ_API_KEY",
-    needsKey: true,
-    quotaVi: "API trả phí (token)",
-    quotaEn: "Paid API tokens",
-  },
-  {
-    id: "gemini",
-    name: "Gemini API",
-    nameVi: "Gemini API",
-    kind: "api",
-    blurb: "Google Gemini Flash API. Prefer Gemini web when you already have included chats.",
-    blurbVi: "API Gemini Flash. Ưu tiên Gemini web nếu bạn đã có lượt chat kèm theo.",
-    defaultModel: "gemini-2.0-flash",
-    usdPerMillionIn: 0.1,
-    usdPerMillionOut: 0.4,
-    envVar: "GEMINI_API_KEY",
-    needsKey: true,
-    quotaVi: "API trả phí (token)",
-    quotaEn: "Paid API tokens",
-  },
-  {
-    id: "deepseek",
-    name: "DeepSeek",
-    nameVi: "DeepSeek",
-    kind: "api",
-    blurb: "Strong reasoning per dollar. OpenAI-compatible endpoint.",
-    blurbVi: "Suy luận tốt theo từng đô. Endpoint tương thích OpenAI.",
-    defaultModel: "deepseek-chat",
-    usdPerMillionIn: 0.28,
-    usdPerMillionOut: 0.42,
-    envVar: "DEEPSEEK_API_KEY",
-    needsKey: true,
-    quotaVi: "API trả phí (token)",
-    quotaEn: "Paid API tokens",
-  },
-  {
-    id: "openrouter",
-    name: "OpenRouter",
-    nameVi: "OpenRouter",
-    kind: "api",
-    blurb: "One key, many models. Route planning to whatever is cheapest this week.",
-    blurbVi: "Một key, nhiều model. Đổi planner sang model rẻ nhất trong tuần.",
-    defaultModel: "openrouter/auto",
-    usdPerMillionIn: 0.15,
-    usdPerMillionOut: 0.6,
-    envVar: "OPENROUTER_API_KEY",
-    needsKey: true,
-    quotaVi: "API trả phí (token)",
-    quotaEn: "Paid API tokens",
-  },
-  {
-    id: "ollama",
-    name: "Ollama",
-    nameVi: "Ollama",
-    kind: "local",
-    blurb: "Local models. Zero API spend after you pull a model.",
-    blurbVi: "Chạy local. Không tốn API sau khi kéo model.",
-    defaultModel: "qwen2.5-coder:7b",
-    usdPerMillionIn: 0,
-    usdPerMillionOut: 0,
-    envVar: "OLLAMA_BASE_URL",
-    needsKey: false,
-    quotaVi: "Local / không đốt hạn mức chat web",
-    quotaEn: "Local / does not spend web-chat quota",
-  },
-  {
+  openai: {
     id: "openai",
     name: "OpenAI",
     nameVi: "OpenAI",
@@ -171,7 +99,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     quotaVi: "API trả phí (token)",
     quotaEn: "Paid API tokens",
   },
-  {
+  anthropic: {
     id: "anthropic",
     name: "Anthropic API",
     nameVi: "Anthropic API",
@@ -186,7 +114,82 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     quotaVi: "API trả phí (token)",
     quotaEn: "Paid API tokens",
   },
-  {
+  gemini: {
+    id: "gemini",
+    name: "Gemini API",
+    nameVi: "Gemini API",
+    kind: "api",
+    blurb: "Google Gemini Flash API. Prefer Gemini web when you already have included chats.",
+    blurbVi: "API Gemini Flash. Ưu tiên Gemini web nếu bạn đã có lượt chat kèm theo.",
+    defaultModel: "gemini-2.0-flash",
+    usdPerMillionIn: 0.1,
+    usdPerMillionOut: 0.4,
+    envVar: "GEMINI_API_KEY",
+    needsKey: true,
+    quotaVi: "API trả phí (token)",
+    quotaEn: "Paid API tokens",
+  },
+  groq: {
+    id: "groq",
+    name: "Groq",
+    nameVi: "Groq",
+    kind: "api",
+    blurb: "Very cheap, fast OpenAI-compatible chat. Use only after web-chat quotas are off or you want an API.",
+    blurbVi: "Rẻ và nhanh, tương thích OpenAI. Chỉ dùng khi không bật planner chat web, hoặc bạn muốn API.",
+    defaultModel: "llama-3.3-70b-versatile",
+    usdPerMillionIn: 0.59,
+    usdPerMillionOut: 0.79,
+    envVar: "GROQ_API_KEY",
+    needsKey: true,
+    quotaVi: "API trả phí (token)",
+    quotaEn: "Paid API tokens",
+  },
+  openrouter: {
+    id: "openrouter",
+    name: "OpenRouter",
+    nameVi: "OpenRouter",
+    kind: "api",
+    blurb: "One key, many models. Route planning to whatever is cheapest this week.",
+    blurbVi: "Một key, nhiều model. Đổi planner sang model rẻ nhất trong tuần.",
+    defaultModel: "openrouter/auto",
+    usdPerMillionIn: 0.15,
+    usdPerMillionOut: 0.6,
+    envVar: "OPENROUTER_API_KEY",
+    needsKey: true,
+    quotaVi: "API trả phí (token)",
+    quotaEn: "Paid API tokens",
+  },
+  deepseek: {
+    id: "deepseek",
+    name: "DeepSeek",
+    nameVi: "DeepSeek",
+    kind: "api",
+    blurb: "Strong reasoning per dollar. OpenAI-compatible endpoint.",
+    blurbVi: "Suy luận tốt theo từng đô. Endpoint tương thích OpenAI.",
+    defaultModel: "deepseek-chat",
+    usdPerMillionIn: 0.28,
+    usdPerMillionOut: 0.42,
+    envVar: "DEEPSEEK_API_KEY",
+    needsKey: true,
+    quotaVi: "API trả phí (token)",
+    quotaEn: "Paid API tokens",
+  },
+  ollama: {
+    id: "ollama",
+    name: "Ollama",
+    nameVi: "Ollama",
+    kind: "local",
+    blurb: "Local models. Zero API spend after you pull a model.",
+    blurbVi: "Chạy local. Không tốn API sau khi kéo model.",
+    defaultModel: "qwen2.5-coder:7b",
+    usdPerMillionIn: 0,
+    usdPerMillionOut: 0,
+    envVar: "OLLAMA_BASE_URL",
+    needsKey: false,
+    quotaVi: "Local / không đốt hạn mức chat web",
+    quotaEn: "Local / does not spend web-chat quota",
+  },
+  "openai-compatible": {
     id: "openai-compatible",
     name: "Custom OpenAI-compatible",
     nameVi: "Tùy chỉnh tương thích OpenAI",
@@ -201,10 +204,14 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = [
     quotaVi: "API trả phí (token)",
     quotaEn: "Paid API tokens",
   },
-];
+} satisfies Record<ProviderId, ProviderCatalogEntry>;
 
-export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
-  {
+export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = PROVIDER_IDS.map(
+  (id) => PROVIDER_BY_ID[id],
+);
+
+export const HARNESS_BY_ID = {
+  codex: {
     id: "codex",
     name: "Codex",
     nameVi: "Codex",
@@ -212,8 +219,9 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     blurbVi: "Hạn mức harness khan hiếm. Ghép với harness khác trên cùng một kế hoạch; chỉ chạy packet của mình.",
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
+    binaries: ["codex"],
   },
-  {
+  "claude-code": {
     id: "claude-code",
     name: "Claude Code",
     nameVi: "Claude Code",
@@ -221,8 +229,9 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     blurbVi: "Cùng vai trò chỉ chạy như Codex. Gộp hạn mức với Codex trên một kế hoạch, đừng bắt một tool làm hết.",
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
+    binaries: ["claude"],
   },
-  {
+  "grok-build": {
     id: "grok-build",
     name: "Grok Build",
     nameVi: "Grok Build",
@@ -230,8 +239,9 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     blurbVi: "Harness coding xAI Grok. Chỉ chạy: sửa file, shell, test, git. Không lập kế hoạch hay review.",
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
+    binaries: ["grok", "grok-build"],
   },
-  {
+  opencode: {
     id: "opencode",
     name: "OpenCode",
     nameVi: "OpenCode",
@@ -239,8 +249,9 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     blurbVi: "Harness agent coding mã nguồn mở. Chỉ chạy: sửa file, shell, test, git. Không lập kế hoạch hay review.",
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
+    binaries: ["opencode"],
   },
-  {
+  "kiro-cli": {
     id: "kiro-cli",
     name: "Kiro CLI",
     nameVi: "Kiro CLI",
@@ -248,50 +259,20 @@ export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = [
     blurbVi: "Kiro CLI — harness thực thi. CLI coding AWS Kiro. Cùng vai trò chỉ chạy như Codex: sửa file, shell, test, git. Không lập kế hoạch hay review.",
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
+    binaries: ["kiro"],
   },
-];
+} satisfies Record<HarnessId, HarnessCatalogEntry>;
+
+export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = HARNESS_IDS.map(
+  (id) => HARNESS_BY_ID[id],
+);
 
 export function getProvider(id: ProviderId): ProviderCatalogEntry {
-  switch (id) {
-    case "mock":
-    case "chatgpt-web":
-    case "claude-web":
-    case "gemini-web":
-    case "openai":
-    case "anthropic":
-    case "gemini":
-    case "groq":
-    case "openrouter":
-    case "deepseek":
-    case "ollama":
-    case "openai-compatible": {
-      const found = PROVIDER_CATALOG.find((entry) => entry.id === id);
-      if (!found) {
-        throw new Error(`Missing catalog entry: ${id}`);
-      }
-      return found;
-    }
-    default:
-      return assertNever(id, `Unknown provider: ${id}`);
-  }
+  return PROVIDER_BY_ID[id];
 }
 
 export function getHarness(id: HarnessId): HarnessCatalogEntry {
-  switch (id) {
-    case "codex":
-    case "claude-code":
-    case "grok-build":
-    case "opencode":
-    case "kiro-cli": {
-      const found = HARNESS_CATALOG.find((entry) => entry.id === id);
-      if (!found) {
-        throw new Error(`Missing harness catalog entry: ${id}`);
-      }
-      return found;
-    }
-    default:
-      return assertNever(id, `Unknown harness: ${id}`);
-  }
+  return HARNESS_BY_ID[id];
 }
 
 export function providerKindLabel(id: ProviderId): string {
@@ -299,24 +280,7 @@ export function providerKindLabel(id: ProviderId): string {
 }
 
 export function isWebSubscriptionPlanner(id: ProviderId): id is WebSubscriptionPlanner {
-  switch (id) {
-    case "chatgpt-web":
-    case "claude-web":
-    case "gemini-web":
-      return true;
-    case "mock":
-    case "openai":
-    case "anthropic":
-    case "gemini":
-    case "groq":
-    case "openrouter":
-    case "deepseek":
-    case "ollama":
-    case "openai-compatible":
-      return false;
-    default:
-      return assertNever(id, `Unknown provider: ${id}`);
-  }
+  return getProvider(id).kind === "subscription";
 }
 
 export function isPastePlanner(id: ProviderId): id is WebSubscriptionPlanner {
