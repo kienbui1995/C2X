@@ -7,7 +7,12 @@ import { Command } from "commander";
 import { planToBrief, planToBriefs, renderCodexBrief } from "@/core/brief";
 import { mergeConfig } from "@/core/config";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
-import { detectHarnessTeam, installSkill, writeHarnessBrief } from "@/core/harness";
+import {
+  detectHarnessTeam,
+  installSkill,
+  writeHarnessBrief,
+  writeWorkspaceBriefDrop,
+} from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
@@ -16,6 +21,7 @@ import { handoffMessage, nextExpectedStep } from "@/core/protocol";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
 import { dataDir, getSession, loadSessions } from "@/core/store";
+import { resolveWorkspaceRoot } from "@/core/workspace";
 import { formatTokens, formatUsd } from "@/core/tokens";
 import {
   HARNESS_IDS,
@@ -284,7 +290,9 @@ program
   .command("brief")
   .requiredOption("--session <id>")
   .requiredOption("--owner <id>")
-  .action(async (opts: { session: string; owner: string }) => {
+  .option("--drop", "also write .c2x/briefs/<owner>.md in the workspace", false)
+  .option("--cwd <path>", "workspace root for --drop (CLI only)")
+  .action(async (opts: { session: string; owner: string; drop?: boolean; cwd?: string }) => {
     if (!isHarnessId(opts.owner)) {
       throw new Error(`unknown harness: ${opts.owner}`);
     }
@@ -298,6 +306,14 @@ program
       dataDir: dataDir(),
     });
     process.stdout.write(`${briefPath}\n`);
+    if (opts.drop) {
+      const dropPath = await writeWorkspaceBriefDrop({
+        workspaceRoot: resolveWorkspaceRoot({ cwd: opts.cwd, env: process.env }),
+        session,
+        owner: opts.owner,
+      });
+      process.stdout.write(`${dropPath}\n`);
+    }
   });
 
 program
