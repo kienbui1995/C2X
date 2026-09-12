@@ -768,7 +768,7 @@ export function assertControlBudget(
 `assertControlBudget` mặc định 1200 như cũ.  
 Không đổi `package.json` scripts trừ khi chúng mất `127.0.0.1` — **giữ** `--hostname 127.0.0.1`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { readFileSync } from "node:fs";
@@ -814,13 +814,13 @@ describe("control budget and localhost", () => {
 
 Import `path` đã có ở đầu file test.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/fast-link.test.ts`
 
 Expected: FAIL — `CONTROL_BUDGET_*` chưa export.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Trong `protocol.ts`:
 
@@ -843,7 +843,7 @@ Cuối `encodeControlMessage`: `assertControlBudget(raw, CONTROL_BUDGET_MAX); re
 
 Không sửa script `dev`/`start` nếu đã có `127.0.0.1`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 npx vitest run src/core/__tests__/fast-link.test.ts src/core/__tests__/protocol.test.ts
@@ -852,7 +852,7 @@ npx tsc --noEmit
 
 Expected: PASS. Nếu `encodeControlMessage` làm gãy PLAN fixture vì > 2000 token — rút `PACKETS` mock, **không** nới trần.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/protocol.ts src/core/__tests__/fast-link.test.ts

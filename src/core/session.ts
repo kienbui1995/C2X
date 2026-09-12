@@ -66,6 +66,7 @@ export function createSession(input: {
     harnessRuns: pendingRuns(harnessTeam),
     review: null,
     pastePrompt: null,
+    reviewPastePrompt: null,
     usedFallback: false,
     fallbackReason: null,
     events: [
@@ -158,6 +159,7 @@ export function normalizeSession(raw: SessionRecord): SessionRecord {
     briefs,
     brief: briefs[0] ?? raw.brief ?? null,
     harnessRuns,
+    reviewPastePrompt: raw.reviewPastePrompt ?? null,
   };
 }
 

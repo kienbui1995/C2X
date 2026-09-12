@@ -200,6 +200,7 @@ export type SessionRecord = {
   harnessRuns: HarnessRun[];
   review: ReviewVerdict | null;
   pastePrompt: string | null;
+  reviewPastePrompt: string | null;
   usedFallback: boolean;
   fallbackReason: string | null;
   events: SessionEvent[];
