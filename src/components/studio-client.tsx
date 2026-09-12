@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, Copy, LoaderCircle } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
@@ -85,8 +85,9 @@ function runStateLabel(
   }
 }
 
-export function StudioClient({ doctor = [] }: { doctor?: HarnessDetectResult[] }) {
+export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessDetectResult[] }) {
   const { t, lang } = useLanguage();
+  const [doctor, setDoctor] = useState<HarnessDetectResult[]>(initialDoctor);
   const doctorById = useMemo(
     () => Object.fromEntries(doctor.map((item) => [item.id, item])),
     [doctor],
@@ -101,6 +102,25 @@ export function StudioClient({ doctor = [] }: { doctor?: HarnessDetectResult[] }
   const [error, setError] = useState<string | null>(null);
   const [importRaw, setImportRaw] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/doctor")
+      .then((response) => response.json() as Promise<{ doctor?: HarnessDetectResult[] }>)
+      .then((body) => {
+        if (!cancelled && Array.isArray(body.doctor)) {
+          setDoctor(body.doctor);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDoctor([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const briefs = useMemo(
     () =>
