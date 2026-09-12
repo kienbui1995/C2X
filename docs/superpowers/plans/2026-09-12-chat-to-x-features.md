@@ -1906,7 +1906,7 @@ export async function loadC2xIgnore(root: string): Promise<string[]>;
 
 CLI: `c2x record --session <id> --owner <id> [--cwd <path>] [--tests <text>] [--exit-status ok|fail|unknown]`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `workspace-root.test.ts`:
 
@@ -1925,13 +1925,13 @@ describe("resolveWorkspaceRoot", () => {
 
 Trong `records.test.ts`: session PLAN 2 harness; `applyExecutionRecord` cho `codex` → state `EXECUTING`; record không chứa `diffStat` trong `encodeControlMessage` EXECUTED — gọi `executedMessage` và `expect(raw).not.toContain("@@")`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run src/core/__tests__/workspace-root.test.ts src/core/__tests__/records.test.ts`
 
 Expected: FAIL — exports missing.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Đúng chữ ký trên. `executedMessage` không thêm field `DIFF`. `diffStat` chỉ sống trên `ExecutionRecord` và đi vào `buildReviewPastePrompt({ diffStat })` khi gộp:
 
@@ -1947,7 +1947,7 @@ Nối vào `runReview` paste prompt.
 
 API `src/app/api/record/route.ts` — validate `sessionId` + `isHarnessId(owner)`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 npx vitest run
@@ -1956,7 +1956,7 @@ npx tsc --noEmit
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/records.ts src/core/workspace.ts src/core/sensitive.ts src/core/store.ts src/core/run-loop.ts src/app/api/record/route.ts src/cli/c2x.ts src/core/__tests__/records.test.ts src/core/__tests__/workspace-root.test.ts src/core/index.ts

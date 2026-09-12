@@ -92,7 +92,7 @@ export function StudioClient() {
   const [budget, setBudget] = useState("4000");
   const [workspaceSource, setWorkspaceSource] = useState<WorkspaceSource>("demo");
   const [session, setSession] = useState<SessionRecord | null>(null);
-  const [busy, setBusy] = useState<"plan" | "review" | "import" | "execute" | null>(null);
+  const [busy, setBusy] = useState<"plan" | "review" | "import" | "execute" | "record" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importRaw, setImportRaw] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
@@ -187,6 +187,34 @@ export function StudioClient() {
         harness: owner,
       });
       setSession(executed.session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.error);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onRecord(owner: HarnessId) {
+    if (!session) {
+      return;
+    }
+    setBusy("record");
+    setError(null);
+    try {
+      const recorded = await postJson<{ session: SessionRecord }>("/api/record", {
+        sessionId: session.id,
+        owner,
+      });
+      let next = recorded.session;
+      if (next.harnessRuns.every((run) => run.state === "executed")) {
+        const result = await postJson<{ session: SessionRecord }>("/api/review", {
+          sessionId: next.id,
+          changedFiles: next.harnessRuns.flatMap((run) => run.changedFiles),
+          tests: next.harnessRuns.map((run) => `${run.owner}: ${run.tests || "not run"}`).join("\n"),
+        });
+        next = result.session;
+      }
+      setSession(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
     } finally {
@@ -692,6 +720,15 @@ export function StudioClient() {
                           {copied === `lane:${packet.owner}`
                             ? t.copied
                             : `${t.copyBrief} ${harness.name}`}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy !== null}
+                          onClick={() => void onRecord(packet.owner)}
+                        >
+                          {busy === "record" ? <LoaderCircle className="animate-spin" /> : null}
+                          {busy === "record" ? t.executing : t.recordFromGit}
                         </Button>
                         {run?.state !== "executed" ? (
                           <Button
