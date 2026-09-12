@@ -4,7 +4,14 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { planToBriefs, renderCodexBrief } from "@/core/brief";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
-import { binariesForHarness, detectHarness, installSkill, writeHarnessBrief } from "@/core/harness";
+import {
+  DETECT_CACHE_TTL_MS,
+  binariesForHarness,
+  clearDetectCache,
+  detectHarness,
+  installSkill,
+  writeHarnessBrief,
+} from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { getHarness } from "@/core/providers/catalog";
@@ -39,6 +46,37 @@ describe("detectHarness", () => {
     expect(missing.binary).toBeNull();
     expect(missing.hintVi.length).toBeGreaterThan(10);
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe("detectHarness cache", () => {
+  it("reuses a PATH hit inside TTL and misses after expiry or clear", async () => {
+    clearDetectCache();
+    const dir = await mkdtemp(path.join(os.tmpdir(), "c2x-cache-"));
+    const fake = path.join(dir, "claude");
+    await writeFile(fake, "#!/bin/sh\necho ok\n", "utf8");
+    await chmod(fake, 0o755);
+    const prev = process.env.PATH;
+    process.env.PATH = dir;
+    const t0 = 1_000;
+    const found = await detectHarness("claude-code", () => t0);
+    await rm(dir, { recursive: true, force: true });
+    const cached = await detectHarness("claude-code", () => t0 + 100);
+    expect(DETECT_CACHE_TTL_MS).toBe(30_000);
+    expect(cached.ok).toBe(true);
+    expect(cached.binary).toBe(found.binary);
+    const expired = await detectHarness("claude-code", () => t0 + DETECT_CACHE_TTL_MS + 1);
+    expect(expired.ok).toBe(false);
+    process.env.PATH = dir;
+    const dir2 = await mkdtemp(path.join(os.tmpdir(), "c2x-cache2-"));
+    await writeFile(path.join(dir2, "claude"), "#!/bin/sh\n", "utf8");
+    await chmod(path.join(dir2, "claude"), 0o755);
+    process.env.PATH = dir2;
+    clearDetectCache();
+    const again = await detectHarness("claude-code", () => t0);
+    expect(again.ok).toBe(true);
+    process.env.PATH = prev;
+    await rm(dir2, { recursive: true, force: true });
   });
 });
 

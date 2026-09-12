@@ -14,7 +14,13 @@ export type HarnessDetectResult = {
   hintEn: string;
 };
 
-const detectCache = new Map<string, HarnessDetectResult>();
+export const DETECT_CACHE_TTL_MS = 30_000;
+
+const detectCache = new Map<string, { result: HarnessDetectResult; at: number }>();
+
+export function clearDetectCache(): void {
+  detectCache.clear();
+}
 
 export function binariesForHarness(id: HarnessId): string[] {
   return [...getHarness(id).binaries];
@@ -57,11 +63,15 @@ function missingHints(id: HarnessId, names: readonly string[]): Pick<
   };
 }
 
-export async function detectHarness(id: HarnessId): Promise<HarnessDetectResult> {
+export async function detectHarness(
+  id: HarnessId,
+  now?: () => number,
+): Promise<HarnessDetectResult> {
+  const clock = now ?? Date.now;
   const key = cacheKey(id);
   const cached = detectCache.get(key);
-  if (cached) {
-    return cached;
+  if (cached && clock() - cached.at < DETECT_CACHE_TTL_MS) {
+    return cached.result;
   }
   const names = binariesForHarness(id);
   let binary: string | null = null;
@@ -86,14 +96,15 @@ export async function detectHarness(id: HarnessId): Promise<HarnessDetectResult>
         binary: null,
         ...hints,
       };
-  detectCache.set(key, result);
+  detectCache.set(key, { result, at: clock() });
   return result;
 }
 
 export async function detectHarnessTeam(
   team: readonly HarnessId[],
+  now?: () => number,
 ): Promise<HarnessDetectResult[]> {
-  return Promise.all(team.map((id) => detectHarness(id)));
+  return Promise.all(team.map((id) => detectHarness(id, now)));
 }
 
 export function workspaceBriefPath(workspaceRoot: string, owner: HarnessId): string {
