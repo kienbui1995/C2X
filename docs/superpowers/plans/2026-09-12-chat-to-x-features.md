@@ -1977,23 +1977,23 @@ git commit -m "feat: record per-harness git metadata for review"
 vi: `recordFromGit: "Ghi nhận từ git"`  
 en: `recordFromGit: "Record from git"`
 
-- [ ] **Step 1: Reference the new i18n key in studio before adding it**
+- [x] **Step 1: Reference the new i18n key in studio before adding it**
 
 (TDD typecheck như Task 6.)
 
-- [ ] **Step 2: `npx tsc --noEmit` fails**
+- [x] **Step 2: `npx tsc --noEmit` fails**
 
 Expected: FAIL trên `t.recordFromGit`.
 
-- [ ] **Step 3: Add keys + button**
+- [x] **Step 3: Add keys + button**
 
 `onRecord(owner)` → `/api/record`. Sau record, nếu cả đội `executed` thì `POST /api/review` để tạo `reviewPastePrompt` (paste) hoặc `mockReview` (mock).
 
-- [ ] **Step 4: `npx tsc --noEmit && npx vitest run`**
+- [x] **Step 4: `npx tsc --noEmit && npx vitest run`**
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/studio-client.tsx src/lib/i18n.ts src/core/run-loop.ts
