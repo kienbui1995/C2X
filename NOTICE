@@ -1,0 +1,8 @@
+chat-to-x (C2X) is inspired by XiaoDuoYa/codex-with-chatgpt
+(https://github.com/XiaoDuoYa/codex-with-chatgpt), MIT License.
+That project’s idea — ChatGPT (or another web chat) plans and reviews;
+the coding harness only executes; control messages stay tiny — is reused
+in spirit. This repository is not a fork of its OAuth bridge, Cloudflare
+tunnel, or ChatGPT connector. No unofficial ChatGPT reverse-proxy.
+
+chat-to-x itself is licensed under the MIT License. See LICENSE.

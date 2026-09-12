@@ -1,5 +1,8 @@
 # chat-to-x (C2X)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js 20+](https://img.shields.io/badge/node-20%2B-brightgreen)](https://nodejs.org/)
+
 Chat web nghĩ. Nhiều harness chạy cùng phiên. Đừng đốt một hạn mức Codex,
 Claude Code, Grok Build, OpenCode hay Kiro CLI cho phần nghĩ — **gộp** chúng.
 Chọn bất kỳ tập hợp nào trong năm harness.
@@ -31,14 +34,20 @@ Cần Node.js 20+.
 git clone <this-repo> chat-to-x
 cd chat-to-x
 npm install
+npm test
+npm run typecheck
 npm run dev
 ```
+
+`npm test` **không** cần API key hay mạng planner.
 
 Mở [http://127.0.0.1:45217](http://127.0.0.1:45217). Không cần API key để dùng
 planner giả lập và chế độ dán ChatGPT / Claude / Gemini web.
 
+Stranger CLI: `npx chat-to-x` hoặc `npm run c2x -- …`. **Không** chạy
+`npx c2x` — package npm `c2x` là tool CSS→XPath, không phải repo này.
+
 ```bash
-npm test
 npm run c2x -- plan --goal "Sửa createTask" --planner mock
 npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness codex
 npm run c2x -- route --choice auto --team codex,claude-code,grok-build,opencode,kiro-cli
@@ -125,7 +134,7 @@ cache `doctor`/`PATH`; `npm test` không cần API key. Chi tiết:
 
 Attribution MIT: ý tưởng protocol từ
 [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt)
-— không fork OAuth / tunnel / cookie.
+— không fork OAuth / tunnel / cookie. Xem [NOTICE](NOTICE).
 
 ## License
 

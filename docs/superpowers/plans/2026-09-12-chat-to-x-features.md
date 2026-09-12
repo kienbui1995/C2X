@@ -361,7 +361,7 @@ export async function loadWorkspaceFiles(
 
 `now` chỉ để test (mặc định `Date.now`). Walk `repo`: nếu `now() - started >= MAX_WALK_MS` thì `return` (giữ file đã thu). Vẫn skip `isIgnoredPath` (`node_modules` / `.git` / `.next`). `demo` **không** walk đĩa — trả `DEMO_FILES`. Không đổi `packWorkspace` thành async.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -400,13 +400,13 @@ describe("workspace speed caps", () => {
 
 (Assert `length <= 8` vì clock nhảy 300ms ngay entry đầu — walk phải dừng sớm, không đọc cả cwd Cloud Agent.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/workspace-walk.test.ts`
 
 Expected: FAIL — `MAX_WALK_MS` / `now` chưa có.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Export 3 hằng (thay `const MAX_FILES` / `MAX_BYTES` hiện tại). `walk` nhận `started` + `now`:
 
@@ -427,7 +427,7 @@ async function walk(
 
 `loadWorkspaceFiles`: `const clock = now ?? Date.now`; `demo` → `DEMO_FILES`; `repo` → `walk(..., Date.now(), clock)`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 npx vitest run src/core/__tests__/workspace-walk.test.ts src/core/__tests__/packer.test.ts
@@ -436,7 +436,7 @@ npx tsc --noEmit
 
 Expected: PASS. Packer test không đụng walk.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/workspace.ts src/core/__tests__/workspace-walk.test.ts

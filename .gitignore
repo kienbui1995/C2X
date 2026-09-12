@@ -36,8 +36,9 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local C2X state
-/data/*.json
+# local C2X state (sessions, keys, briefs)
+/data/*
+!/data/.gitkeep
 
 # vercel
 .vercel
