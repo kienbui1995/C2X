@@ -18,7 +18,7 @@ function withLivePack(session: SessionRecord): SessionRecord {
   return { ...session, pack: live };
 }
 
-function dataDir(): string {
+export function dataDir(): string {
   return (
     process.env.C2X_DATA_DIR ||
     process.env.FRUGAL_DATA_DIR ||

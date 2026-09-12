@@ -5,15 +5,17 @@ import { Command } from "commander";
 import { planToBrief, planToBriefs, renderCodexBrief } from "@/core/brief";
 import { mergeConfig } from "@/core/config";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
+import { detectHarnessTeam, writeHarnessBrief } from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
-import { getSession } from "@/core/store";
+import { dataDir, getSession } from "@/core/store";
 import { formatTokens, formatUsd } from "@/core/tokens";
 import {
+  HARNESS_IDS,
   isExecutionExitStatus,
   isHarnessId,
   isPlannerChoice,
@@ -244,6 +246,39 @@ program
     }
     process.stdout.write(session.reviewPastePrompt);
     process.stdout.write("\n");
+  });
+
+program
+  .command("doctor")
+  .option("--team <ids>", "comma-separated harness ids")
+  .action(async (opts: { team?: string }) => {
+    const team = opts.team ? teamFromOpts(opts) : [...HARNESS_IDS];
+    const results = await detectHarnessTeam(team);
+    for (const result of results) {
+      const status = result.ok ? "ok" : "missing";
+      const detail = result.ok ? (result.binary ?? "") : result.hintVi;
+      process.stdout.write(`${result.id}\t${status}\t${detail}\n`);
+    }
+  });
+
+program
+  .command("brief")
+  .requiredOption("--session <id>")
+  .requiredOption("--owner <id>")
+  .action(async (opts: { session: string; owner: string }) => {
+    if (!isHarnessId(opts.owner)) {
+      throw new Error(`unknown harness: ${opts.owner}`);
+    }
+    const session = await getSession(opts.session);
+    if (!session) {
+      throw new Error(`unknown session: ${opts.session}`);
+    }
+    const briefPath = await writeHarnessBrief({
+      session,
+      owner: opts.owner,
+      dataDir: dataDir(),
+    });
+    process.stdout.write(`${briefPath}\n`);
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

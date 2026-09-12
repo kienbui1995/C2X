@@ -2034,7 +2034,7 @@ export async function detectHarnessTeam(
 
 Detect: `which`/`where` không dùng. Dùng `existsSync` trên `PATH` split (`process.env.PATH`, delimiter `path.delimiter`) + `pathext` Windows nếu có. Cache process-lifetime: `Map` key = `${id}\0${process.env.PATH ?? ""}`. Test không phụ thuộc máy có `codex`: test `binariesForHarness` + detect với `PATH` trỏ vào dir tạm chứa file executable giả tên `claude`. Gọi `detectHarness("claude-code")` hai lần trên cùng PATH — lần hai không cần file biến mất (cache); test cache: đổi PATH giữa hai lần thì miss.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { chmod, mkdir, writeFile } from "node:fs/promises";
@@ -2079,23 +2079,23 @@ describe("detectHarness", () => {
 
 Import `mkdtemp`/`rm` từ `node:fs/promises` ở đầu file test.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
 
 Expected: FAIL — module missing.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `src/core/harness.ts`: `binariesForHarness` ủy quyền catalog; scan PATH; cache Map; hint vi/en: “Không thấy {binary}. Sao chép brief `{id}` vào tool đó — C2X không spawn harness.” Không `switch (id)` liệt kê roster.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/harness.ts src/core/__tests__/harness-detect.test.ts src/core/index.ts

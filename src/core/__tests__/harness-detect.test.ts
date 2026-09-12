@@ -1,9 +1,14 @@
-import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { binariesForHarness, detectHarness } from "@/core/harness";
+import { planToBriefs, renderCodexBrief } from "@/core/brief";
+import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
+import { binariesForHarness, detectHarness, writeHarnessBrief } from "@/core/harness";
+import { packWorkspace } from "@/core/packer";
+import { mockPlanFromPack } from "@/core/planner";
 import { getHarness } from "@/core/providers/catalog";
+import { createSession } from "@/core/session";
 import { HARNESS_IDS } from "@/core/types";
 
 describe("binariesForHarness", () => {
@@ -33,6 +38,35 @@ describe("detectHarness", () => {
     expect(missing.ok).toBe(false);
     expect(missing.binary).toBeNull();
     expect(missing.hintVi.length).toBeGreaterThan(10);
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe("writeHarnessBrief", () => {
+  it("writes only that owner brief under data/briefs", async () => {
+    const pack = packWorkspace({
+      goal: "Sửa createTask",
+      files: DEMO_FILES,
+      budgetTokens: 2000,
+    });
+    const created = createSession({
+      goal: pack.goal,
+      planner: "mock",
+      plannerChoice: "mock",
+      harnessTeam: ["codex", "claude-code"],
+      budgetTokens: 2000,
+      workspaceSource: "demo",
+    });
+    const plan = mockPlanFromPack(pack, created.id, ["codex", "claude-code"]);
+    const briefs = planToBriefs(plan);
+    const session = { ...created, plan, briefs, brief: briefs[0] ?? null };
+    const dir = await mkdtemp(path.join(os.tmpdir(), "c2x-data-"));
+    const briefPath = await writeHarnessBrief({ session, owner: "codex", dataDir: dir });
+    expect(briefPath).toBe(path.join(dir, "briefs", `${session.id}.codex.c2x.md`));
+    const text = await readFile(briefPath, "utf8");
+    expect(text).toBe(renderCodexBrief(session.briefs[0]!));
+    expect(text).toMatch(/OWNER:\s*codex/);
+    expect(text).not.toMatch(/OWNER:\s*claude-code/);
     await rm(dir, { recursive: true, force: true });
   });
 });

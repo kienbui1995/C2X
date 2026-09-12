@@ -1,7 +1,9 @@
 import { existsSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { renderCodexBrief } from "@/core/brief";
 import { getHarness } from "@/core/providers/catalog";
-import type { HarnessId } from "@/core/types";
+import type { HarnessId, SessionRecord } from "@/core/types";
 
 export type HarnessDetectResult = {
   id: HarnessId;
@@ -91,4 +93,21 @@ export async function detectHarnessTeam(
   team: readonly HarnessId[],
 ): Promise<HarnessDetectResult[]> {
   return Promise.all(team.map((id) => detectHarness(id)));
+}
+
+export async function writeHarnessBrief(input: {
+  session: SessionRecord;
+  owner: HarnessId;
+  dataDir: string;
+}): Promise<string> {
+  const brief =
+    input.session.briefs.find((item) => item.owner === input.owner) ??
+    (input.session.brief?.owner === input.owner ? input.session.brief : null);
+  if (!brief) {
+    throw new Error(`No precomputed brief for owner ${input.owner}.`);
+  }
+  const dest = path.join(input.dataDir, "briefs", `${input.session.id}.${input.owner}.c2x.md`);
+  await mkdir(path.dirname(dest), { recursive: true });
+  await writeFile(dest, renderCodexBrief(brief), "utf8");
+  return dest;
 }
