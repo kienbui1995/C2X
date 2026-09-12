@@ -1,6 +1,6 @@
 # chat-to-x Next Phase Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Làm cầu harness↔planner **nhanh hơn dán clipboard** bằng drop brief local (Slice L), rồi đánh bóng tốc độ dashboard / doctor / empty-error / “thêm harness 10 phút”, rồi (tuỳ chọn) MCP loopback `127.0.0.1`, rồi checklist OSS — không fork C2C, không tunnel, không publish `c2x`.
 
@@ -144,7 +144,7 @@ export async function writeWorkspaceBriefDrop(input: {
 `workspaceBriefPath` = `path.join(workspaceRoot, ".c2x", "briefs", `${owner}.md`)`.  
 Nội dung = `renderCodexBrief` của brief `owner`. Throw `Error` có chữ `brief` / `owner` nếu không có brief. **Không** ghi brief đồng đội vào file này.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Tạo `src/core/__tests__/workspace-brief-drop.test.ts`:
 
@@ -215,13 +215,13 @@ describe("writeWorkspaceBriefDrop", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/workspace-brief-drop.test.ts`
 
 Expected: FAIL — `writeWorkspaceBriefDrop` / `workspaceBriefPath` chưa export.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Đầu `src/core/harness.ts` đã có `mkdir`, `writeFile`, `path`, `renderCodexBrief`. Thêm (cùng file, import sẵn):
 
@@ -250,13 +250,13 @@ export async function writeWorkspaceBriefDrop(input: {
 
 Không `switch (owner)`. Không spawn.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/workspace-brief-drop.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/harness.ts src/core/__tests__/workspace-brief-drop.test.ts
@@ -286,7 +286,7 @@ File không phải harness id (ví dụ `notes.md`) **giữ nguyên**.
 
 Import `readdir`, `rm` từ `node:fs/promises` và `isHarnessId` từ `@/core/types` ở **đầu** `harness.ts`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Thêm vào `workspace-brief-drop.test.ts`:
 
@@ -320,13 +320,13 @@ describe("syncWorkspaceBriefDrops", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/workspace-brief-drop.test.ts`
 
 Expected: FAIL — `syncWorkspaceBriefDrops` chưa export.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 import { existsSync } from "node:fs";
@@ -367,13 +367,13 @@ export async function syncWorkspaceBriefDrops(input: {
 
 Gộp import `readdir` / `rm` / `isHarnessId` vào dòng import **đầu file** (không import trong hàm). `existsSync` / `readFile` đã có.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/workspace-brief-drop.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/harness.ts src/core/__tests__/workspace-brief-drop.test.ts
@@ -416,7 +416,7 @@ Hook (sau `upsertSession`, trước `return`):
 **Cấm** gọi `loadWorkspaceFiles` trong persist.  
 **Bắt buộc:** `beforeEach` của `fast-link.test.ts` và `review-paste.test.ts` set `process.env.C2X_WORKSPACE` = cùng tmp với data (hoặc tmp riêng) và `afterEach` `delete process.env.C2X_WORKSPACE` — nếu không, `npm test` sẽ ghi `.c2x/briefs/` vào checkout.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Thêm vào `workspace-brief-drop.test.ts`:
 
@@ -521,13 +521,13 @@ Trong `fast-link.test.ts` và `review-paste.test.ts`, mở rộng `beforeEach` /
 
 và `delete process.env.C2X_WORKSPACE` trong `afterEach`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run src/core/__tests__/workspace-brief-drop.test.ts`
 
 Expected: FAIL — `persistWorkspaceBriefs` chưa export; `runPlan` chưa ghi drop.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Trong `harness.ts`:
 
@@ -568,7 +568,7 @@ async function persistPlanDrops(session: SessionRecord, cwd?: string): Promise<S
 
 và `return persistPlanDrops(await importPlan(input));` **hoặc** để `importPlan` tự persist — **không persist hai lần hại**, nhưng persist hai lần chỉ overwrite: chấp nhận nếu `importControlMessage` chỉ `return importPlan(input)` (đã persist trong `importPlan`). Nhánh review PLAN: phải gọi `persistPlanDrops` vì **không** đi `importPlan`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 npx vitest run src/core/__tests__/workspace-brief-drop.test.ts src/core/__tests__/fast-link.test.ts src/core/__tests__/review-paste.test.ts
@@ -577,7 +577,7 @@ npx tsc --noEmit
 
 Expected: PASS. `git status` không có `.c2x/briefs/*.md` mới trong checkout.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/harness.ts src/core/run-loop.ts src/core/__tests__/workspace-brief-drop.test.ts src/core/__tests__/fast-link.test.ts src/core/__tests__/review-paste.test.ts
@@ -600,17 +600,17 @@ Không `--drop`: giữ hành vi Slice 3 (`writeHarnessBrief` → `dataDir/briefs
 Có `--drop`: **thêm** `writeWorkspaceBriefDrop` với `resolveWorkspaceRoot({ cwd: opts.cwd })`, in path drop ở dòng hai (hoặc in cả hai, mỗi path một dòng).  
 `--cwd` chỉ CLI. Không thêm flag path trên HTTP.
 
-- [ ] **Step 1: Write the failing CLI help check**
+- [x] **Step 1: Write the failing CLI help check**
 
 Sau Step 3 kỳ vọng `npx tsx src/cli/c2x.ts brief --help` chứa `drop` và `cwd`. Bước fail: chạy help **trước** khi sửa — không có `--drop`.
 
-- [ ] **Step 2: Run to verify CLI help fails the new contract**
+- [x] **Step 2: Run to verify CLI help fails the new contract**
 
 Run: `npx tsx src/cli/c2x.ts brief --help`
 
 Expected hiện tại: không có `--drop` / `--cwd`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Đầu `c2x.ts` thêm import `writeWorkspaceBriefDrop` (cùng dòng import harness) và `resolveWorkspaceRoot` từ `@/core/workspace`.
 
@@ -648,7 +648,7 @@ program
   });
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 npx tsx src/cli/c2x.ts brief --help
@@ -657,7 +657,7 @@ npx vitest run src/core/__tests__/workspace-brief-drop.test.ts src/core/__tests_
 
 Expected: help có `drop` và `cwd`; tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cli/c2x.ts
@@ -697,7 +697,7 @@ Harness id map:
 
 Cập nhật `installSkill` test hiện có: file cài vẫn chứa `c2x skill-install`. Thêm assert skill source có `.c2x/briefs/` và “Do not read other”.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { readFileSync } from "node:fs";
@@ -715,13 +715,13 @@ describe("skill and gitignore for workspace drops", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/workspace-brief-drop.test.ts`
 
 Expected: FAIL — skill / gitignore chưa có drop path.
 
-- [ ] **Step 3: Write the files**
+- [x] **Step 3: Write the files**
 
 Trong `skill/SKILL.md`, sau `## Rules` thêm rule 7:
 
@@ -753,7 +753,7 @@ Each harness reads **only** its own file. Do not commit briefs.
 See `skill/SKILL.md` and spec §20.3.
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 git check-ignore -v .c2x/briefs/codex.md
@@ -762,7 +762,7 @@ npx vitest run src/core/__tests__/workspace-brief-drop.test.ts src/core/__tests_
 
 Expected: `codex.md` bị ignore; `.c2x/README.md` **không** bị ignore; tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skill/SKILL.md .gitignore .c2x/README.md src/core/__tests__/workspace-brief-drop.test.ts
@@ -786,21 +786,21 @@ en: `dropHint: "The skill reads `.c2x/briefs/<harness>.md`. Do not paste a teamm
 
 Hiện dưới mỗi lane brief (cạnh `briefCliHint`). Không gọi detect từ browser. Không ô path.
 
-- [ ] **Step 1: Reference `t.dropHint` in studio before adding the key**
+- [x] **Step 1: Reference `t.dropHint` in studio before adding the key**
 
 Thêm `{t.dropHint}` cạnh `t.briefCliHint`.
 
-- [ ] **Step 2: `npx tsc --noEmit` fails**
+- [x] **Step 2: `npx tsc --noEmit` fails**
 
 Expected: FAIL trên `dropHint` nếu mới sửa tsx.
 
-- [ ] **Step 3: Add both i18n keys + render**
+- [x] **Step 3: Add both i18n keys + render**
 
-- [ ] **Step 4:** `npx tsc --noEmit && npx vitest run`
+- [x] **Step 4:** `npx tsc --noEmit && npx vitest run`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/i18n.ts src/components/studio-client.tsx
@@ -857,7 +857,7 @@ Entry cache: `{ result, at }`. Hit khi `now() - at < DETECT_CACHE_TTL_MS`. Key v
 `detectHarnessTeam(team, now?)` truyền `now` xuống.  
 `clearDetectCache()` xoá Map.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Thêm vào `harness-detect.test.ts`:
 
@@ -900,13 +900,13 @@ describe("detectHarness cache", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
 
 Expected: FAIL — `DETECT_CACHE_TTL_MS` / `clearDetectCache` / `now` chưa có; cache hiện tại không hết hạn.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Đổi `detectCache` thành `Map<string, { result: HarnessDetectResult; at: number }>`.  
 `detectHarness`: `const clock = now ?? Date.now`; nếu entry và `clock() - entry.at < DETECT_CACHE_TTL_MS` thì return `entry.result`. Sau compute: `detectCache.set(key, { result, at: clock() })`.
@@ -919,13 +919,13 @@ export function clearDetectCache(): void {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run src/core/__tests__/harness-detect.test.ts`
 
 Expected: PASS. Test cũ “found then missing” vẫn đúng vì **đổi PATH** đổi cache key.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/harness.ts src/core/__tests__/harness-detect.test.ts
@@ -945,7 +945,7 @@ git commit -m "perf: expire harness doctor cache after 30s"
 
 Cấm `fetch("/api/providers")` trong studio (catalog đã import). Toggle harness = React state.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Tạo `src/core/__tests__/dashboard-latency.test.ts`:
 
@@ -973,13 +973,13 @@ describe("dashboard first paint", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/dashboard-latency.test.ts`
 
 Expected: FAIL — `page.tsx` vẫn import `getDoctorStatus`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `src/app/page.tsx`:
 
@@ -1018,7 +1018,7 @@ Trong `studio-client.tsx`: import `useEffect`. Đổi props `doctor` thành stat
 
 Xoá prop `doctor = []` bắt buộc (hoặc giữ optional override cho test, mặc định `[]`). Khi chưa có `detect`, UI đã có nhánh `{detect ? … : null}` — thêm `t.doctorLoading` nếu muốn (Task P3).
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 npx vitest run src/core/__tests__/dashboard-latency.test.ts
@@ -1027,7 +1027,7 @@ npx tsc --noEmit
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/app/page.tsx src/components/studio-client.tsx src/core/__tests__/dashboard-latency.test.ts
@@ -1082,13 +1082,13 @@ Hành vi:
 
 **Không** gọi API quota nhà cung cấp. Sổ `session.savings` đã ship.
 
-- [ ] **Step 1: Reference the new keys in tsx so typecheck fails**
+- [x] **Step 1: Reference the new keys in tsx so typecheck fails**
 
-- [ ] **Step 2: `npx tsc --noEmit` fails**
+- [x] **Step 2: `npx tsc --noEmit` fails**
 
 Expected: FAIL trên key mới.
 
-- [ ] **Step 3: Add keys + behavior**
+- [x] **Step 3: Add keys + behavior**
 
 `lastAction` state:
 
@@ -1123,11 +1123,11 @@ Mỗi handler set `lastAction` trước khi gọi API. Retry:
 
 Nếu studio chưa tách `onPrepareReview`, retry `review` gọi đúng hàm đang `POST /api/review`. `record` không có “last owner” → dismiss + message; **không** bịa owner.
 
-- [ ] **Step 4:** `npx tsc --noEmit && npx vitest run`
+- [x] **Step 4:** `npx tsc --noEmit && npx vitest run`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/i18n.ts src/components/studio-client.tsx src/components/sessions-client.tsx
@@ -1150,7 +1150,7 @@ git commit -m "fix: surface empty import, dismissable errors, and quota copy"
 
 Không thêm marketplace. Không đổi spec §19.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
   it("keeps a 10-minute harness checklist for contributors", () => {
@@ -1166,11 +1166,11 @@ Không thêm marketplace. Không đổi spec §19.
 
 (`CONTRIBUTING.md` hiện **thiếu** `catalog-registry.test.ts` — test fail thật.)
 
-- [ ] **Step 2: Run — fail missing catalog-registry mention**
+- [x] **Step 2: Run — fail missing catalog-registry mention**
 
 Run: `npx vitest run src/core/__tests__/dashboard-latency.test.ts`
 
-- [ ] **Step 3: Add a PR checklist box at the top of the 10-min section**
+- [x] **Step 3: Add a PR checklist box at the top of the 10-min section**
 
 Chèn ngay dưới heading `## How to add a harness (10 min)`:
 
@@ -1186,11 +1186,11 @@ Chèn ngay dưới heading `## How to add a harness (10 min)`:
 Reviewer từ chối PR thêm `case "foo":` vào UI/CLI/router/splitter.
 ```
 
-- [ ] **Step 4:** `npx vitest run src/core/__tests__/dashboard-latency.test.ts`
+- [x] **Step 4:** `npx vitest run src/core/__tests__/dashboard-latency.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add CONTRIBUTING.md src/core/__tests__/dashboard-latency.test.ts
