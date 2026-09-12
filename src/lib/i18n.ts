@@ -107,6 +107,12 @@ export const copy = {
     sessionsLead: "Các phiên C2X trên máy này. Planner nghĩ; đội harness chỉ chạy.",
     skillInstallHint:
       "Lần đầu: `c2x init` (skill + doctor + mock PLAN + brief). Hoặc `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md sang ~/.claude/skills/chat-to-x/.",
+    nextStep: "Bước tiếp",
+    resumeLatest: "Tiếp tục phiên mới nhất",
+    resumeSession: "Mở lại phòng điều khiển",
+    sessionMissing: "Không thấy phiên đó. Chạy plan mới hoặc chọn phiên khác.",
+    loadingSession: "Đang mở phiên…",
+    sessionId: "Phiên",
   },
   en: {
     product: "chat-to-x",
@@ -214,5 +220,11 @@ export const copy = {
     sessionsLead: "C2X sessions on this machine. Planners think; the harness team only executes.",
     skillInstallHint:
       "First run: `c2x init` (skill + doctor + mock PLAN + briefs). Or `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md to ~/.claude/skills/chat-to-x/.",
+    nextStep: "Next step",
+    resumeLatest: "Resume latest session",
+    resumeSession: "Open in control room",
+    sessionMissing: "That session is gone. Run a new plan or pick another session.",
+    loadingSession: "Opening session…",
+    sessionId: "Session",
   },
 } as const;

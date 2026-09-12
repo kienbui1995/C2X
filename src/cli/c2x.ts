@@ -20,6 +20,7 @@ import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { handoffMessage, nextExpectedStep } from "@/core/protocol";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
+import { describeSessionStatus, formatSessionStatus, resolveSessionRecord } from "@/core/session-status";
 import { estimateSavings } from "@/core/savings";
 import {
   MCP_LOOPBACK_HOST,
@@ -265,6 +266,19 @@ program
     }
     process.stdout.write(session.reviewPastePrompt);
     process.stdout.write("\n");
+  });
+
+program
+  .command("status")
+  .description("Show a session and the next protocol step (latest if omitted)")
+  .option("--session <id>", "session id")
+  .action(async (opts: { session?: string }) => {
+    const session = await resolveSessionRecord(opts.session);
+    if (!session) {
+      process.stdout.write("(none)\n");
+      return;
+    }
+    process.stdout.write(formatSessionStatus(describeSessionStatus(session)));
   });
 
 program

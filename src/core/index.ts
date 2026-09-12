@@ -14,5 +14,6 @@ export * from "@/core/providers/catalog";
 export * from "@/core/providers/router";
 export * from "@/core/savings";
 export * from "@/core/session";
+export * from "@/core/session-status";
 export * from "@/core/tokens";
 export * from "@/core/types";

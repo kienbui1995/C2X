@@ -119,6 +119,8 @@ These are locks, not suggestions. Full table: spec §18.
   in-memory.
 - `c2x init` composes skill-install + doctor + mock PLAN + brief drops.
   It does not spawn a harness or start MCP.
+- Resume a session from `/sessions` (`/?session=<id>`) or `c2x status`.
+  The control room shows the next protocol step; it does not rewalk the repo.
 - Default workspace is the in-memory **demo** fixture.
 - Mock planner and web-paste prompts are local (milliseconds). Briefs are
   computed once at PLAN time (`session.briefs`).

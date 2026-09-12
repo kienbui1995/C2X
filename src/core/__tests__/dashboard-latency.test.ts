@@ -17,6 +17,7 @@ describe("dashboard first paint", () => {
     expect(studio).not.toMatch(/\/api\/providers/);
     expect(studio).toMatch(/\/api\/doctor/);
     expect(studio).toMatch(/HARNESS_CATALOG/);
+    expect(studio).toMatch(/\/api\/sessions/);
   });
 
   it("keeps a 10-minute harness checklist for contributors", () => {

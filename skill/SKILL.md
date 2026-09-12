@@ -56,6 +56,7 @@ npx tsx src/cli/c2x.ts pack --goal "…"
 npx tsx src/cli/c2x.ts estimate --goal "…"
 npx tsx src/cli/c2x.ts route --choice auto --team grok-build,opencode,kiro-cli
 npx tsx src/cli/c2x.ts doctor
+npx tsx src/cli/c2x.ts status
 npx tsx src/cli/c2x.ts brief --session <id> --owner <your-id> --drop
 npx tsx src/cli/c2x.ts record --session <id> --owner <your-id>
 npx tsx src/cli/c2x.ts review-prompt --session <id>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Copy, LoaderCircle } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ import { renderCodexBrief } from "@/core/brief";
 import type { HarnessDetectResult } from "@/core/harness";
 import { HARNESS_CATALOG, getHarness, isPastePlanner, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { planToMessage } from "@/core/protocol";
+import { describeSessionStatus } from "@/core/session-status";
 import { formatTokens } from "@/core/tokens";
 import {
   assertNever,
@@ -87,6 +89,9 @@ function runStateLabel(
 
 export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessDetectResult[] }) {
   const { t, lang } = useLanguage();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedId = searchParams.get("session");
   const [doctor, setDoctor] = useState<HarnessDetectResult[]>(initialDoctor);
   const doctorById = useMemo(
     () => Object.fromEntries(doctor.map((item) => [item.id, item])),
@@ -105,6 +110,87 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
   const [lastAction, setLastAction] = useState<
     "plan" | "import" | "review" | "execute" | "record" | null
   >(null);
+  const [hasSessions, setHasSessions] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(Boolean(requestedId));
+
+  function applyLoadedSession(next: SessionRecord) {
+    setSession(next);
+    setGoal(next.goal);
+    setPlannerChoice(isPlannerChoice(next.plannerChoice) ? next.plannerChoice : "auto");
+    setHarnessTeam([...next.harnessTeam]);
+    setBudget(String(next.budgetTokens));
+    if (isWorkspaceSource(next.workspaceSource)) {
+      setWorkspaceSource(next.workspaceSource);
+    }
+  }
+
+  function rememberSession(id: string) {
+    if (requestedId !== id) {
+      router.replace(`/?session=${id}`);
+    }
+  }
+
+  function commitSession(next: SessionRecord) {
+    setSession(next);
+    setHasSessions(true);
+    rememberSession(next.id);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/sessions")
+      .then((response) => response.json() as Promise<{ sessions?: SessionRecord[] }>)
+      .then((body) => {
+        if (!cancelled) {
+          setHasSessions(Array.isArray(body.sessions) && body.sessions.length > 0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHasSessions(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!requestedId) {
+      setLoadingSession(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingSession(true);
+    fetch(`/api/sessions/${requestedId}`)
+      .then(async (response) => {
+        const body = (await response.json()) as { session?: SessionRecord; error?: string };
+        if (!response.ok || !body.session) {
+          throw new Error(t.sessionMissing);
+        }
+        return body.session;
+      })
+      .then((next) => {
+        if (!cancelled) {
+          applyLoadedSession(next);
+          setError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setSession(null);
+          setError(err instanceof Error ? err.message : t.sessionMissing);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingSession(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [requestedId, t.sessionMissing]);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,7 +261,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
         budgetTokens: Number(budget),
         workspaceSource,
       });
-      setSession(result.session);
+      commitSession(result.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
     } finally {
@@ -199,7 +285,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
         sessionId: session.id,
         raw: importRaw,
       });
-      setSession(result.session);
+      commitSession(result.session);
       setImportRaw("");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
@@ -221,7 +307,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
         all: !owner,
         harness: owner,
       });
-      setSession(executed.session);
+      commitSession(executed.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
     } finally {
@@ -250,7 +336,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
         });
         next = result.session;
       }
-      setSession(next);
+      commitSession(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
     } finally {
@@ -272,7 +358,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
         changedFiles: files,
         tests: session.harnessRuns.map((run) => `${run.owner}: ${run.tests || "not run"}`).join("\n") || "not run",
       });
-      setSession(result.session);
+      commitSession(result.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
     } finally {
@@ -298,11 +384,27 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
         changedFiles: files.length > 0 ? files : session.plan.filesLikelyInvolved,
         tests: "12 passed",
       });
-      setSession(result.session);
+      commitSession(result.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function onResumeLatest() {
+    setError(null);
+    try {
+      const response = await fetch("/api/sessions");
+      const body = (await response.json()) as { sessions?: SessionRecord[] };
+      const latest = body.sessions?.[0];
+      if (!latest) {
+        setError(t.sessionsEmpty);
+        return;
+      }
+      router.replace(`/?session=${latest.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.error);
     }
   }
 
@@ -335,7 +437,24 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
               C2X · {t.product}
             </p>
             <h2 className="font-heading text-2xl tracking-tight">{t.navStudio}</h2>
-            <p className="max-w-2xl text-sm text-muted-foreground">{t.emptyBody}</p>
+            {session ? (
+              <p className="max-w-2xl text-sm" data-testid="next-step">
+                <span className="font-medium">{t.nextStep}: </span>
+                {lang === "vi"
+                  ? describeSessionStatus(session).nextVi
+                  : describeSessionStatus(session).nextEn}
+              </p>
+            ) : (
+              <p className="max-w-2xl text-sm text-muted-foreground">{t.emptyBody}</p>
+            )}
+            {session ? (
+              <p className="font-mono text-xs text-muted-foreground">
+                {t.sessionId} {session.id}
+              </p>
+            ) : null}
+            {loadingSession ? (
+              <p className="text-xs text-muted-foreground">{t.loadingSession}</p>
+            ) : null}
           </div>
           <Badge variant="outline" className="font-mono">
             {session ? session.state : "IDLE"}
@@ -472,6 +591,11 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
               {busy === "plan" ? <LoaderCircle className="animate-spin" /> : null}
               {busy === "plan" ? t.packing : t.runPlan}
             </Button>
+            {!session && hasSessions ? (
+              <Button variant="outline" onClick={() => void onResumeLatest()} disabled={busy !== null}>
+                {t.resumeLatest}
+              </Button>
+            ) : null}
             {session?.plan ? (
               <Button variant="secondary" onClick={() => void onSimulateAll()} disabled={busy !== null}>
                 {busy === "review" ? <LoaderCircle className="animate-spin" /> : null}

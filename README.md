@@ -52,6 +52,7 @@ npm run c2x -- init
 npm run c2x -- plan --goal "Sửa createTask" --planner mock
 npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness codex
 npm run c2x -- sessions
+npm run c2x -- status
 npm run c2x -- doctor
 npm run c2x -- brief --session <id> --owner codex
 npm run c2x -- skill-install

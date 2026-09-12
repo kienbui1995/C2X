@@ -56,8 +56,11 @@ export function SessionsClient({ initialSessions }: { initialSessions: SessionRe
                     : ""}
                 </p>
               ) : null}
-              <Link href="/" className="text-sm text-primary underline-offset-4 hover:underline">
-                {t.navStudio}
+              <Link
+                href={`/?session=${session.id}`}
+                className="text-sm text-primary underline-offset-4 hover:underline"
+              >
+                {t.resumeSession}
               </Link>
             </CardHeader>
           </Card>
