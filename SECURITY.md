@@ -20,6 +20,9 @@ Pull requests that add any of the following are out of scope and will be closed:
 
 ## Hardening already locked
 
+Optional `c2x mcp` binds **127.0.0.1** only. No Cloudflare tunnel, no OAuth,
+no public URL, no write tools. First-run does not start MCP.
+
 - Dashboard `dev` / `start` bind **`127.0.0.1`** only
 - HTTP bodies must not carry `cwd` / `workspaceRoot` — the process cwd is the repo
 - Control messages stay tiny (no file bodies, no full diffs, no logs)

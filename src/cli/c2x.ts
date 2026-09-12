@@ -20,6 +20,12 @@ import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { handoffMessage, nextExpectedStep } from "@/core/protocol";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
+import {
+  MCP_LOOPBACK_HOST,
+  MCP_LOOPBACK_PORT,
+  assertLoopbackBind,
+  createMcpLoopbackServer,
+} from "@/core/mcp-loopback";
 import { dataDir, getSession, loadSessions } from "@/core/store";
 import { resolveWorkspaceRoot } from "@/core/workspace";
 import { formatTokens, formatUsd } from "@/core/tokens";
@@ -337,6 +343,32 @@ program
     if (!raw.endsWith("\n")) {
       process.stdout.write("\n");
     }
+  });
+
+program
+  .command("mcp")
+  .description("Read-only loopback MCP on 127.0.0.1 (no tunnel, no OAuth)")
+  .requiredOption("--session <id>")
+  .option("--port <n>", "loopback port", String(MCP_LOOPBACK_PORT))
+  .action(async (opts: { session: string; port: string }) => {
+    assertLoopbackBind(MCP_LOOPBACK_HOST);
+    const existing = await getSession(opts.session);
+    if (!existing) {
+      throw new Error(`unknown session: ${opts.session}`);
+    }
+    const server = createMcpLoopbackServer({
+      getSession: (id) => getSession(id),
+    });
+    const port = Number(opts.port) || MCP_LOOPBACK_PORT;
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(port, MCP_LOOPBACK_HOST, () => {
+        process.stdout.write(
+          `c2x mcp ${existing.id} http://${MCP_LOOPBACK_HOST}:${port}/ (read-only, no tunnel)\n`,
+        );
+        resolve();
+      });
+    });
   });
 
 program
