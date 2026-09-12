@@ -23,6 +23,16 @@ router never sends `plan` / `review` to a harness.
 
 ## How to add a harness (10 min)
 
+### Checklist PR (10 phút)
+
+1. `HARNESS_IDS` + đúng một object `HARNESS_BY_ID` (`binaries` khác rỗng).
+2. Adapter chỉ khi detect/ghi brief khác mặc định.
+3. **Không đụng** `studio-client.tsx`, `src/cli/c2x.ts` help, `router.ts`, `packets.ts` để “hiện” id mới.
+4. `npx tsc --noEmit && npx vitest run` — `catalog-registry.test.ts` phải xanh; không cần binary thật trên máy.
+5. Drop workspace (Slice L) và `c2x doctor` lấy `binaries` từ catalog — không switch thứ hai.
+
+Reviewer từ chối PR thêm `case "foo":` vào UI/CLI/router/splitter.
+
 Copy of spec §19. No marketplace.
 
 1. **Id.** Thêm `"cursor-cli"` (ví dụ) vào `HARNESS_IDS` trong `src/core/types.ts`. `HarnessId` tự mở rộng.

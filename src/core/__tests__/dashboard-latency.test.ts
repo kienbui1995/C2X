@@ -18,4 +18,14 @@ describe("dashboard first paint", () => {
     expect(studio).toMatch(/\/api\/doctor/);
     expect(studio).toMatch(/HARNESS_CATALOG/);
   });
+
+  it("keeps a 10-minute harness checklist for contributors", () => {
+    const text = readFileSync(path.join(process.cwd(), "CONTRIBUTING.md"), "utf8");
+    expect(text).toMatch(/10 phút|10 min/i);
+    expect(text).toContain("HARNESS_BY_ID");
+    expect(text).toContain("catalog-registry.test.ts");
+    expect(text).toMatch(/Không đụng/);
+    expect(text).toContain("npm test");
+    expect(text).toContain("npm run typecheck");
+  });
 });
