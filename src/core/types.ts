@@ -136,6 +136,24 @@ export type HarnessRun = {
   tests: string;
 };
 
+export const EXECUTION_EXIT_STATUSES = ["ok", "fail", "unknown"] as const;
+export type ExecutionExitStatus = (typeof EXECUTION_EXIT_STATUSES)[number];
+
+export function isExecutionExitStatus(value: string): value is ExecutionExitStatus {
+  return (EXECUTION_EXIT_STATUSES as readonly string[]).includes(value);
+}
+
+export type ExecutionRecord = {
+  taskId: string;
+  iteration: number;
+  owner: HarnessId;
+  changedFiles: string[];
+  tests: string;
+  exitStatus: ExecutionExitStatus;
+  recordedAt: string;
+  diffStat: string;
+};
+
 export type ReviewVerdict = {
   taskId: string;
   iteration: number;
@@ -198,6 +216,7 @@ export type SessionRecord = {
   brief: ExecutionBrief | null;
   briefs: ExecutionBrief[];
   harnessRuns: HarnessRun[];
+  records: ExecutionRecord[];
   review: ReviewVerdict | null;
   pastePrompt: string | null;
   reviewPastePrompt: string | null;

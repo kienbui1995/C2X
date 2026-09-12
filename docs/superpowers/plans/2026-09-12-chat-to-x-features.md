@@ -1619,7 +1619,7 @@ waitingWebReview: "Copy the review prompt into the web chat. Do not fake DONE.",
 
 `onImport` đã POST `/api/import-plan` — không đổi URL.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Không có test component runner. Fail = typecheck nếu thiếu key (copy `as const` — thêm cả `vi` và `en`).
 
@@ -1627,13 +1627,13 @@ Chạy sau khi sửa i18n một phía: `npx tsc --noEmit` sẽ fail nếu studio
 
 Thêm vào studio tab `review` (trước khi có key) đoạn `t.waitingWebReview` để Step 2 fail.
 
-- [ ] **Step 2: Run typecheck to verify it fails**
+- [x] **Step 2: Run typecheck to verify it fails**
 
 Run: `npx tsc --noEmit`
 
 Expected: FAIL trên `waitingWebReview` nếu mới chỉ sửa tsx.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 1. Thêm 4 key vào **cả** `copy.vi` và `copy.en`.
 2. Tab Review trong `studio-client.tsx`:
@@ -1645,7 +1645,7 @@ Expected: FAIL trên `waitingWebReview` nếu mới chỉ sửa tsx.
 
 Đừng xóa nút “Giả lập đã chạy” — vẫn dùng cho demo/`mock`.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 npx tsc --noEmit
@@ -1656,7 +1656,7 @@ Expected: PASS
 
 Tay (khi có browser): Phòng điều khiển → planner `chatgpt-web` → Đóng gói → dán PLAN mẫu → Giả lập lane → tab Review có prompt → dán DONE → state `DONE`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/i18n.ts src/components/studio-client.tsx
