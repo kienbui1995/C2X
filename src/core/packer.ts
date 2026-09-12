@@ -86,14 +86,16 @@ export function packWorkspace(input: {
   goal: string;
   files: WorkspaceFile[];
   budgetTokens: number;
+  extraIgnore?: readonly string[];
 }): ContextPack {
   const budget = clampBudget(input.budgetTokens);
   const terms = tokenizeGoal(input.goal);
   const skippedSensitive: string[] = [];
   const usable: WorkspaceFile[] = [];
+  const extraIgnore = input.extraIgnore ? [...input.extraIgnore] : [];
 
   for (const file of input.files) {
-    if (isIgnoredPath(file.path)) {
+    if (isIgnoredPath(file.path, extraIgnore)) {
       continue;
     }
     if (isSensitivePath(file.path)) {

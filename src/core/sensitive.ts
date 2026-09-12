@@ -7,6 +7,7 @@ export const DEFAULT_IGNORE = [
   "node_modules",
   ".git",
   ".next",
+  ".c2x",
   "dist",
   "build",
   "coverage",

@@ -40,4 +40,24 @@ describe("packWorkspace", () => {
     });
     expect(pack.excerpts.some((item) => item.path.includes("tasks.ts"))).toBe(true);
   });
+
+  it("applies extraIgnore and never packs .c2x drops", () => {
+    const pack = packWorkspace({
+      goal: "keep.ts vendor",
+      files: [
+        { path: "src/keep.ts", content: "export const keep = 1;\n" },
+        { path: "vendor/lib.ts", content: "export const vendor = 1;\n" },
+        { path: ".c2x/briefs/codex.md", content: "OWNER: codex\n" },
+      ],
+      budgetTokens: 2000,
+      extraIgnore: ["vendor"],
+    });
+    const paths = pack.excerpts.map((item) => item.path);
+    expect(paths).toContain("src/keep.ts");
+    expect(paths).not.toContain("vendor/lib.ts");
+    expect(paths).not.toContain(".c2x/briefs/codex.md");
+    expect(pack.tree).toContain("src/keep.ts");
+    expect(pack.tree).not.toContain("vendor/lib.ts");
+  });
 });
+

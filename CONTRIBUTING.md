@@ -6,6 +6,7 @@
 npm install
 npm test
 npm run typecheck
+npm run c2x -- init
 ```
 
 No planner API key and no network are required. `npm test` is the contract:

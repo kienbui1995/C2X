@@ -1,0 +1,110 @@
+import { existsSync, readFileSync } from "node:fs";
+import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { DEFAULT_INIT_GOAL, formatInitReport, runInit } from "@/core/init";
+
+let dataDir = "";
+let workspaceRoot = "";
+let skillHome = "";
+let prevData: string | undefined;
+let prevWorkspace: string | undefined;
+
+beforeEach(async () => {
+  dataDir = await mkdtemp(path.join(os.tmpdir(), "c2x-init-data-"));
+  workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "c2x-init-ws-"));
+  skillHome = await mkdtemp(path.join(os.tmpdir(), "c2x-init-skill-"));
+  prevData = process.env.FRUGAL_DATA_DIR;
+  prevWorkspace = process.env.C2X_WORKSPACE;
+  process.env.FRUGAL_DATA_DIR = dataDir;
+  process.env.C2X_WORKSPACE = workspaceRoot;
+});
+
+afterEach(async () => {
+  if (prevData === undefined) {
+    delete process.env.FRUGAL_DATA_DIR;
+  } else {
+    process.env.FRUGAL_DATA_DIR = prevData;
+  }
+  if (prevWorkspace === undefined) {
+    delete process.env.C2X_WORKSPACE;
+  } else {
+    process.env.C2X_WORKSPACE = prevWorkspace;
+  }
+  await rm(dataDir, { recursive: true, force: true });
+  await rm(workspaceRoot, { recursive: true, force: true });
+  await rm(skillHome, { recursive: true, force: true });
+});
+
+describe("runInit", () => {
+  it("installs the Codex skill, mock-plans, and drops briefs without touching other homes", async () => {
+    const result = await runInit({
+      goal: "Sửa createTask",
+      harnessTeam: ["codex", "claude-code"],
+      workspaceSource: "demo",
+      cwd: workspaceRoot,
+      repoRoot: process.cwd(),
+      skillHome,
+    });
+    expect(result.skillPath).toBe(path.join(skillHome, "chat-to-x", "SKILL.md"));
+    const skill = await readFile(result.skillPath, "utf8");
+    expect(skill).toContain(process.cwd());
+    expect(skill).not.toContain("replace-with-absolute-path");
+    expect(await readdir(skillHome)).toEqual(["chat-to-x"]);
+    expect(result.session.state).toBe("PLAN");
+    expect(result.session.planner).toBe("mock");
+    expect(result.session.goal).toBe("Sửa createTask");
+    expect(result.session.harnessTeam).toEqual(["codex", "claude-code"]);
+    expect(result.doctor.map((item) => item.id)).toEqual(["codex", "claude-code"]);
+    expect(result.briefDrops).toEqual([
+      path.join(workspaceRoot, ".c2x", "briefs", "codex.md"),
+      path.join(workspaceRoot, ".c2x", "briefs", "claude-code.md"),
+    ]);
+    expect(await readFile(result.briefDrops[0]!, "utf8")).toMatch(/OWNER:\s*codex/);
+    expect(await readFile(result.briefDrops[1]!, "utf8")).toMatch(/OWNER:\s*claude-code/);
+    const report = formatInitReport(result);
+    expect(report).toContain(result.skillPath);
+    expect(report).toContain(result.session.id);
+    expect(report).toMatch(/Claude Code: copy the same SKILL.md/);
+    expect(report).toMatch(/does not spawn/i);
+    expect(report).not.toMatch(/127\.0\.0\.1:45218|mcp /i);
+  });
+
+  it("defaults to the demo workspace and default init goal", async () => {
+    const result = await runInit({
+      skillHome,
+      repoRoot: process.cwd(),
+      cwd: workspaceRoot,
+    });
+    expect(result.session.workspaceSource).toBe("demo");
+    expect(result.session.goal).toBe(DEFAULT_INIT_GOAL);
+    expect(result.session.harnessTeam).toEqual(["codex", "claude-code"]);
+    expect(result.session.state).toBe("PLAN");
+  });
+
+  it("documents the CLI command without spawning or recommending npx c2x", () => {
+    const cli = readFileSync(path.join(process.cwd(), "src/cli/c2x.ts"), "utf8");
+    expect(cli).toMatch(/\.command\("init"\)/);
+    expect(cli).toMatch(/no spawn/);
+    expect(cli).not.toMatch(/npx c2x/);
+  });
+});
+
+describe("runInit --cwd isolation", () => {
+  it("does not write briefs into the process cwd when cwd is injected", async () => {
+    const other = await mkdtemp(path.join(os.tmpdir(), "c2x-init-other-"));
+    await mkdir(path.join(other, ".c2x", "briefs"), { recursive: true });
+    const result = await runInit({
+      goal: "Sửa createTask",
+      harnessTeam: ["codex"],
+      workspaceSource: "demo",
+      cwd: other,
+      repoRoot: process.cwd(),
+      skillHome,
+    });
+    expect(result.briefDrops).toEqual([path.join(other, ".c2x", "briefs", "codex.md")]);
+    expect(existsSync(path.join(workspaceRoot, ".c2x", "briefs", "codex.md"))).toBe(false);
+    await rm(other, { recursive: true, force: true });
+  });
+});

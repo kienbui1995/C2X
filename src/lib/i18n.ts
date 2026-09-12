@@ -106,7 +106,7 @@ export const copy = {
     quotaSingleTeam: "Một harness vẫn hợp lệ — thêm teammate để gộp hạn mức khan.",
     sessionsLead: "Các phiên C2X trên máy này. Planner nghĩ; đội harness chỉ chạy.",
     skillInstallHint:
-      "Cài skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md sang ~/.claude/skills/chat-to-x/.",
+      "Lần đầu: `c2x init` (skill + doctor + mock PLAN + brief). Hoặc `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md sang ~/.claude/skills/chat-to-x/.",
   },
   en: {
     product: "chat-to-x",
@@ -213,6 +213,6 @@ export const copy = {
     quotaSingleTeam: "A single harness is valid — add a teammate to split scarce quota.",
     sessionsLead: "C2X sessions on this machine. Planners think; the harness team only executes.",
     skillInstallHint:
-      "Install skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md to ~/.claude/skills/chat-to-x/.",
+      "First run: `c2x init` (skill + doctor + mock PLAN + briefs). Or `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md to ~/.claude/skills/chat-to-x/.",
   },
 } as const;

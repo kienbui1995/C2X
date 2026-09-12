@@ -32,7 +32,7 @@ import {
   touchSession,
 } from "@/core/session";
 import { getSession, loadConfig, upsertSession } from "@/core/store";
-import { loadWorkspaceFiles, resolveWorkspaceRoot } from "@/core/workspace";
+import { loadC2xIgnore, loadWorkspaceFiles, resolveWorkspaceRoot } from "@/core/workspace";
 import {
   isHarnessId,
   resolveHarnessTeam,
@@ -56,6 +56,7 @@ export async function runPlan(input: {
   budgetTokens: number;
   workspaceSource: WorkspaceSource;
   allowFallback?: boolean;
+  cwd?: string;
 }): Promise<SessionRecord> {
   const config = await loadConfig();
   const planner = resolvePlanner({
@@ -68,11 +69,16 @@ export async function runPlan(input: {
     harness: input.harness,
     fallbackTeam: config.defaultHarnessTeam,
   });
-  const files = await loadWorkspaceFiles(input.workspaceSource);
+  const files = await loadWorkspaceFiles(input.workspaceSource, undefined, input.cwd);
+  const extraIgnore =
+    input.workspaceSource === "repo"
+      ? await loadC2xIgnore(resolveWorkspaceRoot({ cwd: input.cwd, env: process.env }))
+      : [];
   const pack = packWorkspace({
     goal: input.goal,
     files,
     budgetTokens: input.budgetTokens,
+    extraIgnore,
   });
   let session = createSession({
     goal: input.goal,
@@ -99,7 +105,7 @@ export async function runPlan(input: {
         note: `${planner}: copy the packed prompt into that web chat, paste the [C2X] PLAN back. Team ${harnessTeam.join(" + ")} stays on execute only.`,
       },
     );
-    return persistPlanDrops(await upsertSession(session));
+    return persistPlanDrops(await upsertSession(session), input.cwd);
   }
 
   const fallback = mockPlanFromPack(pack, session.id, harnessTeam);
@@ -146,7 +152,7 @@ export async function runPlan(input: {
       savings: estimateSavings({ pack, brief: briefs[0] ?? null, briefs, planner }),
     },
   );
-  return persistPlanDrops(await upsertSession(session));
+  return persistPlanDrops(await upsertSession(session), input.cwd);
 }
 
 export async function importPlan(input: {

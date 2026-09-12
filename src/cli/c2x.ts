@@ -13,6 +13,7 @@ import {
   writeHarnessBrief,
   writeWorkspaceBriefDrop,
 } from "@/core/harness";
+import { DEFAULT_INIT_GOAL, formatInitReport, runInit } from "@/core/init";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
@@ -156,6 +157,7 @@ program
   .option("--team <ids>", "comma-separated harness ids")
   .option("--budget <n>", "token budget", "4000")
   .option("--workspace <src>", "demo|repo", "demo")
+  .option("--cwd <path>", "workspace root for repo pack + brief drops (CLI only)")
   .action(async (opts: {
     goal: string;
     planner: string;
@@ -163,6 +165,7 @@ program
     team?: string;
     budget: string;
     workspace: string;
+    cwd?: string;
   }) => {
     if (!isPlannerChoice(opts.planner)) {
       throw new Error(`unknown planner: ${opts.planner}`);
@@ -177,6 +180,7 @@ program
       harnessTeam,
       budgetTokens: Number(opts.budget),
       workspaceSource: opts.workspace,
+      cwd: opts.cwd,
     });
     if (session.briefs.length > 0) {
       for (const brief of session.briefs) {
@@ -369,6 +373,42 @@ program
         resolve();
       });
     });
+  });
+
+program
+  .command("init")
+  .description("Install skill, run doctor, mock-plan, drop briefs (no spawn)")
+  .option("--goal <text>", "mock PLAN goal", DEFAULT_INIT_GOAL)
+  .option("--team <ids>", "comma-separated harness ids")
+  .option("--harness <id>", "single harness")
+  .option("--cwd <path>", "workspace root for brief drops (CLI only)")
+  .option("--workspace <src>", "demo|repo", "demo")
+  .option("--budget <n>", "token budget", "4000")
+  .action(async (opts: {
+    goal: string;
+    team?: string;
+    harness?: string;
+    cwd?: string;
+    workspace: string;
+    budget: string;
+  }) => {
+    if (!isWorkspaceSource(opts.workspace)) {
+      throw new Error(`unknown workspace: ${opts.workspace}`);
+    }
+    if (opts.harness && !isHarnessId(opts.harness)) {
+      throw new Error(`unknown harness: ${opts.harness}`);
+    }
+    const result = await runInit({
+      goal: opts.goal,
+      harnessTeam: opts.team ? teamFromOpts(opts) : undefined,
+      harness: opts.harness && isHarnessId(opts.harness) ? opts.harness : undefined,
+      workspaceSource: opts.workspace,
+      cwd: opts.cwd,
+      repoRoot: process.cwd(),
+      skillHome: path.join(os.homedir(), ".codex/skills"),
+      budgetTokens: Number(opts.budget),
+    });
+    process.stdout.write(formatInitReport(result));
   });
 
 program

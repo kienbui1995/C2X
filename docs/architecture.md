@@ -114,7 +114,11 @@ These are locks, not suggestions. Full table: spec §18.
 
 - Sync `packWorkspace` — no async packer, no ripgrep spawn.
 - Hard caps: 80 files, 120 KB/file, 250 ms repo walk; skip `node_modules` /
-  `.git` / `.next` (`DEFAULT_IGNORE` in `src/core/sensitive.ts`).
+  `.git` / `.next` / `.c2x` (`DEFAULT_IGNORE` in `src/core/sensitive.ts`).
+  Repo walks also honor a root `.c2xignore` (one path per line). Demo stays
+  in-memory.
+- `c2x init` composes skill-install + doctor + mock PLAN + brief drops.
+  It does not spawn a harness or start MCP.
 - Default workspace is the in-memory **demo** fixture.
 - Mock planner and web-paste prompts are local (milliseconds). Briefs are
   computed once at PLAN time (`session.briefs`).

@@ -87,12 +87,13 @@ async function walk(
 export async function loadWorkspaceFiles(
   source: WorkspaceSource,
   now?: () => number,
+  cwd?: string,
 ): Promise<WorkspaceFile[]> {
   if (source === "demo") {
     return DEMO_FILES;
   }
   const clock = now ?? Date.now;
-  const root = resolveWorkspaceRoot({ env: process.env });
+  const root = resolveWorkspaceRoot({ cwd, env: process.env });
   const extra = await loadC2xIgnore(root);
   const rels: string[] = [];
   await walk(root, root, rels, clock(), clock, extra);

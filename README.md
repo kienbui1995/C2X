@@ -48,6 +48,7 @@ Stranger CLI: `npx chat-to-x` hoặc `npm run c2x -- …`. **Không** chạy
 `npx c2x` — package npm `c2x` là tool CSS→XPath, không phải repo này.
 
 ```bash
+npm run c2x -- init
 npm run c2x -- plan --goal "Sửa createTask" --planner mock
 npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness codex
 npm run c2x -- sessions
@@ -67,6 +68,23 @@ Alias local `c2x` chỉ sau `npm install` của **chat-to-x**. **Không** `npx c
 Lệnh CLI ngắn là `c2x` (alias của chat-to-x). `npx tsx src/cli/c2x.ts …` cũng
 chạy được. Mặc định CLI dùng đội `codex,claude-code`. `--harness kiro-cli`
 (hoặc `codex`) vẫn là một harness. `--team` chọn bất kỳ tập hợp nào trong năm id.
+
+`c2x init` là lệnh lần đầu: cài skill Codex, chạy `doctor` (không spawn), mock PLAN
+trên workspace **demo**, rồi ghi `.c2x/briefs/<harness>.md`. Claude Code / OpenCode /
+Kiro: copy `SKILL.md` tay — C2X không ghi nhiều cây `$HOME`.
+
+### `.c2xignore`
+
+Khi `--workspace repo`, packer đọc `.c2xignore` ở root workspace (một dòng một
+tên/path; `#` là comment). `node_modules`, `.git`, `.next`, `.c2x` đã bị bỏ mặc
+định. Workspace **demo** không đọc file này (0 I/O). Dashboard không nhận path —
+chỉ CLI `--cwd` hoặc `C2X_WORKSPACE`.
+
+```gitignore
+# extra packer ignores (path segment or relative path)
+vendor
+fixtures/huge
+```
 
 ## Cách tách hạn mức
 
