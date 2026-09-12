@@ -1700,7 +1700,7 @@ export type ExecutionRecord = {
 `SessionRecord.records: ExecutionRecord[]`  
 Không thêm `AppConfig.workspaceRoot` (tránh `PUT /api/config` thành LFI).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -1726,26 +1726,26 @@ describe("ExecutionRecord on session", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/records.test.ts`
 
 Expected: FAIL — module/types missing fields.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Thêm types + `isExecutionExitStatus` (so với `EXECUTION_EXIT_STATUSES`).  
 `createSession`: `records: []`.  
 `normalizeSession`: `records: raw.records ?? []`.  
 Không đụng `AppConfig` / `mergeConfig` cho path.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/records.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/types.ts src/core/session.ts src/core/__tests__/records.test.ts

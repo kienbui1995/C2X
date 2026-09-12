@@ -1,6 +1,14 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
+import { collectGitMetadata } from "@/core/git-meta";
 import { createSession, normalizeSession } from "@/core/session";
 import { isExecutionExitStatus, type SessionRecord } from "@/core/types";
+
+const execFileAsync = promisify(execFile);
 
 describe("ExecutionRecord on session", () => {
   it("normalizes missing records to an empty array", () => {
@@ -17,5 +25,35 @@ describe("ExecutionRecord on session", () => {
     expect(session.records).toEqual([]);
     const { records: _r, ...legacy } = session;
     expect(normalizeSession(legacy as SessionRecord).records).toEqual([]);
+  });
+});
+
+describe("collectGitMetadata", () => {
+  it("reads porcelain paths and a stat line from a temp repo", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "c2x-git-"));
+    await execFileAsync("git", ["-C", root, "init"]);
+    await execFileAsync("git", ["-C", root, "config", "user.email", "c2x@example.com"]);
+    await execFileAsync("git", ["-C", root, "config", "user.name", "c2x"]);
+    await writeFile(path.join(root, "README.md"), "one\n", "utf8");
+    await execFileAsync("git", ["-C", root, "add", "README.md"]);
+    await execFileAsync("git", ["-C", root, "commit", "-m", "init"]);
+    await writeFile(path.join(root, "README.md"), "two\n", "utf8");
+    await writeFile(path.join(root, "src-new.ts"), "export const x = 1;\n", "utf8");
+
+    const meta = await collectGitMetadata(root);
+    expect(meta.isGit).toBe(true);
+    expect(meta.changedFiles.some((item) => item.endsWith("README.md"))).toBe(true);
+    expect(meta.diffStat.length).toBeGreaterThan(0);
+    expect(meta.diffStat).not.toContain("export const x");
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("returns isGit false outside a repository", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "c2x-nogit-"));
+    const meta = await collectGitMetadata(root);
+    expect(meta.isGit).toBe(false);
+    expect(meta.changedFiles).toEqual([]);
+    await rm(root, { recursive: true, force: true });
   });
 });
