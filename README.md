@@ -99,17 +99,33 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 
 Mặt điều khiển dùng `[C2X]` (vẫn đọc được `[C2C]` của repo gốc). Không nhét
 diff / log / thân file vào tin nhắn điều khiển. Execute là đội harness; mỗi
-brief có `OWNER`. Thêm harness mới: mở rộng `HARNESS_IDS` + catalog (switch
-`never` sẽ bắt các chỗ chưa xử lý).
+brief có `OWNER`. Thêm harness mới: **một** entry trong registry
+`src/core/providers/catalog.ts` (`HARNESS_BY_ID satisfies Record<HarnessId, …>`).
+UI / CLI / router / mock splitter `map` catalog — không nhân 5 `switch`.
+Hướng dẫn 10 phút: [spec §19](docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md).
+Không plugin marketplace.
 
 ## Cấu trúc
 
 ```
-src/core/          packer, packets, protocol, router, savings, providers
-src/app/           dashboard Next.js
-src/cli/c2x.ts     CLI
-skill/SKILL.md     skill cho Codex / Claude Code / Grok Build / OpenCode / Kiro CLI
+src/core/providers/catalog.ts   registry harness + planner (nguồn sự thật)
+src/core/                       packer sync, packets, protocol, router, savings
+src/app/                        dashboard Next.js (import catalog, không refetch mỗi click)
+src/cli/c2x.ts                  CLI
+skill/SKILL.md                  skill cho đội harness trong catalog
 ```
+
+## Tốc độ (mặc định)
+
+Vibe-coding không được chậm. Khóa: packer **sync**; bỏ `node_modules` / `.git` / `.next`;
+workspace mặc định **demo**; walk `repo` ≤ 80 file / 120 KB / 250 ms; mock + prompt dán
+web sinh **local (ms)**; brief tính **một lần** lúc PLAN; **không spawn** harness;
+cache `doctor`/`PATH`; `npm test` không cần API key. Chi tiết:
+[spec §18](docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md).
+
+Attribution MIT: ý tưởng protocol từ
+[XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt)
+— không fork OAuth / tunnel / cookie.
 
 ## License
 

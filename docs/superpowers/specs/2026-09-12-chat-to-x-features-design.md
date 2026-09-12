@@ -30,9 +30,9 @@ Mục tiêu người dùng đã nêu (giữ nguyên):
 Các phần sau đã chạy (core + dashboard + CLI + test). Slice mới phải tái sử dụng, không viết lại:
 
 - Catalog planner: `mock`, `chatgpt-web`, `claude-web`, `gemini-web`, `openai`, `anthropic`, `gemini`, `groq`, `openrouter`, `deepseek`, `ollama`, `openai-compatible`.
-- Catalog harness `HARNESS_IDS` (5 id), default team `codex` + `claude-code`, `toggleHarnessInTeam` giữ ít nhất một.
+- Catalog harness `HARNESS_IDS` (5 id) + mảng `HARNESS_CATALOG` / `getHarness` switch. Default team `codex` + `claude-code`, `toggleHarnessInTeam` giữ ít nhất một. **Chưa** phải registry `Record<HarnessId, …>` — UI/CLI đã `map` catalog, nhưng router/`getHarness` vẫn liệt kê 5 case; thêm harness vẫn dễ sót một switch. Xem §17.
 - Router: `plan` / `review` **không bao giờ** về harness; `auto` ưu tiên `subscription` → `local` → `api`.
-- Packer token + chặn file nhạy cảm (`.env*`, key, SSH).
+- Packer **đồng bộ** + chặn file nhạy cảm (`.env*`, key, SSH). Walk repo bỏ `node_modules` / `.git` / `.next` (và ignore list hiện có); trần 80 file / 120 KB. **Chưa** có trần thời gian walk. Xem §18.
 - Protocol `[C2X]` (đọc được `[C2C]`), state machine `INIT → PLAN → EXECUTING → EXECUTED → REVIEW → PLAN | DONE | BLOCKED`.
 - `PACKETS` trong PLAN, brief từng `OWNER`, file không chồng khi packer tách được.
 - Session JSON (`data/sessions.json`), merge metadata khi cả đội `EXECUTED`.
@@ -52,7 +52,7 @@ Repo đã **mô hình hóa** mục tiêu 1–5. Vòng thật vẫn hở:
 | 1. Giữ hạn mức harness | Brief ngắn, router cấm plan/review trên harness, sổ tiết kiệm ước tính | Execute dashboard/CLI chỉ **giả lập**; chưa ghi nhận git/test thật |
 | 2. Chat web nghĩ | Prompt dán PLAN cho 3 planner web | Review paste **chưa có**. `runReview` với planner dán gọi `mockReview` local — sổ `webChatTurns = 2` đang nói dối |
 | 3. Ghép nhiều harness | Packet + brief + lane | Không ghi brief ra file, không detect CLI, không `record` theo `OWNER` |
-| 4. Chọn 5 harness | Catalog + UI + CLI flags | Adapter runtime = 0. `grok-build` có thể không có binary public |
+| 4. Chọn 5 harness | Catalog + UI + CLI flags | Adapter runtime = 0. `grok-build` có thể không có binary public. Thêm harness thứ 6 vẫn phải sửa nhiều switch — §17 khóa registry |
 | 5. MIT OSS | `LICENSE` MIT | `package.json` `"private": true`, không có `bin`, CLI chưa `import` / `review` / `record` / `doctor` |
 
 Các hở kỹ thuật khác (không làm hết trong 3 slice đầu):
@@ -100,10 +100,11 @@ Giống B, cộng tùy chọn MCP chỉ `127.0.0.1` (không Cloudflare, không c
 4. Harness là writer duy nhất (edit / shell / test / git). C2X không sửa repo hộ.
 5. Đội = tập hợp khác rỗng của `HARNESS_IDS`. Một harness vẫn hợp lệ.
 6. Brief của harness A không được đưa cho harness B.
-7. Thêm harness = thêm id vào `HARNESS_IDS` + catalog + `never` switch. Không có plugin động trong các slice này.
+7. Thêm harness = **một** entry registry (`HARNESS_BY_ID` + `HARNESS_IDS`) + adapter tùy chọn. UI, CLI, router, mock splitter **không** được có 5 danh sách `switch` trùng. `satisfies Record<HarnessId, …>` (hoặc tương đương) để thiếu variant là lỗi type. Không plugin marketplace / loader động trong v1. Xem §17 và §19.
 8. Dashboard **không** nhận filesystem path từ trình duyệt và **không** ghi `workspaceRoot` qua `PUT /api/config`. `repo` = `process.cwd()` của process Next/`c2x` mà người dùng tự mở. CLI mới được `--cwd` / `C2X_WORKSPACE`.
 9. Tiếng Việt là ngôn ngữ UI/docs mặc định; id protocol và catalog giữ English.
 10. Public MIT: không secret trong git; `npm test` không cần key; không publish tên npm `c2x`; không spawn harness mặc định.
+11. **Nhanh (vibe-coding):** packer sync, trần cứng, mặc định workspace demo, mock/planner-dán local (ms), brief tính một lần lúc PLAN, không spawn harness, cache `doctor`/`which`, catalog import trên server — không refetch mỗi click. Xem §18.
 
 ## 6. Vòng lặp đầy đủ (sau slice 1–2)
 
@@ -221,17 +222,17 @@ export function writeHarnessBrief(
 ): Promise<string>; // absolute path
 ```
 
-Binary dò trên `PATH` (theo thứ tự, dừng khi thấy):
+Binary **không** sống ở switch thứ hai. `detectHarness` đọc `HARNESS_BY_ID[id].binaries` (thứ tự, dừng khi thấy trên `PATH`). Roster hiện tại (copy vào entry, không copy vào `harness.ts`):
 
-| `HarnessId` | Binary |
+| `HarnessId` | `binaries` |
 | --- | --- |
-| `codex` | `codex` |
-| `claude-code` | `claude` |
-| `grok-build` | `grok`, `grok-build` |
-| `opencode` | `opencode` |
-| `kiro-cli` | `kiro` |
+| `codex` | `["codex"]` |
+| `claude-code` | `["claude"]` |
+| `grok-build` | `["grok", "grok-build"]` |
+| `opencode` | `["opencode"]` |
+| `kiro-cli` | `["kiro"]` |
 
-Nếu không thấy binary: `ok: false`, hint “sao chép brief vào tool đó”. `grok-build` được phép mãi `ok: false` — vẫn là harness hợp lệ.
+Nếu không thấy binary: `ok: false`, hint “sao chép brief vào tool đó”. `grok-build` được phép mãi `ok: false` — vẫn là harness hợp lệ. Cache kết quả detect theo `PATH` (xem §18).
 
 Ghi file: `<dataDir>/briefs/<taskId>.<owner>.c2x.md` với `renderCodexBrief`.  
 **Không spawn** Codex / Claude Code / Grok / OpenCode / Kiro từ C2X trong mọi slice của plan này — kể cả flag `--spawn`. Next.js không được đẻ harness. Slice sau (ngoài v1) chỉ được cân nhắc nếu vừa `C2X_ALLOW_HARNESS_SPAWN=1` **và** flag CLI tường minh, **không** bao giờ từ HTTP.
@@ -270,7 +271,7 @@ Slice 6: `maxIterations` mặc định 12 trên session; `HANDOFF` encode từ c
 - Spawn `codex` / `claude` / `opencode` / `kiro` / `grok` từ C2X (kể cả `--spawn`).
 - Path picker / `workspaceRoot` từ browser hoặc `PUT /api/config`.
 - Publish npm tên `c2x`.
-- Plugin harness động / marketplace.
+- Plugin harness động / marketplace / npm plugin loader. Registry **trong repo** (§17) là đủ.
 - Đo token nhà cung cấp thật (sổ vẫn ước tính).
 - Agent tự flip Private→Public trên GitHub/Origin (người maintain bật tay).
 - Viết lại packer hay router.
@@ -282,6 +283,7 @@ Mỗi slice ra phần mềm chạy + test. Không “làm platform một lần�
 | # | Slice | Chặn vòng execute/review? | Vì sao |
 | --- | --- | --- | --- |
 | 0 | OSS hygiene (NOTICE, CONTRIBUTING, CoC, SECURITY, `.gitignore` `/data/`) | Không | Public MIT; làm song song hoặc trước khi flip visibility |
+| R | Catalog registry `Record<HarnessId, …>` + khóa tốc độ walk/doctor | Không | Thêm harness 10 phút; vibe-coding không được chậm. Làm trước hoặc cùng slice 3 — **không** để slice 3 viết switch binary thứ hai |
 | 1 | Đóng vòng dán PLAN + REVIEW | — | **Làm trước về tính năng.** Mục tiêu 2 hở; `webChatTurns` sai |
 | 2 | `record` + git metadata; CLI `--cwd` | Không | Review không tin claim |
 | 3 | Adapter detect + ghi brief + `doctor` | Không | Catalog → runtime; không spawn |
@@ -290,7 +292,7 @@ Mỗi slice ra phần mềm chạy + test. Không “làm platform một lần�
 | 6 | Checkpoint + `HANDOFF` + `maxIterations` | Không | Resume |
 | 7 | MCP loopback (plan riêng) | Không | Chỉ khi user xin; không Cloudflare |
 
-Phụ thuộc: 0 độc lập với 1. 2 cần import của 1. 3 cần `dataDir`. 5 gói CLI của 1–3. Publish npm **sau** slice 5 + NOTICE, không trước.
+Phụ thuộc: 0 độc lập với 1. **R** độc lập với 1; nên trước 3 (adapter đọc catalog). 2 cần import của 1. 3 cần `dataDir` + registry. 5 gói CLI của 1–3. Publish npm **sau** slice 5 + NOTICE, không trước.
 
 ## 13. Kiểm thử
 
@@ -298,7 +300,8 @@ Giữ vitest `src/core/__tests__/**/*.test.ts`. Mỗi slice thêm file test riê
 
 - Slice 1: `review-paste.test.ts` — prompt có `TASK_ID`, không có thân file; paste planner không `DONE` nếu chưa import; import `DONE` đổi state.
 - Slice 2: `records.test.ts` + `workspace-root.test.ts` — repo git tạm; `.c2xignore`; control `EXECUTED` không chứa diff body.
-- Slice 3: `harness-detect.test.ts` — exhaustive `HARNESS_IDS`; brief path; thiếu binary không throw.
+- Slice 3: `harness-detect.test.ts` — exhaustive `HARNESS_IDS`; brief path; thiếu binary không throw; `binaries` lấy từ catalog, không switch riêng.
+- Slice R: `catalog-registry.test.ts` — `HARNESS_CATALOG` / `PROVIDER_CATALOG` khớp `HARNESS_IDS` / `PROVIDER_IDS`; `getHarness` không `find` trên mảng; mock splitter không `switch` theo id cứng.
 
 Dashboard: không bắt buộc Playwright trong 3 slice đầu. Verify tay: dán PLAN, dán REVIEW, ghi nhận lane. CLI: lệnh mới in ra stdout.
 
@@ -348,7 +351,7 @@ C2X đóng gói file text trong root. Path từ client = đọc tùy ý (secret,
 - `npm test` / vitest: **cấm** đòi `OPENAI_API_KEY` hay mạng provider. Hợp đồng hiện tại giữ.
 - `next dev` giữ `--hostname 127.0.0.1` (đã có). Docs: đừng bind LAN trừ khi hiểu lỗ path/key.
 - `SECURITY.md`: báo cáo qua GitHub Security Advisory; cấm PR “proxy ChatGPT / lấy cookie”.
-- `CONTRIBUTING.md`: `npm test` không key; planner ≠ harness; không smart-split `PACKETS`.
+- `CONTRIBUTING.md`: `npm test` không key; planner ≠ harness; không smart-split `PACKETS`; **How to add a harness (10 min)** (§19) — một entry registry, không marketplace.
 
 ### 15.4 Bằng chứng npm (2026-09-12)
 
@@ -369,7 +372,128 @@ Một người dùng Việt Nam, không cần API key:
 6. `c2x doctor` báo harness nào có trên `PATH`.
 7. `npm test` xanh **không** cần API key; router vẫn cấm plan/review trên harness.
 8. Clone public: không có `data/*.json`, không key trong `.env.example`; có `NOTICE` + `SECURITY.md`.
+9. Thiếu entry trên `HARNESS_BY_ID` thì `tsc` fail; UI/CLI/router/mock splitter không có `case` id cứng.
+10. Bật/tắt harness trên Phòng điều khiển không gọi network (trừ lúc bấm Đóng gói).
+11. `workspaceSource: "demo"` + planner `mock`: PLAN xong không đợi mạng; packer không đọc `node_modules`.
+12. Walk repo cắt đúng trần 80 file / 120 KB / 250 ms (test unit).
 
 Kế hoạch triển khai: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](../plans/2026-09-12-chat-to-x-features.md).
 
-Slice tính năng **đầu tiên sau khi duyệt:** Slice 1 (vòng dán PLAN + REVIEW). Slice 0 (OSS hygiene) làm song song, không chặn.
+Slice tính năng **đầu tiên sau khi duyệt:** Slice 1 (vòng dán PLAN + REVIEW). Slice 0 (OSS hygiene) và Slice R (registry + tốc độ) làm song song, không chặn slice 1.
+
+---
+
+## 17. Catalog registry (trong repo — không marketplace)
+
+Marketplace / plugin loader = chậm và thừa cho v1. Một **module catalog** là nguồn sự thật cho harness (và cùng pattern cho planner).
+
+### 17.1 File — một chỗ ghi roster
+
+| File | Việc |
+| --- | --- |
+| `src/core/types.ts` | `HARNESS_IDS` / `PROVIDER_IDS` (`as const` → union). `isHarnessId`, `toggleHarnessInTeam` duyệt `HARNESS_IDS`. |
+| `src/core/providers/catalog.ts` | **`HARNESS_BY_ID`** + **`PROVIDER_BY_ID`**: `satisfies Record<HarnessId, HarnessCatalogEntry>` và `satisfies Record<ProviderId, ProviderCatalogEntry>`. Derive `HARNESS_CATALOG` / `PROVIDER_CATALOG` bằng `HARNESS_IDS.map((id) => HARNESS_BY_ID[id])`. `getHarness` / `getProvider` = lookup O(1), **không** `find` + switch 5 case. |
+| `src/core/harness.ts` (slice 3) | `detectHarness` / `writeHarnessBrief` đọc `getHarness(id)`. Adapter tùy chọn: `src/core/harness-adapters/<id>.ts` chỉ khi detect/ghi brief khác mặc định. |
+| `src/core/providers/router.ts` | `executeDecision(id)` gọi `getHarness(id)` — **xóa** `switch` liệt kê 5 id giống nhau. |
+| `src/core/packets.ts` | Split theo `team: HarnessId[]` + vai trò theo **vị trí** (implement / middle / test). Cấm `switch (owner) { case "codex": … }`. |
+| `src/core/planner.ts` | `mockPlanFromPack` / `buildWebPastePrompt` nhận `team`, stub packet từ team. |
+| `src/cli/c2x.ts` | `providers` / `doctor` / `--team` help: `HARNESS_CATALOG.map`. |
+| `src/components/studio-client.tsx` | Toggle: `HARNESS_CATALOG.map`. Import module, **không** `GET /api/providers` mỗi lần bật/tắt. |
+| `src/components/providers-client.tsx` | Hàng harness từ props server (`getHarnessRows`), không refetch catalog khi toggle. |
+| `src/lib/server-data.ts` | Import catalog trên server một lần / request render. |
+| `src/app/api/providers/route.ts` | Map catalog + config; không phải nguồn sự thật thứ hai. |
+| `src/lib/i18n.ts` | Copy chung (“đội harness”). **Tên** từng tool lấy từ `name` / `nameVi` trên catalog — không list 5 id trong i18n. |
+
+Thiếu key trên `HARNESS_BY_ID` khi đã thêm `HARNESS_IDS` → lỗi TypeScript (`satisfies Record<…>`). Thừa key không thuộc `HarnessId` → lỗi. `never` / `assertNever` vẫn bắt switch **hành vi** (role, protocol state), không bắt roster.
+
+### 17.2 Shape khóa
+
+```ts
+export type HarnessCatalogEntry = {
+  id: HarnessId;
+  name: string;
+  nameVi: string;
+  blurb: string;
+  blurbVi: string;
+  quotaVi: string;
+  quotaEn: string;
+  binaries: readonly string[];
+};
+
+export const HARNESS_BY_ID = {
+  codex: { id: "codex", /* … */, binaries: ["codex"] },
+  "claude-code": { id: "claude-code", /* … */, binaries: ["claude"] },
+  "grok-build": { id: "grok-build", /* … */, binaries: ["grok", "grok-build"] },
+  opencode: { id: "opencode", /* … */, binaries: ["opencode"] },
+  "kiro-cli": { id: "kiro-cli", /* … */, binaries: ["kiro"] },
+} satisfies Record<HarnessId, HarnessCatalogEntry>;
+
+export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = HARNESS_IDS.map(
+  (id) => HARNESS_BY_ID[id],
+);
+
+export function getHarness(id: HarnessId): HarnessCatalogEntry {
+  return HARNESS_BY_ID[id];
+}
+```
+
+Planner: cùng pattern — `PROVIDER_BY_ID satisfies Record<ProviderId, ProviderCatalogEntry>`. `isWebSubscriptionPlanner` có thể đọc `kind === "subscription"` từ entry thay vì liệt kê 3 id (vẫn được `assertNever` trên `kind`).
+
+### 17.3 Contributor thêm harness
+
+Một PR đủ khi: (1) id trong `HARNESS_IDS`, (2) một object trong `HARNESS_BY_ID`, (3) adapter chỉ nếu cần. Reviewer từ chối PR thêm `case "foo":` vào studio / CLI / router / mock splitter. Chi tiết 10 phút: §19.
+
+---
+
+## 18. Tốc độ (vibe-coding không được chậm)
+
+C2X là mặt điều khiển lúc gõ. Mọi đường mặc định phải xong trong **chục–trăm ms** trên demo; walk repo thật phải **cắt** chứ không “index cả monorepo”.
+
+| Khóa | Giá trị | File / hành vi |
+| --- | --- | --- |
+| Packer sync | `packWorkspace` **không** `async`, không worker, không spawn ripgrep | `src/core/packer.ts` (đã đúng — giữ) |
+| Trần pack | excerpt ≤ 80 dòng; tree ≤ 400 token; budget `clampBudget` 800–16_000 (mặc định 4000) | `packer.ts`, `tokens.ts` |
+| Bỏ thư mục nặng | `node_modules`, `.git`, `.next` (+ `dist`/`build`/`coverage`/lockfile như `DEFAULT_IGNORE`) | `src/core/sensitive.ts` |
+| Trần walk repo | **80 file**, **120 KB / file**, **≤ 250 ms** wall (hết giờ → dừng, pack phần đã có) | `src/core/workspace.ts` — export `MAX_FILES`, `MAX_BYTES`, `MAX_WALK_MS` |
+| Workspace mặc định | `demo` (fixture Nhiệm vụ, 0 I/O đĩa) | dashboard + `runPlan` khi user không chọn `repo` |
+| Mock planner | `mockPlanFromPack` thuần, không mạng, không đĩa | `planner.ts` |
+| Prompt dán web | `buildWebPastePrompt` / `buildReviewPastePrompt` **local, ms** — không gọi API | `planner.ts` |
+| Brief | `planToBriefs` **một lần** lúc PLAN / import PLAN; session giữ `briefs[]`; UI/CLI chỉ đọc | `brief.ts`, `run-loop.ts` |
+| Spawn harness | **Không** mặc định. Không `--spawn`. Next không đẻ vendor CLI | §8, §11, §15.1 |
+| Cache detect | `detectHarness` / `doctor` cache theo `id` + snapshot `PATH` trong process (Map). Không `which` mỗi click / mỗi lane | `harness.ts` |
+| Catalog | Import module trên server / bundle client. Toggle harness = state React. **Cấm** `fetch("/api/providers")` mỗi click | `studio-client.tsx`, `server-data.ts` |
+| Test | `npm test` = vitest unit, **không** key, **không** mạng planner. Không Playwright bắt buộc 3 slice đầu | `src/core/__tests__` |
+
+`loadWorkspaceFiles("demo")` phải nhanh hơn walk `repo`. Chọn `repo` trên dashboard = `process.cwd()` của server đã mở — vẫn bị 80 / 120 KB / 250 ms. CLI `--cwd` cùng trần.
+
+Không làm “cho nhanh” bằng cách: index nền, file watcher, embed sqlite, spawn ripgrep, refetch catalog, recomputed briefs mỗi render, hay spawn harness để “preview”.
+
+---
+
+## 19. How to add a harness (10 phút)
+
+Dành cho contributor OSS. Copy vào `CONTRIBUTING.md` (slice 0). Không cần marketplace.
+
+1. **Id.** Thêm `"cursor-cli"` (ví dụ) vào `HARNESS_IDS` trong `src/core/types.ts`. `HarnessId` tự mở rộng.
+2. **Một entry.** Trong `src/core/providers/catalog.ts` thêm key khớp id vào `HARNESS_BY_ID`:
+
+   ```ts
+   "cursor-cli": {
+     id: "cursor-cli",
+     name: "Cursor CLI",
+     nameVi: "Cursor CLI",
+     blurb: "Execution only — edit, shell, test, git. Never plan or review.",
+     blurbVi: "Chỉ chạy: sửa file, shell, test, git. Không lập kế hoạch hay review.",
+     quotaVi: "Hạn mức harness khan hiếm",
+     quotaEn: "Scarce harness quota",
+     binaries: ["cursor", "cursor-cli"],
+   },
+   ```
+
+   `satisfies Record<HarnessId, HarnessCatalogEntry>` đỏ nếu thiếu field hoặc thiếu key.
+3. **Adapter (hiếm).** Chỉ tạo `src/core/harness-adapters/cursor-cli.ts` nếu detect/ghi brief khác mặc định (`existsSync` trên `binaries` + `renderCodexBrief`). Default trong `src/core/harness.ts` phải đủ cho CLI thông thường.
+4. **Không đụng.** `studio-client.tsx`, `c2x.ts` help, `router.ts`, `packets.ts`, `planner.ts` stub, `i18n` list tên — chúng `map` catalog. Nếu phải sửa các file đó để hiện harness mới → registry chưa xong, sửa registry chứ đừng nhân switch.
+5. **Test.** `npx tsc --noEmit && npx vitest run`. Test catalog assert `HARNESS_CATALOG.map((e) => e.id)` === `[...HARNESS_IDS]`. Thêm 1–2 assert nếu binary/hint đặc biệt. Không đòi máy có binary thật.
+6. **Docs user-facing (tùy).** README có thể kể tên mới trong bảng vai — không bắt buộc cho typecheck. `NOTICE` / attribution C2C không đổi.
+
+Hết. Không `plugins.json`, không dynamic `import()`, không npm scope plugin.

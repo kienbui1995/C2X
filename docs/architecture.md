@@ -30,11 +30,23 @@ tiers) the user already pays for.
      same web planner reviews
 ```
 
-The roster is `HARNESS_IDS`: `codex`, `claude-code`, `grok-build`, `opencode`,
-`kiro-cli`. Default team is still Codex + Claude Code; the others are opt-in
-teammates.
-Adding another id means catalog + exhaustive `never` switches. The wire format
-uses `owner=<harness-id>` rather than hardcoded Codex/Claude Code sections.
+The roster is `HARNESS_IDS` in `src/core/types.ts`. The **source of truth** for
+harness (and planner) metadata is the in-repo registry
+`src/core/providers/catalog.ts`:
+
+```ts
+export const HARNESS_BY_ID = { /* … */ } satisfies Record<HarnessId, HarnessCatalogEntry>;
+export const HARNESS_CATALOG = HARNESS_IDS.map((id) => HARNESS_BY_ID[id]);
+```
+
+Same pattern for `PROVIDER_BY_ID`. UI, CLI, router, and the mock packet splitter
+must `map` / look up the catalog — not five duplicated `switch` lists. Adding a
+harness is one catalog entry (+ optional `src/core/harness-adapters/<id>.ts`).
+No plugin marketplace. How-to (10 min): spec §19.
+
+Default team is still Codex + Claude Code; the others are opt-in teammates.
+The wire format uses `owner=<harness-id>` rather than hardcoded Codex/Claude
+Code sections.
 
 ## Roles
 
@@ -96,6 +108,20 @@ Naive path: 3 harness turns on **one** tool (think + run + review). C2X: 1
 execute turn per teammate + 2 web-chat turns when the planner is a
 subscription paste target.
 
+## Speed defaults (vibe-coding)
+
+These are locks, not suggestions. Full table: spec §18.
+
+- Sync `packWorkspace` — no async packer, no ripgrep spawn.
+- Hard caps: 80 files, 120 KB/file, 250 ms repo walk; skip `node_modules` /
+  `.git` / `.next` (`DEFAULT_IGNORE` in `src/core/sensitive.ts`).
+- Default workspace is the in-memory **demo** fixture.
+- Mock planner and web-paste prompts are local (milliseconds). Briefs are
+  computed once at PLAN time (`session.briefs`).
+- No harness spawn by default. Cache `detectHarness` / `c2x doctor` by `PATH`.
+- Catalog is imported on the server / client bundle — do not refetch on every
+  toggle. Unit tests stay fast and key-free.
+
 ## Security
 
 The packer refuses `.env*`, keys, and SSH material. There is no write MCP in
@@ -118,4 +144,5 @@ Implementation plan: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](s
 OSS locks (public MIT): publish as `chat-to-x` never `c2x`; no browser
 workspace paths; no harness spawn; no C2C OAuth/tunnel fork. Feature slice 1
 first: web-chat PLAN+REVIEW paste loop. Slice 0 (NOTICE, SECURITY, ignore
-`/data/`) does not block that loop.
+`/data/`) and Slice R (catalog `Record` registry + speed caps) do not block
+that loop. How to add a harness: spec §19. Speed locks: spec §18.

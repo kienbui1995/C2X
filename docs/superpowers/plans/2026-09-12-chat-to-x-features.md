@@ -4,7 +4,7 @@
 
 **Goal:** Đóng vòng C2X thật — chat web làm PLAN *và* REVIEW, harness chỉ execute packet của mình, có bản ghi git/test local — mà không fork OAuth/tunnel của C2C.
 
-**Architecture:** Mặt điều khiển vẫn là khối `[C2X]` ngắn. Slice 1 thêm prompt + import REVIEW cho planner dán. Slice 2 thêm `ExecutionRecord` từ `git status` / `git diff --stat` (dashboard = cwd process; CLI `--cwd`). Slice 3 thêm adapter detect/ghi brief (**không** spawn harness). Packer, router, catalog 5 harness giữ nguyên. Public MIT: không publish `c2x`, không path từ browser.
+**Architecture:** Mặt điều khiển vẫn là khối `[C2X]` ngắn. Slice R khóa **một** catalog registry (`HARNESS_BY_ID` / `PROVIDER_BY_ID` `satisfies Record<…>`) và trần tốc độ vibe-coding — UI/CLI/router/mock splitter không nhân 5 switch. Slice 1 thêm prompt + import REVIEW cho planner dán. Slice 2 thêm `ExecutionRecord` từ `git status` / `git diff --stat` (dashboard = cwd process; CLI `--cwd`). Slice 3 thêm adapter detect/ghi brief đọc **catalog.binaries** (**không** spawn, không switch binary thứ hai). Public MIT: không publish `c2x`, không path từ browser, không marketplace plugin.
 
 **Tech Stack:** TypeScript, Next.js 16 (dashboard + `src/app/api/*`), Commander CLI `src/cli/c2x.ts`, vitest (`src/core/__tests__/**/*.test.ts`), JSON store `data/` (`FRUGAL_DATA_DIR` / `C2X_DATA_DIR`).
 
@@ -22,8 +22,10 @@
 - Session JSON cũ phải `normalizeSession` được (field mới có default).
 - Control message không chứa thân file / diff đầy đủ / log. Dùng `assertControlBudget` khi encode `EXECUTED` / brief / PLAN.
 - Packet: planner `PACKETS` thắng; không smart-split im lặng.
+- **Registry:** một module `src/core/providers/catalog.ts` là nguồn sự thật. `HARNESS_BY_ID satisfies Record<HarnessId, HarnessCatalogEntry>` (planner: `PROVIDER_BY_ID`). `getHarness` / `getProvider` = lookup, không `find` + switch 5 case. Cấm thêm `case "codex":` mới vào studio / CLI / router / `packets.ts`. Không marketplace / `plugins.json` / dynamic `import()`.
+- **Tốc độ:** `packWorkspace` sync; `DEFAULT_IGNORE` gồm `node_modules` / `.git` / `.next`; walk `repo` ≤ 80 file / 120 KB / 250 ms; workspace mặc định `demo`; mock + prompt dán local (ms); `planToBriefs` một lần lúc PLAN; không spawn harness; cache detect/`doctor` theo `PATH`; catalog import trên server — cấm `fetch("/api/providers")` mỗi click; `npm test` không key.
 
-Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/2026-09-12-chat-to-x-features-design.md)
+Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/2026-09-12-chat-to-x-features-design.md) — §17 registry, §18 tốc độ, §19 thêm harness 10 phút.
 
 ---
 
@@ -56,9 +58,17 @@ Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/
 - `src/cli/c2x.ts` — `record`
 - `src/core/__tests__/records.test.ts`, `workspace-root.test.ts` — **mới**
 
+**Slice R — registry + tốc độ (trước hoặc cùng slice 3; không chặn slice 1)**
+
+- `src/core/providers/catalog.ts` — `HARNESS_BY_ID` / `PROVIDER_BY_ID` `satisfies Record<…>`; `binaries` trên harness entry; derive arrays; `getHarness`/`getProvider` lookup
+- `src/core/providers/router.ts` — `executeDecision` không liệt kê 5 id
+- `src/core/workspace.ts` — export `MAX_FILES` / `MAX_BYTES` / `MAX_WALK_MS`; cắt walk theo thời gian
+- `src/core/__tests__/catalog-registry.test.ts` — **mới**
+- `src/core/__tests__/workspace-walk.test.ts` — **mới** (trần 80 / 120 KB / 250 ms)
+
 **Slice 3**
 
-- `src/core/harness.ts` — **mới**: detect + write brief, switch exhaustive trên `HARNESS_IDS`
+- `src/core/harness.ts` — **mới**: detect + write brief; `binaries` từ `getHarness(id)`, **không** switch binary thứ hai; cache Map theo `PATH`
 - `src/cli/c2x.ts` — `doctor`, `brief`
 - `src/core/__tests__/harness-detect.test.ts` — **mới**
 
@@ -96,7 +106,7 @@ tunnel, or ChatGPT connector. No unofficial ChatGPT reverse-proxy.
 
 `SECURITY.md` (rút gọn, bilingual được): báo cáo qua GitHub Security Advisory; **không** mở issue public cho RCE/LFI; từ chối PR thêm reverse-proxy / cookie / tunnel ChatGPT; dashboard bind `127.0.0.1`; không nhận path từ browser.
 
-`CONTRIBUTING.md`: `npm install && npm test && npm run typecheck` không key; planner ≠ harness; không smart-split `PACKETS`; không spawn harness.
+`CONTRIBUTING.md`: `npm install && npm test && npm run typecheck` không key; planner ≠ harness; không smart-split `PACKETS`; không spawn harness; **How to add a harness (10 min)** — copy nguyên §19 spec (id → một entry `HARNESS_BY_ID` → adapter hiếm → không đụng UI/CLI/router/splitter).
 
 - [ ] **Step 1: Write a failing check that data briefs would be tracked**
 
@@ -142,6 +152,284 @@ Expected: ignore khớp; `.env.example` không chứa secret; tests PASS.
 ```bash
 git add NOTICE CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md .gitignore .env.example README.md
 git commit -m "docs: add MIT OSS hygiene and ignore all local C2X data"
+```
+
+---
+
+## Chunk R: Slice R — catalog registry + khóa tốc độ
+
+Làm trước slice 3 (adapter). Có thể song song slice 0/1. Mục tiêu: thêm harness = một entry; vibe-coding không walk cả monorepo.
+
+### Task R1: `HARNESS_BY_ID` / `PROVIDER_BY_ID` `satisfies Record`
+
+**Files:**
+- Modify: `src/core/providers/catalog.ts`
+- Modify: `src/core/providers/router.ts` (`executeDecision`)
+- Modify: `src/core/__tests__/packets.test.ts` (catalog describe — assert `HARNESS_BY_ID` + `binaries`)
+- Test: `src/core/__tests__/catalog-registry.test.ts`
+
+**Interfaces:**
+- Consumes: `HARNESS_IDS`, `PROVIDER_IDS`, `HarnessCatalogEntry` (thêm `binaries: readonly string[]`)
+- Produces:
+
+```ts
+export const HARNESS_BY_ID: Record<HarnessId, HarnessCatalogEntry>;
+export const PROVIDER_BY_ID: Record<ProviderId, ProviderCatalogEntry>;
+export const HARNESS_CATALOG: readonly HarnessCatalogEntry[];
+export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[];
+export function getHarness(id: HarnessId): HarnessCatalogEntry;
+export function getProvider(id: ProviderId): ProviderCatalogEntry;
+```
+
+`HARNESS_CATALOG = HARNESS_IDS.map((id) => HARNESS_BY_ID[id])` — thứ tự = `HARNESS_IDS`.  
+`getHarness` / `getProvider` **không** `find` trên mảng, **không** switch 5/12 case.  
+`executeDecision`: `const entry = getHarness(harness); return { role: "execute", provider: harness, reason: \`${entry.name} is the execution harness only: …\`, reasonVi: \`${entry.nameVi} chỉ là harness chạy: …\` };` — TypeScript đã hẹp `HarnessId`; không liệt kê 5 `case`.
+
+`binaries` khóa (copy vào object, không vào `harness.ts`):
+
+- `codex` → `["codex"]`
+- `claude-code` → `["claude"]`
+- `grok-build` → `["grok", "grok-build"]`
+- `opencode` → `["opencode"]`
+- `kiro-cli` → `["kiro"]`
+
+- [ ] **Step 1: Write the failing test**
+
+`src/core/__tests__/catalog-registry.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import {
+  getHarness,
+  getProvider,
+  HARNESS_BY_ID,
+  HARNESS_CATALOG,
+  PROVIDER_BY_ID,
+  PROVIDER_CATALOG,
+} from "@/core/providers/catalog";
+import { HARNESS_IDS, PROVIDER_IDS } from "@/core/types";
+import { routeExecuteTeam, routeRole } from "@/core/providers/router";
+import { mergeConfig } from "@/core/config";
+import { assignPacketRoles, splitWorkPackets } from "@/core/packets";
+
+describe("catalog registry", () => {
+  it("covers every HarnessId and ProviderId without a second list", () => {
+    expect(HARNESS_CATALOG.map((entry) => entry.id)).toEqual([...HARNESS_IDS]);
+    expect(PROVIDER_CATALOG.map((entry) => entry.id)).toEqual([...PROVIDER_IDS]);
+    for (const id of HARNESS_IDS) {
+      expect(getHarness(id)).toBe(HARNESS_BY_ID[id]);
+      expect(HARNESS_BY_ID[id].id).toBe(id);
+      expect(HARNESS_BY_ID[id].binaries.length).toBeGreaterThan(0);
+    }
+    for (const id of PROVIDER_IDS) {
+      expect(getProvider(id)).toBe(PROVIDER_BY_ID[id]);
+      expect(PROVIDER_BY_ID[id].id).toBe(id);
+    }
+    expect(HARNESS_BY_ID["grok-build"].binaries).toEqual(["grok", "grok-build"]);
+    expect(HARNESS_BY_ID["kiro-cli"].binaries).toEqual(["kiro"]);
+  });
+
+  it("routes execute from catalog names and never lists harnesses as planners", () => {
+    const config = mergeConfig({
+      enabledProviders: ["mock", "chatgpt-web"],
+      defaultHarnessTeam: [...HARNESS_IDS],
+    });
+    for (const id of HARNESS_IDS) {
+      const decision = routeRole({
+        role: "execute",
+        choice: "auto",
+        harness: id,
+        config,
+        hasKey: () => false,
+      });
+      expect(decision.provider).toBe(id);
+      expect(decision.reason).toContain(getHarness(id).name);
+    }
+    expect(routeExecuteTeam([...HARNESS_IDS]).map((item) => item.provider)).toEqual([
+      ...HARNESS_IDS,
+    ]);
+    for (const role of ["plan", "review"] as const) {
+      const decision = routeRole({
+        role,
+        choice: "auto",
+        config,
+        hasKey: () => false,
+      });
+      expect(HARNESS_IDS).not.toContain(decision.provider);
+    }
+  });
+
+  it("splits packets by team position, not by named harness id", () => {
+    const files = ["src/a.ts", "src/a.test.ts"];
+    const packets = splitWorkPackets({
+      team: ["opencode", "kiro-cli"],
+      files,
+      goal: "Add a dark mode toggle",
+      taskId: "c2x_reg",
+    });
+    expect(packets.map((packet) => packet.owner)).toEqual(["opencode", "kiro-cli"]);
+    expect(assignPacketRoles(["kiro-cli"])).toEqual([{ owner: "kiro-cli", role: "general" }]);
+    expect(packets[0]?.actions.join(" ")).not.toMatch(/createTask/i);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/catalog-registry.test.ts`
+
+Expected: FAIL — `HARNESS_BY_ID` / `binaries` chưa export.
+
+- [ ] **Step 3: Write minimal implementation**
+
+1. Đổi `HarnessCatalogEntry` thêm `binaries: readonly string[]`.
+2. Thay mảng `HARNESS_CATALOG = [` bằng:
+
+```ts
+export const HARNESS_BY_ID = {
+  // existing fields + binaries per spec §17.2
+} satisfies Record<HarnessId, HarnessCatalogEntry>;
+
+export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = HARNESS_IDS.map(
+  (id) => HARNESS_BY_ID[id],
+);
+```
+
+Cùng pattern `PROVIDER_BY_ID` / `PROVIDER_CATALOG` từ các object hiện có (không đổi copy blurb).
+
+3. `getHarness`:
+
+```ts
+export function getHarness(id: HarnessId): HarnessCatalogEntry {
+  return HARNESS_BY_ID[id];
+}
+```
+
+`getProvider` tương tự. Xóa `switch (id) { case "codex": … find … }`.
+
+4. `isWebSubscriptionPlanner`: `return getProvider(id).kind === "subscription";` (vẫn hẹp type bằng `id is WebSubscriptionPlanner` — nếu `kind` chưa đủ, giữ switch **planner** nhưng không liệt kê harness).
+
+5. `executeDecision`: bỏ 5 `case`; dùng `getHarness(harness)` cho reason.
+
+Import `HARNESS_IDS` / `PROVIDER_IDS` ở **đầu** `catalog.ts`.
+
+- [ ] **Step 4: Run tests**
+
+```bash
+npx vitest run src/core/__tests__/catalog-registry.test.ts src/core/__tests__/packets.test.ts src/core/__tests__/router-savings.test.ts
+npx tsc --noEmit
+```
+
+Expected: PASS. `packets.test.ts` "lists five first-class…" vẫn đúng vì `HARNESS_CATALOG.map` theo `HARNESS_IDS`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/providers/catalog.ts src/core/providers/router.ts src/core/__tests__/catalog-registry.test.ts src/core/__tests__/packets.test.ts
+git commit -m "refactor: make harness and planner catalogs a typed Record registry"
+```
+
+### Task R2: Trần walk + hằng số tốc độ
+
+**Files:**
+- Modify: `src/core/workspace.ts`
+- Test: `src/core/__tests__/workspace-walk.test.ts`
+
+**Interfaces:**
+
+```ts
+export const MAX_FILES = 80;
+export const MAX_BYTES = 120_000;
+export const MAX_WALK_MS = 250;
+
+export async function loadWorkspaceFiles(
+  source: WorkspaceSource,
+  now?: () => number,
+): Promise<WorkspaceFile[]>;
+```
+
+`now` chỉ để test (mặc định `Date.now`). Walk `repo`: nếu `now() - started >= MAX_WALK_MS` thì `return` (giữ file đã thu). Vẫn skip `isIgnoredPath` (`node_modules` / `.git` / `.next`). `demo` **không** walk đĩa — trả `DEMO_FILES`. Không đổi `packWorkspace` thành async.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { describe, expect, it } from "vitest";
+import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
+import {
+  loadWorkspaceFiles,
+  MAX_BYTES,
+  MAX_FILES,
+  MAX_WALK_MS,
+} from "@/core/workspace";
+import { isIgnoredPath } from "@/core/sensitive";
+
+describe("workspace speed caps", () => {
+  it("exports hard caps and keeps demo off disk", async () => {
+    expect(MAX_FILES).toBe(80);
+    expect(MAX_BYTES).toBe(120_000);
+    expect(MAX_WALK_MS).toBe(250);
+    expect(isIgnoredPath("node_modules/foo/index.js")).toBe(true);
+    expect(isIgnoredPath(".git/config")).toBe(true);
+    expect(isIgnoredPath(".next/cache/x")).toBe(true);
+    const files = await loadWorkspaceFiles("demo");
+    expect(files).toEqual(DEMO_FILES);
+  });
+
+  it("stops a repo walk when the clock hits MAX_WALK_MS", async () => {
+    let t = 0;
+    const files = await loadWorkspaceFiles("repo", () => {
+      t += 300;
+      return t;
+    });
+    expect(files.length).toBeLessThanOrEqual(MAX_FILES);
+    expect(files.length).toBeLessThanOrEqual(8);
+  });
+});
+```
+
+(Assert `length <= 8` vì clock nhảy 300ms ngay entry đầu — walk phải dừng sớm, không đọc cả cwd Cloud Agent.)
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/core/__tests__/workspace-walk.test.ts`
+
+Expected: FAIL — `MAX_WALK_MS` / `now` chưa có.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Export 3 hằng (thay `const MAX_FILES` / `MAX_BYTES` hiện tại). `walk` nhận `started` + `now`:
+
+```ts
+async function walk(
+  dir: string,
+  root: string,
+  acc: string[],
+  started: number,
+  now: () => number,
+): Promise<void> {
+  if (acc.length >= MAX_FILES || now() - started >= MAX_WALK_MS) {
+    return;
+  }
+  // existing readdir loop; same early-return checks before each entry
+}
+```
+
+`loadWorkspaceFiles`: `const clock = now ?? Date.now`; `demo` → `DEMO_FILES`; `repo` → `walk(..., Date.now(), clock)`.
+
+- [ ] **Step 4: Run tests**
+
+```bash
+npx vitest run src/core/__tests__/workspace-walk.test.ts src/core/__tests__/packer.test.ts
+npx tsc --noEmit
+```
+
+Expected: PASS. Packer test không đụng walk.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/core/workspace.ts src/core/__tests__/workspace-walk.test.ts
+git commit -m "perf: cap repo walks at 80 files, 120KB, and 250ms"
 ```
 
 ---
@@ -1317,15 +1605,9 @@ export async function detectHarnessTeam(
 ): Promise<HarnessDetectResult[]>;
 ```
 
-`binariesForHarness` switch + `assertNever`:
+`binariesForHarness(id)` = `[...getHarness(id).binaries]` — **cấm** switch 5 case trong `harness.ts`. Slice R đã ghi `binaries` trên registry.
 
-- `codex` → `["codex"]`
-- `claude-code` → `["claude"]`
-- `grok-build` → `["grok", "grok-build"]`
-- `opencode` → `["opencode"]`
-- `kiro-cli` → `["kiro"]`
-
-Detect: `which`/`where` không dùng. Dùng `existsSync` trên `PATH` split (`process.env.PATH`, delimiter `path.delimiter`) + `pathext` Windows nếu có. Test không phụ thuộc máy có `codex`: test `binariesForHarness` + detect với `PATH` trỏ vào dir tạm chứa file executable giả tên `claude`.
+Detect: `which`/`where` không dùng. Dùng `existsSync` trên `PATH` split (`process.env.PATH`, delimiter `path.delimiter`) + `pathext` Windows nếu có. Cache process-lifetime: `Map` key = `${id}\0${process.env.PATH ?? ""}`. Test không phụ thuộc máy có `codex`: test `binariesForHarness` + detect với `PATH` trỏ vào dir tạm chứa file executable giả tên `claude`. Gọi `detectHarness("claude-code")` hai lần trên cùng PATH — lần hai không cần file biến mất (cache); test cache: đổi PATH giữa hai lần thì miss.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1335,6 +1617,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { binariesForHarness, detectHarness } from "@/core/harness";
+import { getHarness } from "@/core/providers/catalog";
 import { HARNESS_IDS } from "@/core/types";
 
 describe("binariesForHarness", () => {
@@ -1342,7 +1625,7 @@ describe("binariesForHarness", () => {
     for (const id of HARNESS_IDS) {
       expect(binariesForHarness(id).length).toBeGreaterThan(0);
     }
-    expect(binariesForHarness("grok-build")).toEqual(["grok", "grok-build"]);
+    expect(binariesForHarness("grok-build")).toEqual([...getHarness("grok-build").binaries]);
     expect(binariesForHarness("kiro-cli")).toEqual(["kiro"]);
   });
 });
@@ -1379,7 +1662,7 @@ Expected: FAIL — module missing.
 
 - [ ] **Step 3: Write minimal implementation**
 
-`src/core/harness.ts` với switch exhaustive, scan PATH, hint vi/en: “Không thấy {binary}. Sao chép brief `{id}` vào tool đó — C2X không spawn harness.”
+`src/core/harness.ts`: `binariesForHarness` ủy quyền catalog; scan PATH; cache Map; hint vi/en: “Không thấy {binary}. Sao chép brief `{id}` vào tool đó — C2X không spawn harness.” Không `switch (id)` liệt kê roster.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1482,7 +1765,7 @@ Expected: FAIL — `writeHarnessBrief` missing.
 
 - [ ] **Step 3: Write minimal implementation**
 
-`mkdir(..., { recursive: true })` rồi `writeFile`. CLI commands như trên; `doctor` map `detectHarnessTeam(teamFromOpts(opts) or HARNESS_IDS)`.
+`mkdir(..., { recursive: true })` rồi `writeFile`. CLI commands như trên; `doctor` map `detectHarnessTeam(teamFromOpts(opts) or HARNESS_IDS)` — dùng cache detect; không spawn `which`.
 
 - [ ] **Step 4: Run tests + help**
 
@@ -1670,7 +1953,7 @@ MCP loopback (không Cloudflare, không cookie, không reverse-proxy ChatGPT) l�
 
 ## Thứ tự implement và verify
 
-Tính năng: Task 1 → 13 trước (Slice 1 đầu tiên). Slice 0 (Task 0) song song, không chặn. Sau mỗi chunk: `npx vitest run && npx tsc --noEmit`.
+Tính năng: Task 1 → 13 trước (Slice 1 đầu tiên). Slice 0 (Task 0) và Slice R (Task R1–R2) song song, không chặn Slice 1; **R1 trước Task 11** (adapter đọc catalog). Sau mỗi chunk: `npx vitest run && npx tsc --noEmit`.
 
 Verify tích lũy (không phải một screenshot):
 
@@ -1679,23 +1962,28 @@ Verify tích lũy (không phải một screenshot):
 3. Repo git tạm: `c2x record` điền `changedFiles`; `[C2X] EXECUTED` không có hunk.
 4. `c2x doctor` / `c2x brief` không spawn process harness.
 5. `routeRole` plan/review vẫn không phải harness (`router-savings.test.ts`).
+6. `HARNESS_CATALOG.map(e => e.id)` === `HARNESS_IDS`; bật/tắt harness trên UI không `fetch` catalog.
+7. `demo` + `mock` không walk `node_modules`; walk `repo` cắt 80 / 120 KB / 250 ms.
 
 ## Coverage vs spec
 
 | Spec | Task |
 | --- | --- |
 | §15 + §15.3 OSS hygiene | 0 |
+| §17 catalog registry `Record<HarnessId, …>` | R1 (`catalog-registry.test.ts`) |
+| §18 tốc độ (walk 250 ms, packer sync, demo default) | R2 + ràng buộc mọi task |
+| §19 thêm harness 10 phút | Task 0 `CONTRIBUTING.md` (copy §19) |
 | §6 vòng dán REVIEW | 2–6 |
 | §6.1 importControlMessage | 4–5 |
 | §6.2 buildReviewPastePrompt | 2 |
 | §6.3 reviewPastePrompt | 1 |
 | §7 records + git + CLI `--cwd` | 7–10 |
-| §8 adapter + doctor + skill | 11–13 |
+| §8 adapter + doctor + skill | 11–13 (binaries từ catalog; cache PATH) |
 | §9 packet planner thắng | 14 |
 | §10 bin `chat-to-x` / HANDOFF | 15–16 |
-| §11 / MCP không làm | 17 (cố ý không code) |
+| §11 / MCP không làm; không marketplace | 17 (cố ý không code) |
 | §15.1 cấm publish `c2x` | 15 (`package-meta.test.ts`) |
-| Router/catalog giữ | mọi task; regression test bắt buộc |
+| Router/catalog giữ; không nhân switch | mọi task; R1 + regression |
 
 ## Self-review (plan)
 
@@ -1703,3 +1991,5 @@ Verify tích lũy (không phải một screenshot):
 - Tên hàm nhất quán: `buildReviewPastePrompt`, `applyImportedReview`, `importControlMessage`, `collectGitMetadata`, `applyExecutionRecord`, `runRecord`, `resolveWorkspaceRoot`, `detectHarness`, `writeHarnessBrief`, `installSkill`, `handoffMessage`.
 - `SessionRecord.reviewPastePrompt` và `records` xuất hiện từ Task 1 và 7; Task 4/9 tiêu thụ đúng tên đó.
 - `import-plan` URL giữ để dashboard cũ không gãy; hành vi mở rộng.
+- Registry: `HARNESS_BY_ID` / `getHarness` / `binaries` — Task R1 định nghĩa; Task 11 chỉ đọc, không copy roster.
+- Tốc độ: `MAX_WALK_MS = 250` Task R2; packer vẫn sync; không task nào được thêm `--spawn` hay `fetch` catalog mỗi click.
