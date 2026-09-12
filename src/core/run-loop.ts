@@ -1,6 +1,7 @@
 import { planToBriefs } from "@/core/brief";
 import { hasProviderKey } from "@/core/config";
 import { collectGitMetadata } from "@/core/git-meta";
+import { persistWorkspaceBriefs } from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
 import {
   PLANNER_SYSTEM_PROMPT,
@@ -41,6 +42,11 @@ import {
   type SessionRecord,
   type WorkspaceSource,
 } from "@/core/types";
+
+async function persistPlanDrops(session: SessionRecord, cwd?: string): Promise<SessionRecord> {
+  await persistWorkspaceBriefs(session, cwd);
+  return session;
+}
 
 export async function runPlan(input: {
   goal: string;
@@ -93,7 +99,7 @@ export async function runPlan(input: {
         note: `${planner}: copy the packed prompt into that web chat, paste the [C2X] PLAN back. Team ${harnessTeam.join(" + ")} stays on execute only.`,
       },
     );
-    return upsertSession(session);
+    return persistPlanDrops(await upsertSession(session));
   }
 
   const fallback = mockPlanFromPack(pack, session.id, harnessTeam);
@@ -140,7 +146,7 @@ export async function runPlan(input: {
       savings: estimateSavings({ pack, brief: briefs[0] ?? null, briefs, planner }),
     },
   );
-  return upsertSession(session);
+  return persistPlanDrops(await upsertSession(session));
 }
 
 export async function importPlan(input: {
@@ -157,12 +163,12 @@ export async function importPlan(input: {
   }
   const pack = reusedPack(existing);
   if (existing.plan && existing.plan.iteration >= existing.iterationLimit) {
-    return upsertSession(blockAtIterationLimit(existing));
+    return persistPlanDrops(await upsertSession(blockAtIterationLimit(existing)));
   }
   const fallback = mockPlanFromPack(pack, existing.id, existing.harnessTeam);
   const plan = parsePlannerOutput(input.raw, fallback);
   if (plan.iteration >= existing.iterationLimit && existing.plan) {
-    return upsertSession(blockAtIterationLimit(existing));
+    return persistPlanDrops(await upsertSession(blockAtIterationLimit(existing)));
   }
   const briefs = planToBriefs(plan);
   const next = applyPlan(
@@ -184,7 +190,7 @@ export async function importPlan(input: {
       }),
     },
   );
-  return upsertSession(next);
+  return persistPlanDrops(await upsertSession(next));
 }
 
 export async function importControlMessage(input: {
@@ -198,7 +204,8 @@ export async function importControlMessage(input: {
     (existing.state === "EXECUTED" || existing.state === "REVIEW") &&
     (message.state === "DONE" || message.state === "BLOCKED" || message.state === "PLAN")
   ) {
-    return upsertSession(applyImportedReview(existing, input.raw));
+    const next = await upsertSession(applyImportedReview(existing, input.raw));
+    return persistPlanDrops(next);
   }
   return importPlan(input);
 }

@@ -17,10 +17,12 @@ let dataDir = "";
 beforeEach(async () => {
   dataDir = await mkdtemp(path.join(os.tmpdir(), "c2x-"));
   process.env.FRUGAL_DATA_DIR = dataDir;
+  process.env.C2X_WORKSPACE = dataDir;
 });
 
 afterEach(async () => {
   delete process.env.FRUGAL_DATA_DIR;
+  delete process.env.C2X_WORKSPACE;
   await rm(dataDir, { recursive: true, force: true });
 });
 

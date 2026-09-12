@@ -1,17 +1,20 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { planToBriefs, renderCodexBrief } from "@/core/brief";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import {
+  persistWorkspaceBriefs,
   syncWorkspaceBriefDrops,
   workspaceBriefPath,
   writeWorkspaceBriefDrop,
 } from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
+import { importPlan, runPlan } from "@/core/run-loop";
 import { createSession } from "@/core/session";
+import * as workspace from "@/core/workspace";
 
 function sessionWithTeam(team: readonly ("codex" | "claude-code")[]) {
   const pack = packWorkspace({
@@ -86,5 +89,91 @@ describe("syncWorkspaceBriefDrops", () => {
     });
     expect(await readFile(path.join(dir, "notes.md"), "utf8")).toBe("keep");
     await rm(root, { recursive: true, force: true });
+  });
+});
+
+let dataDir = "";
+let wsRoot = "";
+
+beforeEach(async () => {
+  dataDir = await mkdtemp(path.join(os.tmpdir(), "c2x-drop-data-"));
+  wsRoot = await mkdtemp(path.join(os.tmpdir(), "c2x-drop-ws-"));
+  process.env.FRUGAL_DATA_DIR = dataDir;
+  process.env.C2X_WORKSPACE = wsRoot;
+});
+
+afterEach(async () => {
+  delete process.env.FRUGAL_DATA_DIR;
+  delete process.env.C2X_WORKSPACE;
+  await rm(dataDir, { recursive: true, force: true });
+  await rm(wsRoot, { recursive: true, force: true });
+  vi.restoreAllMocks();
+});
+
+describe("persistWorkspaceBriefs", () => {
+  it("is a no-op until the session is PLAN with briefs", async () => {
+    const session = sessionWithTeam(["codex"]);
+    const paths = await persistWorkspaceBriefs({ ...session, state: "INIT", briefs: [] }, wsRoot);
+    expect(paths).toEqual([]);
+  });
+
+  it("drops briefs on mock runPlan and importPlan without walking the repo", async () => {
+    const session = await runPlan({
+      goal: "Sửa createTask",
+      plannerChoice: "mock",
+      harnessTeam: ["codex", "claude-code"],
+      budgetTokens: 2000,
+      workspaceSource: "demo",
+    });
+    expect(session.state).toBe("PLAN");
+    const codexText = await readFile(path.join(wsRoot, ".c2x", "briefs", "codex.md"), "utf8");
+    expect(codexText).toMatch(/OWNER:\s*codex/);
+    expect(codexText).not.toMatch(/OWNER:\s*claude-code/);
+
+    const walk = vi.spyOn(workspace, "loadWorkspaceFiles");
+    await importPlan({
+      sessionId: session.id,
+      raw: `[C2X]
+STATE: PLAN
+TASK_ID: ${session.id}
+ITERATION: 1
+
+GOAL:
+Sửa createTask
+
+RATIONALE:
+Reuse the packed tree.
+
+ACTIONS:
+1. Fix createTask persistence.
+
+FILES_LIKELY_INVOLVED:
+- src/lib/tasks.ts
+
+TESTS:
+- unit
+
+SUCCESS_CRITERIA:
+- tasks persist
+
+RISKS:
+- none
+
+PACKETS:
+  ## owner=codex role=general
+  ACTIONS:
+  1. Fix createTask persistence.
+  FILES:
+  - src/lib/tasks.ts
+  TESTS:
+  - unit
+  SUCCESS_CRITERIA:
+  - persist
+`,
+    });
+    expect(walk).not.toHaveBeenCalled();
+    expect(await readFile(path.join(wsRoot, ".c2x", "briefs", "codex.md"), "utf8")).toMatch(
+      /OWNER:\s*codex/,
+    );
   });
 });

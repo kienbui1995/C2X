@@ -4,6 +4,7 @@ import path from "node:path";
 import { renderCodexBrief } from "@/core/brief";
 import { getHarness } from "@/core/providers/catalog";
 import { isHarnessId, type HarnessId, type SessionRecord } from "@/core/types";
+import { resolveWorkspaceRoot } from "@/core/workspace";
 
 export type HarnessDetectResult = {
   id: HarnessId;
@@ -122,6 +123,12 @@ export async function syncWorkspaceBriefDrops(input: {
 }): Promise<string[]> {
   const written: string[] = [];
   for (const owner of input.session.harnessTeam) {
+    const hasBrief =
+      input.session.briefs.some((item) => item.owner === owner) ||
+      input.session.brief?.owner === owner;
+    if (!hasBrief) {
+      continue;
+    }
     written.push(
       await writeWorkspaceBriefDrop({
         workspaceRoot: input.workspaceRoot,
@@ -145,6 +152,17 @@ export async function syncWorkspaceBriefDrops(input: {
     }
   }
   return written;
+}
+
+export async function persistWorkspaceBriefs(
+  session: SessionRecord,
+  cwd?: string,
+): Promise<string[]> {
+  if (session.state !== "PLAN" || session.briefs.length === 0) {
+    return [];
+  }
+  const workspaceRoot = resolveWorkspaceRoot({ cwd, env: process.env });
+  return syncWorkspaceBriefDrops({ workspaceRoot, session });
 }
 
 export async function writeHarnessBrief(input: {
