@@ -99,6 +99,7 @@ export const copy = {
     doctorReady: "sẵn sàng",
     doctorMissing: "thiếu",
     briefCliHint: "Brief: sao chép hoặc `c2x brief --session {session} --owner {owner}`",
+    dropHint: "Skill đọc `.c2x/briefs/<harness>.md` — đừng dán brief đồng đội.",
     skillInstallHint:
       "Cài skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md sang ~/.claude/skills/chat-to-x/.",
   },
@@ -200,6 +201,7 @@ export const copy = {
     doctorReady: "ready",
     doctorMissing: "missing",
     briefCliHint: "Brief: copy or `c2x brief --session {session} --owner {owner}`",
+    dropHint: "The skill reads `.c2x/briefs/<harness>.md`. Do not paste a teammate's brief.",
     skillInstallHint:
       "Install skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md to ~/.claude/skills/chat-to-x/.",
   },

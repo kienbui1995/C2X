@@ -731,6 +731,7 @@ export function StudioClient({ doctor = [] }: { doctor?: HarnessDetectResult[] }
                           .replace("{session}", session.id)
                           .replace("{owner}", packet.owner)}
                       </p>
+                      <p className="text-[11px] text-muted-foreground">{t.dropHint}</p>
                       <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"
