@@ -39,6 +39,7 @@ yarn-error.log*
 # local C2X state (sessions, keys, briefs)
 /data/*
 !/data/.gitkeep
+.c2x/briefs/
 
 # vercel
 .vercel

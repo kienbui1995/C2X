@@ -32,6 +32,11 @@ executes only its brief.
 5. After each harness reports EXECUTED, merge metadata and ask the web-chat
    planner to review. Do not review inside a harness.
 6. Do not show another harness's brief to this one. Quota is per tool.
+7. After a PLAN exists, read **only** `.c2x/briefs/<your-harness-id>.md` if
+   that file exists (Codex=`codex`, Claude Code=`claude-code`,
+   Grok Build=`grok-build`, OpenCode=`opencode`, Kiro CLI=`kiro-cli`).
+   Do not read other files in `.c2x/briefs/`. Do not plan or review.
+   If the drop is missing, use the copied brief / `c2x brief --session … --owner …`.
 
 ## Loop
 
@@ -49,6 +54,10 @@ npx tsx src/cli/c2x.ts plan --goal "…" --planner mock --harness kiro-cli
 npx tsx src/cli/c2x.ts pack --goal "…"
 npx tsx src/cli/c2x.ts estimate --goal "…"
 npx tsx src/cli/c2x.ts route --choice auto --team grok-build,opencode,kiro-cli
+npx tsx src/cli/c2x.ts doctor
+npx tsx src/cli/c2x.ts brief --session <id> --owner <your-id> --drop
+npx tsx src/cli/c2x.ts record --session <id> --owner <your-id>
+npx tsx src/cli/c2x.ts review-prompt --session <id>
 ```
 
 Default team is Codex + Claude Code. `--harness` keeps a single-harness session.

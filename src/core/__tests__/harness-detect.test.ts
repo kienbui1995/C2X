@@ -81,6 +81,8 @@ describe("installSkill", () => {
     expect(text).toContain(repoRoot);
     expect(text).not.toContain("replace-with-absolute-path");
     expect(text).toMatch(/c2x skill-install/);
+    expect(text).toMatch(/\.c2x\/briefs\//);
+    expect(text).toMatch(/Do not read other/);
     await rm(skillHome, { recursive: true, force: true });
   });
 });

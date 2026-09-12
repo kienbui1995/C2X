@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -175,5 +176,17 @@ PACKETS:
     expect(await readFile(path.join(wsRoot, ".c2x", "briefs", "codex.md"), "utf8")).toMatch(
       /OWNER:\s*codex/,
     );
+  });
+});
+
+describe("skill and gitignore for workspace drops", () => {
+  it("tells each harness to read only its own drop path", () => {
+    const skill = readFileSync(path.join(process.cwd(), "skill", "SKILL.md"), "utf8");
+    expect(skill).toMatch(/\.c2x\/briefs\/<your-harness-id>\.md|\.c2x\/briefs\/<id/);
+    expect(skill).toMatch(/Do not read other files/i);
+    expect(skill).toMatch(/Do not plan or review/i);
+    expect(skill).toContain("claude-code");
+    const gi = readFileSync(path.join(process.cwd(), ".gitignore"), "utf8");
+    expect(gi).toMatch(/\.c2x\/briefs\//);
   });
 });
