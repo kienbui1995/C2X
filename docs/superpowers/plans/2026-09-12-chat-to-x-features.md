@@ -963,7 +963,7 @@ export function buildReviewPastePrompt(input: {
 
 Hàm phải nhúng `PLANNER_SYSTEM_PROMPT`, `TASK_ID`, `CHANGED_FILES`, `TESTS`, `PACKED TREE`. Không được chứa `-----BEGIN` hay nội dung kiểu thân file (`export function`). Được phép có `DIFF_STAT` một khối ngắn.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Thêm vào `review-paste.test.ts`:
 
@@ -1000,13 +1000,13 @@ describe("buildReviewPastePrompt", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
 
 Expected: FAIL — `buildReviewPastePrompt` is not exported.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Thêm vào `src/core/planner.ts`:
 
@@ -1055,13 +1055,13 @@ SUMMARY:
 
 Không nối `pack.excerpts[].content` vào prompt review (tránh dump thân file). Tree + metadata là đủ cho slice 1.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/review-paste.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/planner.ts src/core/__tests__/review-paste.test.ts

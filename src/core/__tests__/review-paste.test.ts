@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { planToBriefs } from "@/core/brief";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import { packWorkspace } from "@/core/packer";
-import { PLANNER_SYSTEM_PROMPT, buildReviewPastePrompt } from "@/core/planner";
+import { PLANNER_SYSTEM_PROMPT, buildReviewPastePrompt, mockPlanFromPack } from "@/core/planner";
+import { applyImportedReview } from "@/core/review-import";
 import { createSession, normalizeSession } from "@/core/session";
 import type { SessionRecord } from "@/core/types";
 
@@ -47,5 +49,75 @@ describe("buildReviewPastePrompt", () => {
     expect(prompt).toMatch(/STATE:\s*DONE\|PLAN\|BLOCKED|DONE, PLAN, or BLOCKED|DONE\|PLAN\|BLOCKED/);
     expect(prompt).not.toMatch(/-----BEGIN/);
     expect(prompt).not.toContain("function createTask");
+  });
+});
+
+function sessionAfterExecute() {
+  const pack = packWorkspace({
+    goal: "Sửa createTask",
+    files: DEMO_FILES,
+    budgetTokens: 2000,
+  });
+  const plan = mockPlanFromPack(pack, "c2x_rev1", ["codex"]);
+  const briefs = planToBriefs(plan);
+  let session = createSession({
+    goal: pack.goal,
+    planner: "chatgpt-web",
+    plannerChoice: "chatgpt-web",
+    harnessTeam: ["codex"],
+    budgetTokens: 2000,
+    workspaceSource: "demo",
+  });
+  session = {
+    ...session,
+    state: "EXECUTED",
+    pack,
+    plan,
+    briefs,
+    brief: briefs[0] ?? null,
+    harnessRuns: [
+      {
+        owner: "codex",
+        state: "executed",
+        changedFiles: ["src/lib/tasks.ts"],
+        tests: "12 passed",
+      },
+    ],
+  };
+  return session;
+}
+
+describe("applyImportedReview", () => {
+  it("accepts a web-chat DONE block after EXECUTED", () => {
+    const next = applyImportedReview(
+      sessionAfterExecute(),
+      `[C2X]
+STATE: DONE
+TASK_ID: c2x_rev1
+ITERATION: 1
+
+SUMMARY:
+Changed files match the brief.
+`,
+    );
+    expect(next.state).toBe("DONE");
+    expect(next.review?.state).toBe("DONE");
+    expect(next.review?.summary).toMatch(/match/i);
+  });
+
+  it("rejects INIT as a review import", () => {
+    expect(() =>
+      applyImportedReview(
+        sessionAfterExecute(),
+        `[C2X]
+STATE: INIT
+TASK_ID: c2x_rev1
+ITERATION: 0
+
+GOAL:
+nope
+`,
+      ),
+    ).toThrow(/DONE|PLAN|BLOCKED|REVIEW/i);
   });
 });
