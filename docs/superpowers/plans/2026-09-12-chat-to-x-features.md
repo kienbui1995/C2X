@@ -467,7 +467,7 @@ export function reusedPack(session: SessionRecord): ContextPack;
 Ném `Error` có chữ `pack` / `reuse` nếu `session.pack` null. **Không** gọi `loadWorkspaceFiles` hay `packWorkspace`.  
 `importPlan` đổi `const pack = existing?.pack` thành `reusedPack(existing)` sau khi đã có `existing`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `src/core/__tests__/fast-link.test.ts`:
 
@@ -567,13 +567,13 @@ PACKETS:
 
 Nếu `vi.spyOn` không chặn ESM import đã bind, `expect(next.pack).toBe(session.pack)` vẫn là hợp đồng — đừng bỏ assertion đó.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/fast-link.test.ts`
 
 Expected: FAIL — `reusedPack` chưa export.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Trong `src/core/session.ts` thêm `ContextPack` vào import type từ `@/core/types` ở **đầu** file:
 
@@ -600,13 +600,13 @@ Xóa nhánh `existing?.pack` / `if (!existing || !pack)`. Không thêm `loadWork
 
 Export `reusedPack` từ `src/core/index.ts` nếu file đó re-export session.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/fast-link.test.ts src/core/__tests__/router-savings.test.ts`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/session.ts src/core/run-loop.ts src/core/index.ts src/core/__tests__/fast-link.test.ts

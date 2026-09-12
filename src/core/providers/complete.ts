@@ -12,8 +12,33 @@ export type CompletionResult = {
 
 type ChatMessage = { role: "system" | "user"; content: string };
 
+export const PLANNER_API_TIMEOUT_MS = 8_000;
+export const PLANNER_API_MAX_TOKENS = 1_200;
+
 function modelFor(id: ProviderId, config: AppConfig): string {
   return modelForProvider(id, config);
+}
+
+function plannerTimeoutError(timeoutMs: number): Error {
+  const error = new Error(`Planner API aborted: timeout after ${timeoutMs}ms`);
+  error.name = "TimeoutError";
+  return error;
+}
+
+async function racePlannerTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(plannerTimeoutError(timeoutMs)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }
 
 function openaiCompatTarget(id: ProviderId, config: AppConfig): { url: string; headers: Record<string, string> } {
@@ -69,6 +94,7 @@ async function completeOpenAiCompat(
   id: ProviderId,
   config: AppConfig,
   messages: ChatMessage[],
+  timeoutMs: number,
 ): Promise<string> {
   const { url, headers } = openaiCompatTarget(id, config);
   const response = await fetch(url, {
@@ -77,9 +103,11 @@ async function completeOpenAiCompat(
       "Content-Type": "application/json",
       ...headers,
     },
+    signal: AbortSignal.timeout(timeoutMs),
     body: JSON.stringify({
       model: modelFor(id, config),
       temperature: 0.2,
+      max_tokens: PLANNER_API_MAX_TOKENS,
       messages,
     }),
   });
@@ -97,7 +125,11 @@ async function completeOpenAiCompat(
   return text;
 }
 
-async function completeAnthropic(config: AppConfig, messages: ChatMessage[]): Promise<string> {
+async function completeAnthropic(
+  config: AppConfig,
+  messages: ChatMessage[],
+  timeoutMs: number,
+): Promise<string> {
   const key = resolvedKey(config, "anthropic");
   if (!key) {
     throw new Error("Missing Anthropic API key.");
@@ -111,9 +143,10 @@ async function completeAnthropic(config: AppConfig, messages: ChatMessage[]): Pr
       "x-api-key": key,
       "anthropic-version": "2023-06-01",
     },
+    signal: AbortSignal.timeout(timeoutMs),
     body: JSON.stringify({
       model: config.anthropicModel,
-      max_tokens: 1200,
+      max_tokens: PLANNER_API_MAX_TOKENS,
       system,
       messages: user.map((item) => ({ role: "user", content: item.content })),
     }),
@@ -132,7 +165,11 @@ async function completeAnthropic(config: AppConfig, messages: ChatMessage[]): Pr
   return text;
 }
 
-async function completeGemini(config: AppConfig, messages: ChatMessage[]): Promise<string> {
+async function completeGemini(
+  config: AppConfig,
+  messages: ChatMessage[],
+  timeoutMs: number,
+): Promise<string> {
   const key = resolvedKey(config, "gemini") || process.env.GOOGLE_API_KEY;
   if (!key) {
     throw new Error("Missing Gemini API key.");
@@ -141,6 +178,7 @@ async function completeGemini(config: AppConfig, messages: ChatMessage[]): Promi
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(timeoutMs),
     body: JSON.stringify({
       contents: [
         {
@@ -169,9 +207,11 @@ export async function completePlanner(input: {
   config: AppConfig;
   messages: ChatMessage[];
   allowFallback?: boolean;
+  timeoutMs?: number;
 }): Promise<CompletionResult> {
   const { provider, config, messages } = input;
   const allowFallback = input.allowFallback ?? true;
+  const timeoutMs = input.timeoutMs ?? PLANNER_API_TIMEOUT_MS;
   const model = modelFor(provider, config);
 
   if (provider === "mock" || isPastePlanner(provider)) {
@@ -193,13 +233,16 @@ export async function completePlanner(input: {
       case "deepseek":
       case "ollama":
       case "openai-compatible":
-        text = await completeOpenAiCompat(provider, config, messages);
+        text = await racePlannerTimeout(
+          completeOpenAiCompat(provider, config, messages, timeoutMs),
+          timeoutMs,
+        );
         break;
       case "anthropic":
-        text = await completeAnthropic(config, messages);
+        text = await racePlannerTimeout(completeAnthropic(config, messages, timeoutMs), timeoutMs);
         break;
       case "gemini":
-        text = await completeGemini(config, messages);
+        text = await racePlannerTimeout(completeGemini(config, messages, timeoutMs), timeoutMs);
         break;
       default:
         return assertNever(provider, `Unknown provider: ${provider}`);
