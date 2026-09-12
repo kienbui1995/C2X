@@ -9,8 +9,8 @@ import {
   describeSessionStatus,
   formatSessionStatus,
   nextExpectedStepVi,
-  resolveSessionRecord,
 } from "@/core/session-status";
+import { resolveSessionRecord } from "@/core/store";
 import { PROTOCOL_STATES } from "@/core/types";
 
 describe("nextExpectedStepVi", () => {

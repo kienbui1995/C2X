@@ -1,5 +1,4 @@
 import { nextExpectedStep } from "@/core/protocol";
-import { getSession, loadSessions } from "@/core/store";
 import { assertNever, type ProtocolState, type SessionRecord } from "@/core/types";
 
 export type SessionStatusView = {
@@ -63,13 +62,4 @@ export function formatSessionStatus(
     `next\t${next}`,
     "",
   ].join("\n");
-}
-
-export async function resolveSessionRecord(id?: string): Promise<SessionRecord | null> {
-  const trimmed = id?.trim();
-  if (trimmed) {
-    return getSession(trimmed);
-  }
-  const sessions = await loadSessions();
-  return sessions[0] ?? null;
 }

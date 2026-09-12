@@ -88,3 +88,12 @@ export async function getSession(id: string): Promise<SessionRecord | null> {
   const sessions = await loadSessions();
   return sessions.find((item) => item.id === id) ?? null;
 }
+
+export async function resolveSessionRecord(id?: string): Promise<SessionRecord | null> {
+  const trimmed = id?.trim();
+  if (trimmed) {
+    return getSession(trimmed);
+  }
+  const sessions = await loadSessions();
+  return sessions[0] ?? null;
+}

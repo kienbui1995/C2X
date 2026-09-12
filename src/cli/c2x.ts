@@ -20,7 +20,7 @@ import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { handoffMessage, nextExpectedStep } from "@/core/protocol";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
-import { describeSessionStatus, formatSessionStatus, resolveSessionRecord } from "@/core/session-status";
+import { describeSessionStatus, formatSessionStatus } from "@/core/session-status";
 import { estimateSavings } from "@/core/savings";
 import {
   MCP_LOOPBACK_HOST,
@@ -28,7 +28,7 @@ import {
   assertLoopbackBind,
   createMcpLoopbackServer,
 } from "@/core/mcp-loopback";
-import { dataDir, getSession, loadSessions } from "@/core/store";
+import { dataDir, getSession, loadSessions, resolveSessionRecord } from "@/core/store";
 import { resolveWorkspaceRoot } from "@/core/workspace";
 import { formatTokens, formatUsd } from "@/core/tokens";
 import {
