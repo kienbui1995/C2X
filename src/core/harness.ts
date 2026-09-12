@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { renderCodexBrief } from "@/core/brief";
 import { getHarness } from "@/core/providers/catalog";
-import type { HarnessId, SessionRecord } from "@/core/types";
+import { isHarnessId, type HarnessId, type SessionRecord } from "@/core/types";
 
 export type HarnessDetectResult = {
   id: HarnessId;
@@ -114,6 +114,37 @@ export async function writeWorkspaceBriefDrop(input: {
   await mkdir(path.dirname(dest), { recursive: true });
   await writeFile(dest, renderCodexBrief(brief), "utf8");
   return dest;
+}
+
+export async function syncWorkspaceBriefDrops(input: {
+  workspaceRoot: string;
+  session: SessionRecord;
+}): Promise<string[]> {
+  const written: string[] = [];
+  for (const owner of input.session.harnessTeam) {
+    written.push(
+      await writeWorkspaceBriefDrop({
+        workspaceRoot: input.workspaceRoot,
+        session: input.session,
+        owner,
+      }),
+    );
+  }
+  const dir = path.join(input.workspaceRoot, ".c2x", "briefs");
+  let names: string[] = [];
+  try {
+    names = await readdir(dir);
+  } catch {
+    return written;
+  }
+  const keep = new Set(input.session.harnessTeam.map((id) => `${id}.md`));
+  for (const name of names) {
+    const id = name.endsWith(".md") ? name.slice(0, -3) : "";
+    if (isHarnessId(id) && !keep.has(name)) {
+      await rm(path.join(dir, name), { force: true });
+    }
+  }
+  return written;
 }
 
 export async function writeHarnessBrief(input: {

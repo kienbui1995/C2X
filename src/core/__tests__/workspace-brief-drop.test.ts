@@ -1,10 +1,11 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { planToBriefs, renderCodexBrief } from "@/core/brief";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import {
+  syncWorkspaceBriefDrops,
   workspaceBriefPath,
   writeWorkspaceBriefDrop,
 } from "@/core/harness";
@@ -59,6 +60,31 @@ describe("writeWorkspaceBriefDrop", () => {
         owner: "claude-code",
       }),
     ).rejects.toThrow(/brief|owner/i);
+    await rm(root, { recursive: true, force: true });
+  });
+});
+
+describe("syncWorkspaceBriefDrops", () => {
+  it("writes every teammate and removes leftover harness files only", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "c2x-sync-"));
+    const dir = path.join(root, ".c2x", "briefs");
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, "kiro-cli.md"), "stale", "utf8");
+    await writeFile(path.join(dir, "notes.md"), "keep", "utf8");
+    const session = sessionWithTeam(["codex", "claude-code"]);
+    const written = await syncWorkspaceBriefDrops({ workspaceRoot: root, session });
+    expect(written).toEqual([
+      path.join(dir, "codex.md"),
+      path.join(dir, "claude-code.md"),
+    ]);
+    expect(await readFile(path.join(dir, "codex.md"), "utf8")).toMatch(/OWNER:\s*codex/);
+    expect(await readFile(path.join(dir, "claude-code.md"), "utf8")).toMatch(
+      /OWNER:\s*claude-code/,
+    );
+    await expect(readFile(path.join(dir, "kiro-cli.md"), "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect(await readFile(path.join(dir, "notes.md"), "utf8")).toBe("keep");
     await rm(root, { recursive: true, force: true });
   });
 });
