@@ -641,7 +641,7 @@ Body OpenAI-compat thêm `max_tokens: PLANNER_API_MAX_TOKENS` (Anthropic đổi 
 Treo → abort; `allowFallback` (mặc định true) → `usedFallback: true`, `fallbackReason` khớp `/timeout|abort/i`; `allowFallback: false` → throw.  
 Paste/mock **không** `fetch`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Thêm vào `fast-link.test.ts`:
 
@@ -696,13 +696,13 @@ describe("planner API fail-fast", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/fast-link.test.ts`
 
 Expected: FAIL — hằng số / `timeoutMs` chưa có; hung `fetch` không abort.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Đầu `complete.ts`:
 
@@ -733,13 +733,13 @@ export const PLANNER_API_MAX_TOKENS = 1_200;
 Cùng `signal` trên `completeAnthropic` / `completeGemini`. Anthropic: `max_tokens: PLANNER_API_MAX_TOKENS`.  
 `completePlanner` truyền `const timeoutMs = input.timeoutMs ?? PLANNER_API_TIMEOUT_MS` vào các helper. Import helper ở **đầu** file; không inline import.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run src/core/__tests__/fast-link.test.ts src/core/__tests__/router-savings.test.ts`
 
 Expected: PASS. Không gọi mạng thật.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/providers/complete.ts src/core/__tests__/fast-link.test.ts

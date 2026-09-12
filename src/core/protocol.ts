@@ -12,6 +12,9 @@ import {
 
 const HEADER_RE = /^([A-Z_]+):\s*(.*)$/;
 
+export const CONTROL_BUDGET_DEFAULT = 1200;
+export const CONTROL_BUDGET_MAX = 2000;
+
 export function createTaskId(): string {
   const bytes = new Uint8Array(4);
   crypto.getRandomValues(bytes);
@@ -68,6 +71,7 @@ export function encodeControlMessage(input: {
   ].join("\n");
   const body = renderSections(input.sections);
   const raw = body ? `${header}\n\n${body}\n` : `${header}\n`;
+  assertControlBudget(raw, CONTROL_BUDGET_MAX);
   return raw;
 }
 
@@ -228,7 +232,7 @@ export function listItems(block: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export function assertControlBudget(raw: string, limit = 1200): void {
+export function assertControlBudget(raw: string, limit = CONTROL_BUDGET_DEFAULT): void {
   const tokens = estimateTokens(raw);
   if (tokens > limit) {
     throw new Error(`Control message is ${tokens} tokens; keep it under ${limit}.`);

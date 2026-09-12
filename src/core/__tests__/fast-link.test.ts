@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -8,6 +9,12 @@ import {
   PLANNER_API_TIMEOUT_MS,
   completePlanner,
 } from "@/core/providers/complete";
+import {
+  CONTROL_BUDGET_DEFAULT,
+  CONTROL_BUDGET_MAX,
+  assertControlBudget,
+  executedMessage,
+} from "@/core/protocol";
 import { reusedPack } from "@/core/session";
 import { importPlan, runPlan } from "@/core/run-loop";
 import * as workspace from "@/core/workspace";
@@ -135,5 +142,37 @@ describe("planner API fail-fast", () => {
     expect(called).toBe(0);
     expect(result.text).toBe("");
     expect(result.usedFallback).toBe(false);
+  });
+});
+
+describe("control budget and localhost", () => {
+  it("keeps EXECUTED metadata-only and under 1200 tokens", () => {
+    expect(CONTROL_BUDGET_DEFAULT).toBe(1200);
+    expect(CONTROL_BUDGET_MAX).toBe(2000);
+    const raw = executedMessage({
+      taskId: "c2x_fast",
+      iteration: 1,
+      changedFiles: 2,
+      tests: "codex: recorded",
+      team: ["codex"],
+    });
+    expect(raw).not.toContain("@@");
+    expect(raw).not.toMatch(/-----BEGIN/);
+    expect(raw).not.toContain("export function");
+    assertControlBudget(raw);
+  });
+
+  it("rejects a 3k-token control dump", () => {
+    const dump = `[C2X]\nSTATE: PLAN\nTASK_ID: c2x_big\nITERATION: 1\n\nGOAL:\n${"dump ".repeat(3000)}\n`;
+    expect(() => assertControlBudget(dump, CONTROL_BUDGET_MAX)).toThrow(/token/i);
+  });
+
+  it("binds next dev and start to loopback", () => {
+    const pkg = JSON.parse(
+      readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    ) as { scripts: Record<string, string> };
+    expect(pkg.scripts.dev).toMatch(/127\.0\.0\.1/);
+    expect(pkg.scripts.start).toMatch(/127\.0\.0\.1/);
+    expect(pkg.scripts.dev).not.toMatch(/0\.0\.0\.0/);
   });
 });
