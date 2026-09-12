@@ -4,7 +4,7 @@
 
 **Goal:** Đóng vòng C2X thật — chat web làm PLAN *và* REVIEW, harness chỉ execute packet của mình, có bản ghi git/test local — mà không fork OAuth/tunnel của C2C.
 
-**Architecture:** Mặt điều khiển vẫn là khối `[C2X]` ngắn. Slice 1 thêm prompt + import REVIEW cho planner dán. Slice 2 thêm workspace root + `ExecutionRecord` từ `git status` / `git diff --stat`. Slice 3 thêm adapter detect/ghi brief (không spawn). Packer, router, catalog 5 harness giữ nguyên.
+**Architecture:** Mặt điều khiển vẫn là khối `[C2X]` ngắn. Slice 1 thêm prompt + import REVIEW cho planner dán. Slice 2 thêm `ExecutionRecord` từ `git status` / `git diff --stat` (dashboard = cwd process; CLI `--cwd`). Slice 3 thêm adapter detect/ghi brief (**không** spawn harness). Packer, router, catalog 5 harness giữ nguyên. Public MIT: không publish `c2x`, không path từ browser.
 
 **Tech Stack:** TypeScript, Next.js 16 (dashboard + `src/app/api/*`), Commander CLI `src/cli/c2x.ts`, vitest (`src/core/__tests__/**/*.test.ts`), JSON store `data/` (`FRUGAL_DATA_DIR` / `C2X_DATA_DIR`).
 
@@ -13,12 +13,15 @@
 - Node.js 20+. Không thêm dependency npm trừ khi một task nói rõ.
 - Imports luôn ở đầu file. Switch trên union/enum phải có `default: assertNever(...)`.
 - `routeRole("plan"|"review")` không được trả `HarnessId`. Không phá test trong `packets.test.ts` / `router-savings.test.ts`.
-- Không OAuth, không Cloudflare tunnel, không cookie, không reverse-proxy, không MCP ghi.
-- Dashboard không nhận filesystem path từ browser.
-- Không spawn Codex / Claude Code / Grok / OpenCode / Kiro từ process C2X trong các slice của plan này.
+- Không OAuth, không Cloudflare tunnel, không cookie, không reverse-proxy ChatGPT, không MCP ghi. MCP loopback không nằm trong v1.
+- Dashboard / `PUT /api/config` / body API **không** nhận filesystem path. `repo` = `process.cwd()` của process user mở. CLI: `--cwd` rồi `C2X_WORKSPACE`.
+- **Cấm spawn** `codex` / `claude` / `opencode` / `kiro` / `grok` / `grok-build` trong mọi task của plan này. Không thêm `--spawn`. Spawn `git` (metadata) thì được.
+- Không publish npm tên `c2x` (đã là CSS→XPath). `package.json` `"name": "chat-to-x"`, giữ `"private": true` đến hết slice 5. Docs stranger: `npx chat-to-x` / `npm run c2x`.
+- `npm test` không được đòi API key hay mạng planner. `.env.example` không chứa secret. `/data/*` gitignore (trừ `.gitkeep`).
 - Copy UI/docs mặc định tiếng Việt; id protocol (`[C2X]`, `OWNER`, `HARNESS_IDS`) giữ English.
 - Session JSON cũ phải `normalizeSession` được (field mới có default).
 - Control message không chứa thân file / diff đầy đủ / log. Dùng `assertControlBudget` khi encode `EXECUTED` / brief / PLAN.
+- Packet: planner `PACKETS` thắng; không smart-split im lặng.
 
 Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/2026-09-12-chat-to-x-features-design.md)
 
@@ -42,12 +45,13 @@ Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/
 
 **Slice 2**
 
-- `src/core/types.ts` — `ExecutionRecord`, `workspaceRoot` trên config/session
+- `src/core/types.ts` — `ExecutionRecord` trên session (**không** `AppConfig.workspaceRoot` từ HTTP)
 - `src/core/git-meta.ts` — **mới**: porcelain + diff --stat
 - `src/core/records.ts` — **mới**: merge record vào session
-- `src/core/workspace.ts` — root + `.c2xignore`
+- `src/core/workspace.ts` — `resolveWorkspaceRoot` (CLI/env/cwd) + `.c2xignore`
 - `src/core/sensitive.ts` — đọc extra ignore
-- `src/core/config.ts` / `store.ts` — `workspaceRoot`, `C2X_DATA_DIR`
+- `src/core/store.ts` — `C2X_DATA_DIR`
+- `src/app/api/plan/route.ts` + `record/route.ts` — **bỏ** mọi `cwd` / `workspaceRoot` từ body
 - `src/app/api/record/route.ts` — **mới**
 - `src/cli/c2x.ts` — `record`
 - `src/core/__tests__/records.test.ts`, `workspace-root.test.ts` — **mới**
@@ -58,7 +62,87 @@ Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/
 - `src/cli/c2x.ts` — `doctor`, `brief`
 - `src/core/__tests__/harness-detect.test.ts` — **mới**
 
-**Slice 4–7:** `src/core/packets.ts`, `src/core/protocol.ts`, `package.json` `bin`, checkpoint trên session. Chi tiết ở Chunk 4.
+**Slice 4–7:** `src/core/packets.ts`, `src/core/protocol.ts`, `package.json` `bin` (`chat-to-x` + alias local `c2x`), checkpoint. Chi tiết ở Chunk 4.
+
+**Slice 0 (song song, không chặn Chunk 1):** `NOTICE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.gitignore` `/data/*`.
+
+---
+
+## Chunk 0: Slice 0 — vệ sinh OSS (không chặn Slice 1)
+
+Public MIT. Có thể làm trước, cùng lúc, hoặc ngay trước khi maintainers flip visibility. **Không** được trì hoãn Task 1 vì slice này.
+
+### Task 0: NOTICE, community files, ignore `data/`
+
+**Files:**
+- Create: `NOTICE`
+- Create: `CONTRIBUTING.md`
+- Create: `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1, không tự bịa điều khoản)
+- Create: `SECURITY.md`
+- Modify: `.gitignore` — `/data/*` và `!/data/.gitkeep` (thay `/data/*.json`)
+- Modify: `.env.example` — thêm `C2X_WORKSPACE=` và `C2X_DATA_DIR=`; giữ key rỗng; không `sk-`
+- Modify: `README.md` — badge MIT + Node 20; attribution C2C; `npm test` không cần key; cảnh báo không `npx c2x` (package CSS)
+
+**Interfaces:** không có API runtime. `NOTICE` phải chứa đoạn English sau (copy nguyên):
+
+```text
+chat-to-x (C2X) is inspired by XiaoDuoYa/codex-with-chatgpt
+(https://github.com/XiaoDuoYa/codex-with-chatgpt), MIT License.
+That project’s idea — ChatGPT (or another web chat) plans and reviews;
+the coding harness only executes; control messages stay tiny — is reused
+in spirit. This repository is not a fork of its OAuth bridge, Cloudflare
+tunnel, or ChatGPT connector. No unofficial ChatGPT reverse-proxy.
+```
+
+`SECURITY.md` (rút gọn, bilingual được): báo cáo qua GitHub Security Advisory; **không** mở issue public cho RCE/LFI; từ chối PR thêm reverse-proxy / cookie / tunnel ChatGPT; dashboard bind `127.0.0.1`; không nhận path từ browser.
+
+`CONTRIBUTING.md`: `npm install && npm test && npm run typecheck` không key; planner ≠ harness; không smart-split `PACKETS`; không spawn harness.
+
+- [ ] **Step 1: Write a failing check that data briefs would be tracked**
+
+Không cần test runtime. Fail hữu hình: `.gitignore` hiện là `/data/*.json`. Tạo file tạm không commit:
+
+```bash
+mkdir -p data/briefs
+echo leak > data/briefs/should-not-be-public.c2x.md
+git check-ignore -v data/briefs/should-not-be-public.c2x.md
+```
+
+Expected hiện tại: không in gì (file **không** bị ignore) — đó là fail của slice 0.
+
+- [ ] **Step 2: Confirm ignore fails**
+
+Run lệnh trên. Expected: empty → briefs sẽ lọt nếu public.
+
+- [ ] **Step 3: Write the files; fix gitignore**
+
+`.gitignore`:
+
+```gitignore
+# local C2X state (sessions, keys, briefs)
+/data/*
+!/data/.gitkeep
+```
+
+Xóa `data/briefs/should-not-be-public.c2x.md` sau khi verify. Không commit `sessions.json`.
+
+- [ ] **Step 4: Verify**
+
+```bash
+git check-ignore -v data/sessions.json data/briefs/x.c2x.md
+# both ignored
+test ! -s .env.example || ! grep -E 'sk-|sk-proj-|-----BEGIN' .env.example
+npx vitest run
+```
+
+Expected: ignore khớp; `.env.example` không chứa secret; tests PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add NOTICE CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md .gitignore .env.example README.md
+git commit -m "docs: add MIT OSS hygiene and ignore all local C2X data"
+```
 
 ---
 
@@ -901,7 +985,7 @@ export type ExecutionRecord = {
 ```
 
 `SessionRecord.records: ExecutionRecord[]`  
-`AppConfig.workspaceRoot: string` (default `""` = cwd)
+Không thêm `AppConfig.workspaceRoot` (tránh `PUT /api/config` thành LFI).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -940,8 +1024,7 @@ Expected: FAIL — module/types missing fields.
 Thêm types + `isExecutionExitStatus` (so với `EXECUTION_EXIT_STATUSES`).  
 `createSession`: `records: []`.  
 `normalizeSession`: `records: raw.records ?? []`.  
-`mergeConfig`: `workspaceRoot: typeof partial?.workspaceRoot === "string" ? partial.workspaceRoot : ""`.  
-`DEFAULT_CONFIG.workspaceRoot = ""`.
+Không đụng `AppConfig` / `mergeConfig` cho path.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -952,8 +1035,8 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/core/types.ts src/core/session.ts src/core/config.ts src/core/__tests__/records.test.ts
-git commit -m "feat: add ExecutionRecord and workspaceRoot fields"
+git add src/core/types.ts src/core/session.ts src/core/__tests__/records.test.ts
+git commit -m "feat: add ExecutionRecord fields on C2X sessions"
 ```
 
 ### Task 8: `collectGitMetadata`
@@ -1076,13 +1159,13 @@ export async function runRecord(input: {
   changedFiles?: string[];
   tests?: string;
   exitStatus?: ExecutionExitStatus;
-  workspaceRoot?: string;
+  /** CLI `--cwd` only. HTTP callers omit this. */
+  cwd?: string;
 }): Promise<SessionRecord>;
 
 export function resolveWorkspaceRoot(input?: {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
-  configRoot?: string;
 }): string;
 
 export async function loadC2xIgnore(root: string): Promise<string[]>;
@@ -1093,20 +1176,20 @@ export async function loadC2xIgnore(root: string): Promise<string[]>;
 `runRecord`:
 
 1. Load session; `owner` phải ∈ `harnessTeam`.
-2. `root = resolveWorkspaceRoot({ cwd: input.workspaceRoot, env: process.env, configRoot: config.workspaceRoot })`.
+2. `root = resolveWorkspaceRoot({ cwd: input.cwd, env: process.env })`. API `POST /api/record` **không** truyền `cwd`.
 3. `meta = await collectGitMetadata(root)` trừ khi caller truyền `changedFiles`.
 4. Nếu `changedFiles` trống và không git: lấy `packet.files` của owner.
 5. Lọc path khỏi packet teammate khác (không ghi nhận file của owner khác).
 6. `tests` mặc định `exitStatus === "fail" ? "failed" : meta.isGit ? "recorded" : "unknown"`.
 7. `upsertSession(applyExecutionRecord(...))`.
 
-`resolveWorkspaceRoot`: `input.cwd` → `env.C2X_WORKSPACE` → `configRoot` non-empty → `process.cwd()`.
+`resolveWorkspaceRoot`: `input.cwd` (CLI) → `env.C2X_WORKSPACE` → `process.cwd()`. Không có `configRoot`.
 
 `loadWorkspaceFiles("repo")` dùng `resolveWorkspaceRoot` + `loadC2xIgnore` đưa vào `isIgnoredPath(rel, extra)`.
 
 `dataDir()`: `process.env.C2X_DATA_DIR || process.env.FRUGAL_DATA_DIR || <cwd>/data`.
 
-`POST /api/record` body: `{ sessionId, owner, tests?, exitStatus? }` — **không** nhận `workspaceRoot` từ client.
+`POST /api/record` và `POST /api/plan` body: không đọc `workspaceRoot` / `cwd`. Nếu client gửi, **bỏ qua**.
 
 CLI: `c2x record --session <id> --owner <id> [--cwd <path>] [--tests <text>] [--exit-status ok|fail|unknown]`
 
@@ -1119,10 +1202,9 @@ import { describe, expect, it } from "vitest";
 import { resolveWorkspaceRoot } from "@/core/workspace";
 
 describe("resolveWorkspaceRoot", () => {
-  it("prefers explicit cwd, then C2X_WORKSPACE, then config, then process.cwd", () => {
-    expect(resolveWorkspaceRoot({ cwd: "/tmp/a", env: { C2X_WORKSPACE: "/tmp/b" }, configRoot: "/tmp/c" })).toBe("/tmp/a");
-    expect(resolveWorkspaceRoot({ env: { C2X_WORKSPACE: "/tmp/b" }, configRoot: "/tmp/c" })).toBe("/tmp/b");
-    expect(resolveWorkspaceRoot({ configRoot: "/tmp/c", env: {} })).toBe("/tmp/c");
+  it("prefers CLI cwd, then C2X_WORKSPACE, then process.cwd — never a config path", () => {
+    expect(resolveWorkspaceRoot({ cwd: "/tmp/a", env: { C2X_WORKSPACE: "/tmp/b" } })).toBe("/tmp/a");
+    expect(resolveWorkspaceRoot({ env: { C2X_WORKSPACE: "/tmp/b" } })).toBe("/tmp/b");
     expect(resolveWorkspaceRoot({ env: {} })).toBe(process.cwd());
   });
 });
@@ -1466,9 +1548,9 @@ Mỗi slice dưới đây vẫn là một đơn vị review riêng. Đừng làm
 - Modify: `src/core/packets.ts` (`packetActions`, `packetTests`, `packetCriteria`)
 - Modify: `src/core/__tests__/packets.test.ts`
 
-**Interfaces:** giữ `splitWorkPackets(...)`. Bỏ nhánh `/createTask|create|thêm/` sinh câu “Fix createTask so new rows persist…”. Thay bằng câu gắn `goal` (cắt 120 ký tự) + vai trò.
+**Interfaces:** giữ `splitWorkPackets(...)` **chỉ** khi planner không gửi `PACKETS`. Bỏ nhánh `/createTask|create|thêm/` sinh câu “Fix createTask so new rows persist…”. Thay bằng câu gắn `goal` (cắt 120 ký tự) + vai trò.
 
-Cảnh báo chồng file: `export function packetOverlapWarning(packets: WorkPacket[]): string | null` — `null` nếu `packetsHaveDisjointFiles`.
+**Cấm** hàm “smart-split” tự đổi `owner`/cắt file khi `PACKETS` đã có. Cảnh báo chồng file: `export function packetOverlapWarning(packets: WorkPacket[]): string | null` — `null` nếu `packetsHaveDisjointFiles`; import vẫn giữ packet planner.
 
 - [ ] **Step 1: Đổi test demo**
 
@@ -1495,23 +1577,56 @@ Cảnh báo chồng file: `export function packetOverlapWarning(packets: WorkPac
 
 - [ ] **Step 5: Commit** `fix: stop hard-coding Nhiệm vụ actions into every packet`
 
-### Task 15: Slice 5 — `bin` + lệnh `sessions`
+### Task 15: Slice 5 — `bin` `chat-to-x` + lệnh `sessions`
 
 **Files:**
-- Modify: `package.json` — `"bin": { "c2x": "src/cli/c2x.ts" }`, **giữ** `"private": true`
+- Modify: `package.json` — `"name": "chat-to-x"` giữ; `"private": true` giữ; `"bin": { "chat-to-x": "src/cli/c2x.ts", "c2x": "src/cli/c2x.ts" }`
 - Modify: `src/cli/c2x.ts` — `sessions` in `id state planner team`
+- Modify: `README.md` — stranger chạy `npx chat-to-x` / `npm run c2x -- …`. Một dòng: **không** `npx c2x` (npm `c2x` là CSS→XPath).
 
-- [ ] **Step 1: Test** `sessions` qua `loadSessions` (store temp) — CLI command mỏng, test `loadSessions` đã có gián tiếp. Thêm `it` đọc JSON sau `runPlan` mock.
+- [ ] **Step 1: Assert package.json will not publish as `c2x`**
 
-- [ ] **Step 2: `npx tsx src/cli/c2x.ts sessions` fail nếu command thiếu**
+Thêm test hoặc check trong `src/core/__tests__/harness-detect.test.ts` (hoặc file nhỏ `package-meta.test.ts`):
 
-- [ ] **Step 3: Implement command; thêm bin field**
+```ts
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
 
-- [ ] **Step 4: `npx tsx src/cli/c2x.ts sessions` exits 0**
+describe("npm package identity", () => {
+  it("stays chat-to-x and private so we never squat the CSS c2x package", () => {
+    const pkg = JSON.parse(
+      readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    ) as { name: string; private?: boolean; bin?: Record<string, string> };
+    expect(pkg.name).toBe("chat-to-x");
+    expect(pkg.private).toBe(true);
+    expect(pkg.name).not.toBe("c2x");
+  });
+});
+```
 
-- [ ] **Step 5: Commit** `feat: expose c2x bin and list sessions`
+Sau khi thêm `bin`, cập nhật test: `expect(pkg.bin?.["chat-to-x"]).toBe("src/cli/c2x.ts")`.
 
-Không `npm publish`.
+- [ ] **Step 2: Run test — `bin.chat-to-x` missing (fail sau Step 3 kỳ vọng pass)**
+
+Run: `npx vitest run src/core/__tests__/package-meta.test.ts`
+
+Expected lần đầu: FAIL nếu file chưa có; sau Step 3: `private` true, name `chat-to-x`.
+
+- [ ] **Step 3: Implement `sessions` + `bin`; không `npm publish`**
+
+- [ ] **Step 4:**
+
+```bash
+npx tsx src/cli/c2x.ts sessions
+npx vitest run src/core/__tests__/package-meta.test.ts
+```
+
+Expected: exit 0; `name` vẫn `chat-to-x`.
+
+- [ ] **Step 5: Commit** `feat: expose chat-to-x bin alias and list sessions`
+
+Không `npm publish`. Không đổi `"name"` thành `c2x`.
 
 ### Task 16: Slice 6 — checkpoint + HANDOFF + maxIterations
 
@@ -1547,15 +1662,15 @@ Sections đúng C2C: `ORIGINAL_GOAL`, `PROGRESS`, `CURRENT_STATE`, `KNOWN_ISSUES
 
 - [ ] **Step 5: Commit** `feat: emit [C2X] HANDOFF from a local checkpoint`
 
-### Task 17: Slice 7 — không code trừ khi user xin
+### Task 17: Slice 7 — không code trừ khi user xin plan riêng
 
-MCP loopback (không tunnel) là subsystem riêng: OAuth, 9 tool đọc, path containment. **Không** thêm file trong đợt này. Nếu user duyệt C, mở plan mới `docs/superpowers/plans/YYYY-MM-DD-c2x-loopback-mcp.md`.
+MCP loopback (không Cloudflare, không cookie, không reverse-proxy ChatGPT) là subsystem riêng. **Không** fork OAuth/tunnel C2C vào repo này. **Không** thêm file trong v1. Nếu user xin: plan mới `docs/superpowers/plans/YYYY-MM-DD-c2x-loopback-mcp.md` với ràng buộc bind `127.0.0.1` only.
 
 ---
 
 ## Thứ tự implement và verify
 
-Làm Task 1 → 13 trước. Sau mỗi chunk: `npx vitest run && npx tsc --noEmit`.
+Tính năng: Task 1 → 13 trước (Slice 1 đầu tiên). Slice 0 (Task 0) song song, không chặn. Sau mỗi chunk: `npx vitest run && npx tsc --noEmit`.
 
 Verify tích lũy (không phải một screenshot):
 
@@ -1569,15 +1684,17 @@ Verify tích lũy (không phải một screenshot):
 
 | Spec | Task |
 | --- | --- |
+| §15 + §15.3 OSS hygiene | 0 |
 | §6 vòng dán REVIEW | 2–6 |
 | §6.1 importControlMessage | 4–5 |
 | §6.2 buildReviewPastePrompt | 2 |
 | §6.3 reviewPastePrompt | 1 |
-| §7 records + git + root + ignore | 7–10 |
+| §7 records + git + CLI `--cwd` | 7–10 |
 | §8 adapter + doctor + skill | 11–13 |
-| §9 packet generic | 14 |
-| §10 bin / HANDOFF | 15–16 |
-| §11 / §7 MCP không làm | 17 (cố ý không code) |
+| §9 packet planner thắng | 14 |
+| §10 bin `chat-to-x` / HANDOFF | 15–16 |
+| §11 / MCP không làm | 17 (cố ý không code) |
+| §15.1 cấm publish `c2x` | 15 (`package-meta.test.ts`) |
 | Router/catalog giữ | mọi task; regression test bắt buộc |
 
 ## Self-review (plan)

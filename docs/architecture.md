@@ -115,5 +115,7 @@ Design (Vietnamese): [docs/superpowers/specs/2026-09-12-chat-to-x-features-desig
 
 Implementation plan: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](superpowers/plans/2026-09-12-chat-to-x-features.md)
 
-First three slices: close the web-chat PLAN+REVIEW paste loop; local git
-execution records; detect/write harness briefs (no spawn, no OAuth/tunnel).
+OSS locks (public MIT): publish as `chat-to-x` never `c2x`; no browser
+workspace paths; no harness spawn; no C2C OAuth/tunnel fork. Feature slice 1
+first: web-chat PLAN+REVIEW paste loop. Slice 0 (NOTICE, SECURITY, ignore
+`/data/`) does not block that loop.
