@@ -95,6 +95,27 @@ export async function detectHarnessTeam(
   return Promise.all(team.map((id) => detectHarness(id)));
 }
 
+export function workspaceBriefPath(workspaceRoot: string, owner: HarnessId): string {
+  return path.join(workspaceRoot, ".c2x", "briefs", `${owner}.md`);
+}
+
+export async function writeWorkspaceBriefDrop(input: {
+  workspaceRoot: string;
+  session: SessionRecord;
+  owner: HarnessId;
+}): Promise<string> {
+  const brief =
+    input.session.briefs.find((item) => item.owner === input.owner) ??
+    (input.session.brief?.owner === input.owner ? input.session.brief : null);
+  if (!brief) {
+    throw new Error(`No precomputed brief for owner ${input.owner}.`);
+  }
+  const dest = workspaceBriefPath(input.workspaceRoot, input.owner);
+  await mkdir(path.dirname(dest), { recursive: true });
+  await writeFile(dest, renderCodexBrief(brief), "utf8");
+  return dest;
+}
+
 export async function writeHarnessBrief(input: {
   session: SessionRecord;
   owner: HarnessId;
