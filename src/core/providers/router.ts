@@ -1,7 +1,14 @@
-import { getProvider } from "@/core/providers/catalog";
+import {
+  getHarness,
+  getProvider,
+  isWebSubscriptionPlanner,
+  plannerKindRank,
+} from "@/core/providers/catalog";
 import {
   assertNever,
+  isHarnessId,
   type AppConfig,
+  type HarnessId,
   type PlannerChoice,
   type ProviderId,
   type Role,
@@ -9,7 +16,7 @@ import {
 
 export type RouteDecision = {
   role: Role;
-  provider: ProviderId | "codex";
+  provider: ProviderId | HarnessId;
   reason: string;
   reasonVi: string;
 };
@@ -30,6 +37,10 @@ function cheapestReady(config: AppConfig, hasKey: (id: ProviderId) => boolean): 
     return "mock";
   }
   return [...ready].sort((a, b) => {
+    const byKind = plannerKindRank(a) - plannerKindRank(b);
+    if (byKind !== 0) {
+      return byKind;
+    }
     const left = getProvider(a);
     const right = getProvider(b);
     const byCost = left.usdPerMillionIn - right.usdPerMillionIn;
@@ -40,36 +51,53 @@ function cheapestReady(config: AppConfig, hasKey: (id: ProviderId) => boolean): 
   })[0];
 }
 
+function executeDecision(harness: HarnessId): RouteDecision {
+  const entry = getHarness(harness);
+  switch (harness) {
+    case "codex":
+    case "claude-code":
+      return {
+        role: "execute",
+        provider: harness,
+        reason: `${entry.name} is the execution harness only: edit, shell, test, git. Never plan or review here.`,
+        reasonVi: `${entry.nameVi} chỉ là harness chạy: sửa file, shell, test, git. Không lập kế hoạch hay review ở đây.`,
+      };
+    default:
+      return assertNever(harness, `Unknown harness: ${harness}`);
+  }
+}
+
 export function routeRole(input: {
   role: Role;
   choice: PlannerChoice;
+  harness?: HarnessId;
   config: AppConfig;
   hasKey: (id: ProviderId) => boolean;
 }): RouteDecision {
   switch (input.role) {
     case "execute":
-      return {
-        role: "execute",
-        provider: "codex",
-        reason: "Codex keeps the harness: edit, shell, test, git.",
-        reasonVi: "Codex giữ harness: sửa file, shell, test, git.",
-      };
+      return executeDecision(input.harness ?? input.config.defaultHarness);
     case "plan":
     case "review": {
       if (input.choice !== "auto") {
         return {
           role: input.role,
           provider: input.choice,
-          reason: `You pinned ${input.choice} for ${input.role}.`,
-          reasonVi: `Bạn đã ghim ${input.choice} cho bước ${input.role}.`,
+          reason: `You pinned ${input.choice} for ${input.role}. Codex and Claude Code never take this role.`,
+          reasonVi: `Bạn đã ghim ${input.choice} cho bước ${input.role}. Codex và Claude Code không bao giờ nhận vai này.`,
         };
       }
       const provider = cheapestReady(input.config, input.hasKey);
+      const webFirst = isWebSubscriptionPlanner(provider);
       return {
         role: input.role,
         provider,
-        reason: `Auto picked the cheapest ready planner: ${provider}.`,
-        reasonVi: `Tự chọn planner sẵn sàng rẻ nhất: ${provider}.`,
+        reason: webFirst
+          ? `Auto preferred a large web/subscription chat quota: ${provider}.`
+          : `Auto picked the cheapest ready planner: ${provider}.`,
+        reasonVi: webFirst
+          ? `Tự ưu tiên hạn mức chat web/subscription lớn: ${provider}.`
+          : `Tự chọn planner sẵn sàng rẻ nhất: ${provider}.`,
       };
     }
     default:
@@ -88,7 +116,7 @@ export function resolvePlanner(input: {
     config: input.config,
     hasKey: input.hasKey,
   });
-  if (decision.provider === "codex") {
+  if (isHarnessId(decision.provider)) {
     return "mock";
   }
   return decision.provider;

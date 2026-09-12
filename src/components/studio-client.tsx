@@ -17,9 +17,18 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { renderCodexBrief } from "@/core/brief";
+import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { planToMessage } from "@/core/protocol";
 import { formatTokens } from "@/core/tokens";
-import type { PlannerChoice, SessionRecord, WorkspaceSource } from "@/core/types";
+import {
+  isHarnessId,
+  isPlannerChoice,
+  isWorkspaceSource,
+  type HarnessId,
+  type PlannerChoice,
+  type SessionRecord,
+  type WorkspaceSource,
+} from "@/core/types";
 
 const DEFAULT_GOAL =
   "Sửa createTask để việc mới thật sự được lưu, giữ bộ lọc status trên URL khi reload, và thêm test cho empty state.";
@@ -41,6 +50,7 @@ export function StudioClient() {
   const { t, lang } = useLanguage();
   const [goal, setGoal] = useState(DEFAULT_GOAL);
   const [plannerChoice, setPlannerChoice] = useState<PlannerChoice>("auto");
+  const [harness, setHarness] = useState<HarnessId>("codex");
   const [budget, setBudget] = useState("4000");
   const [workspaceSource, setWorkspaceSource] = useState<WorkspaceSource>("demo");
   const [session, setSession] = useState<SessionRecord | null>(null);
@@ -71,6 +81,7 @@ export function StudioClient() {
       const result = await postJson<{ session: SessionRecord }>("/api/plan", {
         goal,
         plannerChoice,
+        harness,
         budgetTokens: Number(budget),
         workspaceSource,
       });
@@ -144,8 +155,8 @@ export function StudioClient() {
           <CardTitle>{t.goalLabel}</CardTitle>
           <CardDescription>
             {lang === "vi"
-              ? "Planner đọc bản nén. Codex không được nuốt cả repo."
-              : "The planner reads the pack. Codex never swallows the repo."}
+              ? "Planner (chat web) đọc bản nén. Codex/Claude Code chỉ nhận brief — đừng nuốt repo bằng hạn mức harness."
+              : "The web-chat planner reads the pack. Codex/Claude Code only get a brief — do not spend harness quota on the repo."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -155,13 +166,13 @@ export function StudioClient() {
             placeholder={t.goalPlaceholder}
             className="min-h-28"
           />
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Field label={t.planner}>
               <Select
                 value={plannerChoice}
                 onValueChange={(value) => {
-                  if (value) {
-                    setPlannerChoice(value as PlannerChoice);
+                  if (value && isPlannerChoice(value)) {
+                    setPlannerChoice(value);
                   }
                 }}
               >
@@ -170,16 +181,32 @@ export function StudioClient() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto">{t.auto}</SelectItem>
-                  <SelectItem value="mock">Mock</SelectItem>
-                  <SelectItem value="chatgpt-web">ChatGPT web</SelectItem>
-                  <SelectItem value="groq">Groq</SelectItem>
-                  <SelectItem value="gemini">Gemini</SelectItem>
-                  <SelectItem value="deepseek">DeepSeek</SelectItem>
-                  <SelectItem value="openrouter">OpenRouter</SelectItem>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="anthropic">Anthropic</SelectItem>
-                  <SelectItem value="ollama">Ollama</SelectItem>
-                  <SelectItem value="openai-compatible">OpenAI-compatible</SelectItem>
+                  {PROVIDER_CATALOG.map((entry) => (
+                    <SelectItem key={entry.id} value={entry.id}>
+                      {lang === "vi" ? entry.nameVi : entry.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label={t.harness}>
+              <Select
+                value={harness}
+                onValueChange={(value) => {
+                  if (value && isHarnessId(value)) {
+                    setHarness(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HARNESS_CATALOG.map((entry) => (
+                    <SelectItem key={entry.id} value={entry.id}>
+                      {lang === "vi" ? entry.nameVi : entry.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
@@ -207,8 +234,8 @@ export function StudioClient() {
               <Select
                 value={workspaceSource}
                 onValueChange={(value) => {
-                  if (value) {
-                    setWorkspaceSource(value as WorkspaceSource);
+                  if (value && isWorkspaceSource(value)) {
+                    setWorkspaceSource(value);
                   }
                 }}
               >
@@ -271,6 +298,25 @@ export function StudioClient() {
         </div>
       ) : null}
 
+      {session?.savings ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Metric
+            label={t.savedHarness}
+            value={`${session.savings.savedHarnessTurns}`}
+            hint={`${session.savings.c2xHarnessTurns} / ${session.savings.naiveHarnessTurns} · ${t.quotaHint}`}
+          />
+          <Metric
+            label={t.webTurns}
+            value={`${session.savings.webChatTurns}`}
+            hint={
+              lang === "vi"
+                ? "Plan + review trên ChatGPT / Claude / Gemini web khi planner là subscription."
+                : "Plan + review on ChatGPT / Claude / Gemini web when the planner is a subscription."
+            }
+          />
+        </div>
+      ) : null}
+
       {!session ? (
         <Card className="border-dashed">
           <CardHeader>
@@ -284,7 +330,7 @@ export function StudioClient() {
             <CardHeader>
               <CardTitle>{t.packTitle}</CardTitle>
               <CardDescription>
-                {session.pack?.fileCount ?? 0} files · {session.planner}
+                {session.pack?.fileCount ?? 0} files · {session.planner} → {session.harness ?? harness}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -319,7 +365,7 @@ export function StudioClient() {
               <CardTitle>{session.plan ? t.planTitle : t.pasteTitle}</CardTitle>
               <CardDescription>
                 {session.brief
-                  ? `${session.brief.tokenEstimate} tok → Codex`
+                  ? `${session.brief.tokenEstimate} tok → ${session.harness ?? harness}`
                   : t.importPlan}
               </CardDescription>
             </CardHeader>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { clampBudget } from "@/core/tokens";
-import { isPlannerChoice, isWorkspaceSource } from "@/core/types";
+import { isHarnessId, isPlannerChoice, isWorkspaceSource } from "@/core/types";
 import { runPlan } from "@/core/run-loop";
 
 export async function POST(request: Request) {
@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       goal?: string;
       plannerChoice?: string;
+      harness?: string;
       budgetTokens?: number;
       workspaceSource?: string;
       allowFallback?: boolean;
@@ -24,9 +25,13 @@ export async function POST(request: Request) {
     if (!isWorkspaceSource(workspaceSource)) {
       return NextResponse.json({ error: "unknown workspace" }, { status: 400 });
     }
+    if (body.harness && !isHarnessId(body.harness)) {
+      return NextResponse.json({ error: "unknown harness" }, { status: 400 });
+    }
     const session = await runPlan({
       goal,
       plannerChoice,
+      harness: body.harness && isHarnessId(body.harness) ? body.harness : undefined,
       budgetTokens: clampBudget(Number(body.budgetTokens) || 4000),
       workspaceSource,
       allowFallback: body.allowFallback ?? true,

@@ -2,7 +2,7 @@
   "name": "frugal-codex",
   "version": "0.1.0",
   "private": true,
-  "description": "Planner thinks. Codex works. Multi-provider token-saving base inspired by Codex with ChatGPT.",
+  "description": "Web chats think. Codex or Claude Code executes. Split scarce harness quota from large subscription chat allowances.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 45217",

@@ -1,6 +1,8 @@
 export const PROVIDER_IDS = [
   "mock",
   "chatgpt-web",
+  "claude-web",
+  "gemini-web",
   "openai",
   "anthropic",
   "gemini",
@@ -12,6 +14,16 @@ export const PROVIDER_IDS = [
 ] as const;
 
 export type ProviderId = (typeof PROVIDER_IDS)[number];
+
+export const WEB_SUBSCRIPTION_PLANNERS = [
+  "chatgpt-web",
+  "claude-web",
+  "gemini-web",
+] as const;
+export type WebSubscriptionPlanner = (typeof WEB_SUBSCRIPTION_PLANNERS)[number];
+
+export const HARNESS_IDS = ["codex", "claude-code"] as const;
+export type HarnessId = (typeof HARNESS_IDS)[number];
 
 export const PLANNER_CHOICES = ["auto", ...PROVIDER_IDS] as const;
 export type PlannerChoice = (typeof PLANNER_CHOICES)[number];
@@ -120,12 +132,16 @@ export type TokenLedger = {
   naiveCostUsd: number;
   c2xCostUsd: number;
   savedUsd: number;
+  naiveHarnessTurns: number;
+  c2xHarnessTurns: number;
+  webChatTurns: number;
+  savedHarnessTurns: number;
 };
 
 export type SessionEvent = {
   at: string;
   state: ProtocolState;
-  actor: "planner" | "codex" | "system" | "user";
+  actor: "planner" | "codex" | "claude-code" | "system" | "user";
   note: string;
 };
 
@@ -136,6 +152,7 @@ export type SessionRecord = {
   goal: string;
   planner: ProviderId;
   plannerChoice: PlannerChoice;
+  harness: HarnessId;
   budgetTokens: number;
   workspaceSource: WorkspaceSource;
   state: ProtocolState;
@@ -160,6 +177,7 @@ export type ProviderStatus = {
 export type AppConfig = {
   enabledProviders: ProviderId[];
   defaultPlanner: PlannerChoice;
+  defaultHarness: HarnessId;
   defaultBudget: number;
   keys: Partial<Record<ProviderId, string>>;
   openaiCompatibleBaseUrl: string;
@@ -185,6 +203,8 @@ export type ProviderCatalogEntry = {
   usdPerMillionOut: number;
   envVar: string | null;
   needsKey: boolean;
+  quotaVi: string;
+  quotaEn: string;
 };
 
 export function assertNever(value: never, message: string): never {
@@ -197,6 +217,16 @@ export function isProviderId(value: string): value is ProviderId {
 
 export function isPlannerChoice(value: string): value is PlannerChoice {
   return (PLANNER_CHOICES as readonly string[]).includes(value);
+}
+
+export function isHarnessId(value: string): value is HarnessId {
+  return (HARNESS_IDS as readonly string[]).includes(value);
+}
+
+export function isWebSubscriptionPlannerId(
+  value: string,
+): value is WebSubscriptionPlanner {
+  return (WEB_SUBSCRIPTION_PLANNERS as readonly string[]).includes(value);
 }
 
 export function isProtocolState(value: string): value is ProtocolState {

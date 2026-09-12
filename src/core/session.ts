@@ -1,6 +1,7 @@
 import { planToBrief } from "@/core/brief";
 import { createTaskId } from "@/core/protocol";
 import type {
+  HarnessId,
   PlannerChoice,
   ProviderId,
   SessionEvent,
@@ -12,6 +13,7 @@ export function createSession(input: {
   goal: string;
   planner: ProviderId;
   plannerChoice: PlannerChoice;
+  harness: HarnessId;
   budgetTokens: number;
   workspaceSource: WorkspaceSource;
 }): SessionRecord {
@@ -24,6 +26,7 @@ export function createSession(input: {
     goal: input.goal.trim(),
     planner: input.planner,
     plannerChoice: input.plannerChoice,
+    harness: input.harness,
     budgetTokens: input.budgetTokens,
     workspaceSource: input.workspaceSource,
     state: "INIT",

@@ -1,17 +1,22 @@
 # Frugal Codex (C2X)
 
-Planner nghĩ. Codex làm. Token không bị đốt.
+Chat web nghĩ. Harness chạy. Đừng đốt hạn mức Codex/Claude Code cho phần nghĩ.
+
+Vấn đề thật: nếu bạn chỉ dùng **một** harness (Codex *hoặc* Claude Code), hạn mức
+chạy sẽ hết nhanh. Trong khi đó **ChatGPT web**, **Gemini web** và **Claude web**
+đã có nhiều lượt chat kèm theo gói bạn đang trả (hoặc tầng miễn phí). C2X tách
+vai:
+
+| Vai | Ai | Hạn mức |
+| --- | --- | --- |
+| Plan + review | `chatgpt-web`, `claude-web`, `gemini-web` (rồi mới tới API) | Quota chat lớn / subscription |
+| Execute | `codex` hoặc `claude-code` | Hạn mức harness khan hiếm |
 
 Base lấy ý tưởng từ [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt):
-ChatGPT (hoặc planner khác) chịu phần lập kế hoạch và review; Codex chỉ
-nhận brief ngắn rồi sửa file / chạy test / git.
+não nghĩ tách khỏi harness. C2X thêm packer token, router đa nhà cung cấp, và
+mô hình **tách hạn mức** (không chỉ tiết kiệm token).
 
-Đây không phải bản fork nguyên OAuth + tunnel của repo gốc. C2X giữ giao thức
-và mô hình hai não, rồi thêm:
-
-- **Router đa nhà cung cấp** — ChatGPT web, Groq, Gemini, DeepSeek, OpenRouter, Ollama, OpenAI, Anthropic, endpoint tương thích OpenAI, planner giả lập
-- **Packer token** — chỉ đưa file liên quan, chặn `.env` và khóa
-- **Sổ tiết kiệm** — so Codex phải đọc cả workspace với Codex chỉ đọc brief
+Đây không phải bản fork OAuth + tunnel. Không reverse-proxy, không lấy cookie.
 
 ## Chạy local
 
@@ -23,29 +28,39 @@ npm run dev
 ```
 
 Mở [http://127.0.0.1:45217](http://127.0.0.1:45217). Không cần API key để dùng
-planner giả lập và chế độ dán ChatGPT web.
+planner giả lập và chế độ dán ChatGPT / Claude / Gemini web.
 
 ```bash
 npm test
-npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock
+npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock --harness codex
+npx tsx src/cli/c2x.ts route --choice auto --harness claude-code
 ```
 
-## Cách dùng để tiết kiệm Codex
+## Cách tách hạn mức
 
 1. Viết mục tiêu trong **Phòng điều khiển**.
-2. Chọn planner: `auto` (rẻ nhất sẵn sàng), `chatgpt-web` (dùng hạn mức Plus/Pro), hoặc API.
-3. **Đóng gói & lập kế hoạch** — dashboard hiện token thô / đã nén / % Codex đỡ phải đọc.
-4. Sao chép **brief cho Codex**. Dán brief đó vào phiên Codex. Đừng dán repo.
-5. Sau khi Codex chạy xong, **Giả lập Codex đã chạy** hoặc `POST /api/review` để planner review.
+2. Chọn planner: `auto` (ưu tiên chat web / subscription đang bật), `chatgpt-web`,
+   `claude-web`, `gemini-web`, hoặc API nếu bạn muốn.
+3. Chọn harness chạy: `codex` hoặc `claude-code`. Router **không bao giờ** gửi
+   plan/review sang hai harness này.
+4. **Đóng gói & lập kế hoạch** — dashboard hiện token thô / đã nén / lượt harness
+   giữ lại / lượt chat web.
+5. Sao chép **brief cho harness**. Dán vào phiên Codex hoặc Claude Code. Đừng dán repo.
+6. Sau khi harness chạy xong, **Giả lập harness đã chạy** hoặc `POST /api/review`.
 
-### ChatGPT web (0 API)
+### Chat web (0 API, quota chat lớn)
 
-Chọn `chatgpt-web`, sao chép prompt đã nén, dán vào chatgpt.com, dán khối
-`[C2X] PLAN` trở lại ô nhập. Không reverse-proxy, không lấy cookie.
+Chọn `chatgpt-web`, `claude-web`, hoặc `gemini-web`. Sao chép prompt đã nén, dán
+vào trang chat bạn đã đăng nhập, dán khối `[C2X] PLAN` trở lại ô nhập. Không
+reverse-proxy, không lấy cookie.
 
-### Nhà cung cấp khác
+`gemini` (API) vẫn còn — khác với `gemini-web` (dán). `anthropic` (API) khác với
+`claude-web` (dán) và `claude-code` (harness).
 
-Đặt key trong trang **Nhà cung cấp** hoặc file `.env`:
+### Nhà cung cấp API
+
+Đặt key trong trang **Nhà cung cấp** hoặc file `.env`. Router chỉ chọn API khi
+không còn planner chat web nào đang bật và sẵn sàng.
 
 ```bash
 GROQ_API_KEY=
@@ -67,7 +82,8 @@ INIT → PLAN → EXECUTING → EXECUTED → REVIEW → PLAN | DONE | BLOCKED
 ```
 
 Mặt điều khiển dùng `[C2X]` (vẫn đọc được `[C2C]` của repo gốc). Không nhét
-diff / log / thân file vào tin nhắn điều khiển.
+diff / log / thân file vào tin nhắn điều khiển. Execute là `codex` hoặc
+`claude-code`.
 
 ## Cấu trúc
 
@@ -75,11 +91,11 @@ diff / log / thân file vào tin nhắn điều khiển.
 src/core/          packer, protocol, router, savings, providers
 src/app/           dashboard Next.js
 src/cli/c2x.ts     CLI
-skill/SKILL.md     skill cho Codex
+skill/SKILL.md     skill cho Codex / Claude Code
 ```
 
 ## License
 
-MIT. Dự án cộng đồng, không liên kết OpenAI.
+MIT. Dự án cộng đồng, không liên kết OpenAI hay Anthropic.
 
 English notes live in [docs/architecture.md](docs/architecture.md).

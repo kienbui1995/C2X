@@ -156,7 +156,7 @@ export function initMessage(taskId: string, goal: string): string {
     sections: {
       GOAL: goal,
       INSTRUCTION:
-        "Inspect only the packed excerpts. Write a finite executable PLAN for Codex. Do not dump files back.",
+        "Inspect only the packed excerpts. Write a finite executable PLAN for the execution harness (Codex or Claude Code). Do not dump files back.",
     },
   });
 }

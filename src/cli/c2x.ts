@@ -6,24 +6,35 @@ import { mergeConfig } from "@/core/config";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
-import { PROVIDER_CATALOG } from "@/core/providers/catalog";
+import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeRole } from "@/core/providers/router";
 import { runPlan } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
 import { formatTokens, formatUsd } from "@/core/tokens";
-import { isPlannerChoice, isWorkspaceSource, type PlannerChoice } from "@/core/types";
+import {
+  isHarnessId,
+  isPlannerChoice,
+  isWorkspaceSource,
+  type HarnessId,
+  type PlannerChoice,
+} from "@/core/types";
 
 const program = new Command();
-program.name("c2x").description("Frugal Codex — pack, plan, keep Codex thin.");
+program.name("c2x").description("Frugal Codex — pack, plan on web chat, keep Codex/Claude Code thin.");
 
 program
   .command("providers")
-  .description("List planner catalog")
+  .description("List planner and harness catalogs")
   .action(() => {
+    process.stdout.write("planners\n");
     for (const entry of PROVIDER_CATALOG) {
       process.stdout.write(
-        `${entry.id.padEnd(20)} ${entry.kind.padEnd(14)} $${entry.usdPerMillionIn}/1M  ${entry.name}\n`,
+        `  ${entry.id.padEnd(20)} ${entry.kind.padEnd(14)} ${entry.quotaEn}\n`,
       );
+    }
+    process.stdout.write("harnesses (execute only)\n");
+    for (const entry of HARNESS_CATALOG) {
+      process.stdout.write(`  ${entry.id.padEnd(20)} harness         ${entry.quotaEn}\n`);
     }
   });
 
@@ -78,15 +89,20 @@ program
 program
   .command("route")
   .option("--choice <id>", "planner choice", "auto")
-  .action((opts: { choice: string }) => {
+  .option("--harness <id>", "codex|claude-code", "codex")
+  .action((opts: { choice: string; harness: string }) => {
     if (!isPlannerChoice(opts.choice)) {
       throw new Error(`unknown planner: ${opts.choice}`);
     }
-    const config = mergeConfig();
+    if (!isHarnessId(opts.harness)) {
+      throw new Error(`unknown harness: ${opts.harness}`);
+    }
+    const config = mergeConfig({ defaultHarness: opts.harness });
     for (const role of ["plan", "review", "execute"] as const) {
       const decision = routeRole({
         role,
         choice: opts.choice,
+        harness: opts.harness,
         config,
         hasKey: () => false,
       });
@@ -97,12 +113,22 @@ program
 program
   .command("plan")
   .requiredOption("--goal <text>")
-  .option("--planner <id>", "auto|mock|chatgpt-web|…", "mock")
+  .option("--planner <id>", "auto|mock|chatgpt-web|claude-web|gemini-web|…", "mock")
+  .option("--harness <id>", "codex|claude-code", "codex")
   .option("--budget <n>", "token budget", "4000")
   .option("--workspace <src>", "demo|repo", "demo")
-  .action(async (opts: { goal: string; planner: string; budget: string; workspace: string }) => {
+  .action(async (opts: {
+    goal: string;
+    planner: string;
+    harness: string;
+    budget: string;
+    workspace: string;
+  }) => {
     if (!isPlannerChoice(opts.planner)) {
       throw new Error(`unknown planner: ${opts.planner}`);
+    }
+    if (!isHarnessId(opts.harness)) {
+      throw new Error(`unknown harness: ${opts.harness}`);
     }
     if (!isWorkspaceSource(opts.workspace)) {
       throw new Error(`unknown workspace: ${opts.workspace}`);
@@ -110,6 +136,7 @@ program
     const session = await runPlan({
       goal: opts.goal,
       plannerChoice: opts.planner as PlannerChoice,
+      harness: opts.harness as HarnessId,
       budgetTokens: Number(opts.budget),
       workspaceSource: opts.workspace,
     });

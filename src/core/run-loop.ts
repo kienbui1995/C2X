@@ -3,14 +3,15 @@ import { hasProviderKey } from "@/core/config";
 import { packWorkspace } from "@/core/packer";
 import {
   PLANNER_SYSTEM_PROMPT,
-  buildChatgptPastePrompt,
   buildPlanUserPrompt,
   buildReviewUserPrompt,
+  buildWebPastePrompt,
   extractControlBlock,
   mockPlanFromPack,
   mockReview,
   parsePlannerOutput,
 } from "@/core/planner";
+import { isPastePlanner } from "@/core/providers/catalog";
 import { completePlanner } from "@/core/providers/complete";
 import { resolvePlanner } from "@/core/providers/router";
 import { messageToReview, parseControlMessage } from "@/core/protocol";
@@ -18,15 +19,18 @@ import { estimateSavings } from "@/core/savings";
 import { applyPlan, createSession, touchSession } from "@/core/session";
 import { getSession, loadConfig, upsertSession } from "@/core/store";
 import { loadWorkspaceFiles } from "@/core/workspace";
-import type {
-  PlannerChoice,
-  SessionRecord,
-  WorkspaceSource,
+import {
+  isHarnessId,
+  type HarnessId,
+  type PlannerChoice,
+  type SessionRecord,
+  type WorkspaceSource,
 } from "@/core/types";
 
 export async function runPlan(input: {
   goal: string;
   plannerChoice: PlannerChoice;
+  harness?: HarnessId;
   budgetTokens: number;
   workspaceSource: WorkspaceSource;
   allowFallback?: boolean;
@@ -37,6 +41,7 @@ export async function runPlan(input: {
     config,
     hasKey: (id) => hasProviderKey(config, id),
   });
+  const harness: HarnessId = input.harness ?? config.defaultHarness;
   const files = await loadWorkspaceFiles(input.workspaceSource);
   const pack = packWorkspace({
     goal: input.goal,
@@ -47,13 +52,14 @@ export async function runPlan(input: {
     goal: input.goal,
     planner,
     plannerChoice: input.plannerChoice,
+    harness,
     budgetTokens: input.budgetTokens,
     workspaceSource: input.workspaceSource,
   });
   session = { ...session, pack };
 
-  if (planner === "chatgpt-web") {
-    const pastePrompt = buildChatgptPastePrompt(pack, session.id);
+  if (isPastePlanner(planner)) {
+    const pastePrompt = buildWebPastePrompt(pack, session.id);
     session = touchSession(
       {
         ...session,
@@ -63,7 +69,7 @@ export async function runPlan(input: {
       {
         state: "INIT",
         actor: "planner",
-        note: "ChatGPT web: copy the packed prompt, paste the [C2X] PLAN back.",
+        note: `${planner}: copy the packed prompt into that web chat, paste the [C2X] PLAN back. ${harness} stays the execution harness.`,
       },
     );
     return upsertSession(session);
@@ -135,7 +141,7 @@ export async function importPlan(input: {
     touchSession(existing, {
       state: "PLAN",
       actor: "user",
-      note: "Imported [C2X] PLAN from ChatGPT or another planner.",
+      note: "Imported [C2X] PLAN from a web chat or another planner.",
     }),
     {
       plan,
@@ -157,10 +163,11 @@ export async function runReview(input: {
     throw new Error("Review needs a session that already has a PLAN.");
   }
   const config = await loadConfig();
+  const harness = isHarnessId(existing.harness) ? existing.harness : "codex";
   const executed = touchSession(existing, {
     state: "EXECUTED",
-    actor: "codex",
-    note: `Codex reported ${input.changedFiles.length} changed files.`,
+    actor: harness,
+    note: `${harness} reported ${input.changedFiles.length} changed files.`,
   });
   const reviewing = touchSession(executed, {
     state: "REVIEW",
@@ -174,12 +181,12 @@ export async function runReview(input: {
     changedFiles: input.changedFiles,
     tests: input.tests,
   });
-  let usedFallback = existing.planner === "mock" || existing.planner === "chatgpt-web";
+  let usedFallback = existing.planner === "mock" || isPastePlanner(existing.planner);
   let fallbackReason: string | null = usedFallback
     ? "Local review from changed-file and test metadata."
     : null;
 
-  if (existing.planner !== "mock" && existing.planner !== "chatgpt-web") {
+  if (existing.planner !== "mock" && !isPastePlanner(existing.planner)) {
     const completion = await completePlanner({
       provider: existing.planner,
       config,

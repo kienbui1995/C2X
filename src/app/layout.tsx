@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Frugal Codex · C2X",
   description:
-    "Planner nghĩ, Codex làm. Tiết kiệm token bằng cách đưa kế hoạch và review sang ChatGPT hoặc nhà cung cấp rẻ hơn.",
+    "Chat web nghĩ, Codex/Claude Code chạy. Tách hạn mức harness khan hiếm khỏi lượt chat lớn trên ChatGPT, Gemini và Claude web.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

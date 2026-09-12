@@ -1,5 +1,5 @@
 import { resolvedKey } from "@/core/config";
-import { getProvider } from "@/core/providers/catalog";
+import { isPastePlanner, modelForProvider } from "@/core/providers/catalog";
 import { assertNever, type AppConfig, type ProviderId } from "@/core/types";
 
 export type CompletionResult = {
@@ -13,29 +13,7 @@ export type CompletionResult = {
 type ChatMessage = { role: "system" | "user"; content: string };
 
 function modelFor(id: ProviderId, config: AppConfig): string {
-  switch (id) {
-    case "mock":
-    case "chatgpt-web":
-      return getProvider(id).defaultModel;
-    case "openai":
-      return config.openaiModel;
-    case "anthropic":
-      return config.anthropicModel;
-    case "gemini":
-      return config.geminiModel;
-    case "groq":
-      return config.groqModel;
-    case "openrouter":
-      return config.openrouterModel;
-    case "deepseek":
-      return config.deepseekModel;
-    case "ollama":
-      return config.ollamaModel;
-    case "openai-compatible":
-      return config.openaiCompatibleModel;
-    default:
-      return assertNever(id, `Unknown provider: ${id}`);
-  }
+  return modelForProvider(id, config);
 }
 
 function openaiCompatTarget(id: ProviderId, config: AppConfig): { url: string; headers: Record<string, string> } {
@@ -77,6 +55,8 @@ function openaiCompatTarget(id: ProviderId, config: AppConfig): { url: string; h
       };
     case "mock":
     case "chatgpt-web":
+    case "claude-web":
+    case "gemini-web":
     case "anthropic":
     case "gemini":
       throw new Error(`${id} is not OpenAI-compatible in this client.`);
@@ -194,17 +174,7 @@ export async function completePlanner(input: {
   const allowFallback = input.allowFallback ?? true;
   const model = modelFor(provider, config);
 
-  if (provider === "mock") {
-    return {
-      text: "",
-      usedFallback: false,
-      fallbackReason: null,
-      provider,
-      model,
-    };
-  }
-
-  if (provider === "chatgpt-web") {
+  if (provider === "mock" || isPastePlanner(provider)) {
     return {
       text: "",
       usedFallback: false,

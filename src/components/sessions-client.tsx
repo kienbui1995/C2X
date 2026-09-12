@@ -40,7 +40,8 @@ export function SessionsClient({ initialSessions }: { initialSessions: SessionRe
                 <div className="space-y-1">
                   <CardTitle className="text-base">{session.goal}</CardTitle>
                   <CardDescription className="font-mono">
-                    {session.id} · {session.planner} · {session.workspaceSource}
+                    {session.id} · {session.planner} → {session.harness ?? "codex"} ·{" "}
+                    {session.workspaceSource}
                   </CardDescription>
                 </div>
                 <Badge variant="outline">{session.state}</Badge>
@@ -49,6 +50,9 @@ export function SessionsClient({ initialSessions }: { initialSessions: SessionRe
                 <p className="text-sm text-muted-foreground">
                   {t.savedCodex}: {Math.round(session.savings.savedCodexPercent * 100)}% ·{" "}
                   {formatTokens(session.savings.savedCodexTokens)} tok
+                  {typeof session.savings.savedHarnessTurns === "number"
+                    ? ` · ${t.savedHarness}: ${session.savings.savedHarnessTurns}`
+                    : ""}
                 </p>
               ) : null}
               <Link href="/" className="text-sm text-primary underline-offset-4 hover:underline">

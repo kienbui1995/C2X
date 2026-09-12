@@ -8,7 +8,7 @@ import { formatTokens, formatUsd } from "@/core/tokens";
 import type { SessionRecord } from "@/core/types";
 
 export function SavingsClient({ initialSessions }: { initialSessions: SessionRecord[] }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const totals = useMemo(() => {
     const ledgers = initialSessions.map((session) => session.savings).filter((item) => item !== null);
     if (ledgers.length === 0) {
@@ -53,7 +53,27 @@ export function SavingsClient({ initialSessions }: { initialSessions: SessionRec
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Codex C2X</CardDescription>
+            <CardDescription>{t.savedHarness}</CardDescription>
+            <CardTitle className="font-mono text-2xl">{totals.savedHarnessTurns}</CardTitle>
+            <CardDescription>
+              {totals.c2xHarnessTurns} / {totals.naiveHarnessTurns} · {t.quotaHint}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>{t.webTurns}</CardDescription>
+            <CardTitle className="font-mono text-2xl">{totals.webChatTurns}</CardTitle>
+            <CardDescription>
+              {lang === "vi"
+                ? "Plan + review trên ChatGPT / Claude / Gemini web"
+                : "Plan + review on ChatGPT / Claude / Gemini web"}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>Harness C2X</CardDescription>
             <CardTitle className="font-mono text-2xl">{formatTokens(totals.c2xCodexTotal)}</CardTitle>
           </CardHeader>
         </Card>

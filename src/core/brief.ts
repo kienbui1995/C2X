@@ -12,8 +12,9 @@ export function planToBrief(plan: ExecutionPlan): ExecutionBrief {
     tests: plan.tests.slice(0, 6),
     successCriteria: plan.successCriteria.slice(0, 6),
     doNot: [
-      "Do not re-plan. The planner already decided the approach.",
+      "Do not re-plan. The web/API planner already decided the approach.",
       "Do not paste the repository into the next planner turn.",
+      "Do not spend Codex or Claude Code quota on planning or review.",
       "Do not open extra files unless a listed path is missing.",
     ],
     tokenEstimate: 0,

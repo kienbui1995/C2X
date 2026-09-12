@@ -1,15 +1,18 @@
 import { PROVIDER_CATALOG } from "@/core/providers/catalog";
 import {
+  isHarnessId,
   isPlannerChoice,
   isProviderId,
   type AppConfig,
+  type HarnessId,
   type PlannerChoice,
   type ProviderId,
 } from "@/core/types";
 
 export const DEFAULT_CONFIG: AppConfig = {
-  enabledProviders: ["mock", "chatgpt-web", "ollama"],
+  enabledProviders: ["mock", "chatgpt-web", "claude-web", "gemini-web", "ollama"],
   defaultPlanner: "auto",
+  defaultHarness: "codex",
   defaultBudget: 4000,
   keys: {},
   openaiCompatibleBaseUrl: "http://127.0.0.1:11434/v1",
@@ -26,6 +29,8 @@ export const DEFAULT_CONFIG: AppConfig = {
 const ENV_BY_PROVIDER: Record<ProviderId, string | null> = {
   mock: null,
   "chatgpt-web": null,
+  "claude-web": null,
+  "gemini-web": null,
   openai: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
   gemini: "GEMINI_API_KEY",
@@ -47,6 +52,7 @@ export function mergeConfig(partial?: Partial<AppConfig> | null): AppConfig {
     keys: { ...DEFAULT_CONFIG.keys, ...partial?.keys },
     enabledProviders: normalizeEnabled(partial?.enabledProviders),
     defaultPlanner: normalizePlanner(partial?.defaultPlanner),
+    defaultHarness: normalizeHarness(partial?.defaultHarness),
     defaultBudget: Number(partial?.defaultBudget) || DEFAULT_CONFIG.defaultBudget,
   };
   return base;
@@ -68,6 +74,13 @@ function normalizePlanner(value: PlannerChoice | undefined): PlannerChoice {
     return value;
   }
   return "auto";
+}
+
+function normalizeHarness(value: HarnessId | undefined): HarnessId {
+  if (value && isHarnessId(value)) {
+    return value;
+  }
+  return "codex";
 }
 
 export function keyFromEnv(id: ProviderId): string | undefined {

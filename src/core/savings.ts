@@ -1,4 +1,9 @@
-import { getProvider, CODEX_USD_PER_MILLION_IN, CODEX_USD_PER_MILLION_OUT } from "@/core/providers/catalog";
+import {
+  getProvider,
+  isWebSubscriptionPlanner,
+  CODEX_USD_PER_MILLION_IN,
+  CODEX_USD_PER_MILLION_OUT,
+} from "@/core/providers/catalog";
 import { costUsd, estimateTokens } from "@/core/tokens";
 import type { ContextPack, ExecutionBrief, ProviderId, TokenLedger } from "@/core/types";
 
@@ -39,6 +44,11 @@ export function estimateSavings(input: {
     costUsd(plannerInput, plannerMeta.usdPerMillionIn) +
     costUsd(plannerOut, plannerMeta.usdPerMillionOut);
 
+  const naiveHarnessTurns = 3;
+  const c2xHarnessTurns = 1;
+  const webChatTurns = isWebSubscriptionPlanner(input.planner) ? 2 : 0;
+  const savedHarnessTurns = Math.max(0, naiveHarnessTurns - c2xHarnessTurns);
+
   return {
     naiveCodexInput,
     naiveCodexOutput,
@@ -54,6 +64,10 @@ export function estimateSavings(input: {
     naiveCostUsd,
     c2xCostUsd,
     savedUsd: Math.max(0, naiveCostUsd - c2xCostUsd),
+    naiveHarnessTurns,
+    c2xHarnessTurns,
+    webChatTurns,
+    savedHarnessTurns,
   };
 }
 
@@ -73,6 +87,10 @@ export function emptyLedger(): TokenLedger {
     naiveCostUsd: 0,
     c2xCostUsd: 0,
     savedUsd: 0,
+    naiveHarnessTurns: 0,
+    c2xHarnessTurns: 0,
+    webChatTurns: 0,
+    savedHarnessTurns: 0,
   };
 }
 
@@ -92,5 +110,9 @@ export function sumLedgers(ledgers: TokenLedger[]): TokenLedger {
     naiveCostUsd: acc.naiveCostUsd + item.naiveCostUsd,
     c2xCostUsd: acc.c2xCostUsd + item.c2xCostUsd,
     savedUsd: acc.savedUsd + item.savedUsd,
+    naiveHarnessTurns: acc.naiveHarnessTurns + (item.naiveHarnessTurns ?? 0),
+    c2xHarnessTurns: acc.c2xHarnessTurns + (item.c2xHarnessTurns ?? 0),
+    webChatTurns: acc.webChatTurns + (item.webChatTurns ?? 0),
+    savedHarnessTurns: acc.savedHarnessTurns + (item.savedHarnessTurns ?? 0),
   }), emptyLedger());
 }

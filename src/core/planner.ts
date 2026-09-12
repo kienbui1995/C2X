@@ -4,7 +4,8 @@ import { estimateTokens } from "@/core/tokens";
 import type { ContextPack, ExecutionPlan, ReviewVerdict } from "@/core/types";
 
 export const PLANNER_SYSTEM_PROMPT = `You are the planning and review layer of a Frugal Codex (C2X) session.
-Codex owns execution. You own reasoning, planning, and review.
+The execution harness (Codex or Claude Code) owns edits, shell, tests, and git.
+You own reasoning, planning, and review. Never spend harness quota on thinking.
 Reply with a single [C2X] control message. No file dumps. No diffs.
 Plans must be finite and executable (not 40-step epics).
 After EXECUTED, do not trust claims — judge from the supplied diff stats.`;
@@ -178,15 +179,19 @@ export function extractControlBlock(text: string): string {
   return text.slice(start).trim();
 }
 
-export function buildChatgptPastePrompt(pack: ContextPack, taskId: string): string {
+export function buildWebPastePrompt(pack: ContextPack, taskId: string): string {
   const planPrompt = buildPlanUserPrompt(pack, taskId);
   return `${PLANNER_SYSTEM_PROMPT}
 
 ${planPrompt}`;
 }
 
+export function buildChatgptPastePrompt(pack: ContextPack, taskId: string): string {
+  return buildWebPastePrompt(pack, taskId);
+}
+
 export function estimatePlannerPromptTokens(pack: ContextPack): number {
-  return estimateTokens(buildChatgptPastePrompt(pack, "c2x_preview"));
+  return estimateTokens(buildWebPastePrompt(pack, "c2x_preview"));
 }
 
 export { planToMessage };

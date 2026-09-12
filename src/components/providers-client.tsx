@@ -8,18 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { ProviderRow, PublicConfig } from "@/lib/server-data";
-import type { PlannerChoice, ProviderId } from "@/core/types";
+import type { HarnessRow, ProviderRow, PublicConfig } from "@/lib/server-data";
+import { isHarnessId, type HarnessId, type PlannerChoice, type ProviderId } from "@/core/types";
 
 export function ProvidersClient({
   initialProviders,
+  initialHarnesses,
   initialConfig,
 }: {
   initialProviders: ProviderRow[];
+  initialHarnesses: HarnessRow[];
   initialConfig: PublicConfig;
 }) {
   const { t, lang } = useLanguage();
   const [providers, setProviders] = useState(initialProviders);
+  const [harnesses, setHarnesses] = useState(initialHarnesses);
   const [config, setConfig] = useState(initialConfig);
   const [keys, setKeys] = useState<Partial<Record<ProviderId, string>>>({});
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +38,7 @@ export function ProvidersClient({
         body: JSON.stringify({
           enabledProviders: config.enabledProviders,
           defaultPlanner: config.defaultPlanner,
+          defaultHarness: config.defaultHarness,
           openaiCompatibleBaseUrl: config.openaiCompatibleBaseUrl,
           openaiCompatibleModel: config.openaiCompatibleModel,
           ollamaModel: config.ollamaModel,
@@ -52,6 +56,12 @@ export function ProvidersClient({
             ...row,
             enabled: json.config!.enabledProviders.includes(row.id),
             configured: json.config!.configured[row.id],
+          })),
+        );
+        setHarnesses((current) =>
+          current.map((row) => ({
+            ...row,
+            selected: json.config!.defaultHarness === row.id,
           })),
         );
       }
@@ -76,6 +86,11 @@ export function ProvidersClient({
     );
   }
 
+  function selectHarness(id: HarnessId) {
+    setConfig({ ...config, defaultHarness: id });
+    setHarnesses((current) => current.map((row) => ({ ...row, selected: row.id === id })));
+  }
+
   return (
     <div className="space-y-5">
       <header>
@@ -88,7 +103,47 @@ export function ProvidersClient({
           {busy ? t.saving : t.saveConfig}
         </Button>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
+
+      <section className="space-y-3">
+        <div>
+          <h3 className="font-heading text-lg">{t.harness}</h3>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t.harnessLead}</p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {harnesses.map((harness) => (
+            <Card key={harness.id} className={harness.selected ? "border-primary/60" : undefined}>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>{lang === "vi" ? harness.nameVi : harness.name}</CardTitle>
+                    <CardDescription>{t.defaultHarness}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {lang === "vi" ? harness.quotaVi : harness.quotaEn}
+                    </Badge>
+                    <Switch
+                      checked={config.defaultHarness === harness.id}
+                      onCheckedChange={(checked) => {
+                        if (checked && isHarnessId(harness.id)) {
+                          selectHarness(harness.id);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {lang === "vi" ? harness.blurbVi : harness.blurb}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
         {providers.map((provider) => (
           <Card key={provider.id}>
             <CardHeader>
@@ -97,8 +152,8 @@ export function ProvidersClient({
                   <CardTitle>{lang === "vi" ? provider.nameVi : provider.name}</CardTitle>
                   <CardDescription>{provider.model}</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{provider.kind}</Badge>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Badge variant="outline">{lang === "vi" ? provider.quotaVi : provider.quotaEn}</Badge>
                   <Switch
                     checked={config.enabledProviders.includes(provider.id)}
                     onCheckedChange={(checked) => toggle(provider.id, checked)}
@@ -156,9 +211,10 @@ export function ProvidersClient({
             </CardContent>
           </Card>
         ))}
-      </div>
+      </section>
       <p className="text-xs text-muted-foreground">
-        default planner: {config.defaultPlanner as PlannerChoice}
+        default planner: {config.defaultPlanner as PlannerChoice} · {t.defaultHarness}:{" "}
+        {config.defaultHarness}
       </p>
     </div>
   );

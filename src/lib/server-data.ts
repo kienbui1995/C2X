@@ -1,7 +1,7 @@
 import { hasProviderKey } from "@/core/config";
-import { PROVIDER_CATALOG } from "@/core/providers/catalog";
+import { HARNESS_CATALOG, PROVIDER_CATALOG, modelForProvider } from "@/core/providers/catalog";
 import { loadConfig, loadSessions } from "@/core/store";
-import { assertNever, type AppConfig, type ProviderId } from "@/core/types";
+import type { AppConfig, HarnessId, ProviderId } from "@/core/types";
 
 export type ProviderRow = {
   id: ProviderId;
@@ -16,37 +16,24 @@ export type ProviderRow = {
   usdPerMillionIn: number;
   needsKey: boolean;
   envVar: string | null;
+  quotaVi: string;
+  quotaEn: string;
+};
+
+export type HarnessRow = {
+  id: HarnessId;
+  name: string;
+  nameVi: string;
+  blurb: string;
+  blurbVi: string;
+  quotaVi: string;
+  quotaEn: string;
+  selected: boolean;
 };
 
 export type PublicConfig = AppConfig & {
   configured: Record<ProviderId, boolean>;
 };
-
-function modelFor(id: ProviderId, config: AppConfig): string {
-  switch (id) {
-    case "openai":
-      return config.openaiModel;
-    case "anthropic":
-      return config.anthropicModel;
-    case "gemini":
-      return config.geminiModel;
-    case "groq":
-      return config.groqModel;
-    case "openrouter":
-      return config.openrouterModel;
-    case "deepseek":
-      return config.deepseekModel;
-    case "ollama":
-      return config.ollamaModel;
-    case "openai-compatible":
-      return config.openaiCompatibleModel;
-    case "mock":
-    case "chatgpt-web":
-      return PROVIDER_CATALOG.find((entry) => entry.id === id)?.defaultModel ?? id;
-    default:
-      return assertNever(id, `Unknown provider: ${id}`);
-  }
-}
 
 export async function getPublicConfig(): Promise<PublicConfig> {
   const config = await loadConfig();
@@ -64,7 +51,15 @@ export async function getProviderRows(): Promise<ProviderRow[]> {
     ...entry,
     enabled: config.enabledProviders.includes(entry.id),
     configured: hasProviderKey(config, entry.id),
-    model: modelFor(entry.id, config),
+    model: modelForProvider(entry.id, config),
+  }));
+}
+
+export async function getHarnessRows(): Promise<HarnessRow[]> {
+  const config = await loadConfig();
+  return HARNESS_CATALOG.map((entry) => ({
+    ...entry,
+    selected: config.defaultHarness === entry.id,
   }));
 }
 
