@@ -30,7 +30,7 @@ export function SessionsClient({ initialSessions }: { initialSessions: SessionRe
     <div className="space-y-4">
       <header>
         <h2 className="font-heading text-2xl">{t.navSessions}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t.sessionsEmpty}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t.sessionsLead}</p>
       </header>
       <div className="space-y-3">
         {initialSessions.map((session) => (

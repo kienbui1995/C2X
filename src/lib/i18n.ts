@@ -100,6 +100,11 @@ export const copy = {
     doctorMissing: "thiếu",
     briefCliHint: "Brief: sao chép hoặc `c2x brief --session {session} --owner {owner}`",
     dropHint: "Skill đọc `.c2x/briefs/<harness>.md` — đừng dán brief đồng đội.",
+    importEmpty: "Dán một khối [C2X] trước khi nhập.",
+    dismissError: "Đóng",
+    doctorLoading: "đang dò PATH…",
+    quotaSingleTeam: "Một harness vẫn hợp lệ — thêm teammate để gộp hạn mức khan.",
+    sessionsLead: "Các phiên C2X trên máy này. Planner nghĩ; đội harness chỉ chạy.",
     skillInstallHint:
       "Cài skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md sang ~/.claude/skills/chat-to-x/.",
   },
@@ -202,6 +207,11 @@ export const copy = {
     doctorMissing: "missing",
     briefCliHint: "Brief: copy or `c2x brief --session {session} --owner {owner}`",
     dropHint: "The skill reads `.c2x/briefs/<harness>.md`. Do not paste a teammate's brief.",
+    importEmpty: "Paste a [C2X] block before importing.",
+    dismissError: "Dismiss",
+    doctorLoading: "checking PATH…",
+    quotaSingleTeam: "A single harness is valid — add a teammate to split scarce quota.",
+    sessionsLead: "C2X sessions on this machine. Planners think; the harness team only executes.",
     skillInstallHint:
       "Install skill: `c2x skill-install` → ~/.codex/skills/chat-to-x/. Claude Code: copy SKILL.md to ~/.claude/skills/chat-to-x/.",
   },

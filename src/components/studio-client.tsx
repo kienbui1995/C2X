@@ -102,6 +102,9 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
   const [error, setError] = useState<string | null>(null);
   const [importRaw, setImportRaw] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<
+    "plan" | "import" | "review" | "execute" | "record" | null
+  >(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +164,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
   }
 
   async function onPlan() {
+    setLastAction("plan");
     setBusy("plan");
     setError(null);
     try {
@@ -180,7 +184,12 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
   }
 
   async function onImport() {
-    if (!session || !importRaw.trim()) {
+    setLastAction("import");
+    if (!importRaw.trim()) {
+      setError(t.importEmpty);
+      return;
+    }
+    if (!session) {
       return;
     }
     setBusy("import");
@@ -203,6 +212,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
     if (!session?.plan) {
       return;
     }
+    setLastAction("execute");
     setBusy("execute");
     setError(null);
     try {
@@ -223,6 +233,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
     if (!session) {
       return;
     }
+    setLastAction("record");
     setBusy("record");
     setError(null);
     try {
@@ -251,6 +262,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
     if (!session) {
       return;
     }
+    setLastAction("review");
     setBusy("review");
     setError(null);
     try {
@@ -272,6 +284,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
     if (!session?.plan) {
       return;
     }
+    setLastAction("execute");
     setBusy("review");
     setError(null);
     try {
@@ -290,6 +303,26 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
       setError(err instanceof Error ? err.message : t.error);
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function onRetry() {
+    switch (lastAction) {
+      case "plan":
+        return onPlan();
+      case "import":
+        return onImport();
+      case "review":
+        return onPrepareReview();
+      case "execute":
+        return onSimulateAll();
+      case "record":
+        setError(null);
+        return;
+      case null:
+        return onPlan();
+      default:
+        return assertNever(lastAction, `Unknown lastAction: ${lastAction}`);
     }
   }
 
@@ -348,7 +381,11 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
                           {t.doctorTitle}: {detect.ok ? t.doctorReady : t.doctorMissing}
                           {detect.ok && detect.binary ? ` · ${detect.binary}` : ""}
                         </p>
-                      ) : null}
+                      ) : (
+                        <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                          {t.doctorLoading}
+                        </p>
+                      )}
                     </div>
                     <Switch
                       checked={checked}
@@ -363,6 +400,9 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
                 );
               })}
             </div>
+            {harnessTeam.length === 1 ? (
+              <p className="text-xs text-muted-foreground">{t.quotaSingleTeam}</p>
+            ) : null}
             <p className="text-xs text-muted-foreground">{t.skillInstallHint}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -443,7 +483,10 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
             <div className="flex flex-wrap items-start gap-2 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <p className="flex-1">{error}</p>
-              <Button size="sm" variant="outline" onClick={() => void onPlan()} disabled={busy !== null}>
+              <Button size="sm" variant="ghost" onClick={() => setError(null)}>
+                {t.dismissError}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => void onRetry()} disabled={busy !== null}>
                 {t.retry}
               </Button>
             </div>
@@ -632,7 +675,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
                       size="sm"
                       variant="secondary"
                       onClick={() => void onImport()}
-                      disabled={busy !== null || !importRaw.trim()}
+                      disabled={busy !== null}
                     >
                       {t.importAny}
                     </Button>
@@ -694,7 +737,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
                       size="sm"
                       variant="secondary"
                       onClick={() => void onImport()}
-                      disabled={busy !== null || !importRaw.trim()}
+                      disabled={busy !== null}
                     >
                       {t.importAny}
                     </Button>
