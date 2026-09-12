@@ -19,7 +19,11 @@ function withLivePack(session: SessionRecord): SessionRecord {
 }
 
 function dataDir(): string {
-  return process.env.FRUGAL_DATA_DIR || path.join(process.cwd(), "data");
+  return (
+    process.env.C2X_DATA_DIR ||
+    process.env.FRUGAL_DATA_DIR ||
+    path.join(process.cwd(), "data")
+  );
 }
 
 function configPath(): string {

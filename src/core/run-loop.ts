@@ -1,5 +1,6 @@
 import { planToBriefs } from "@/core/brief";
 import { hasProviderKey } from "@/core/config";
+import { collectGitMetadata } from "@/core/git-meta";
 import { packWorkspace } from "@/core/packer";
 import {
   PLANNER_SYSTEM_PROMPT,
@@ -14,6 +15,7 @@ import {
 } from "@/core/planner";
 import { isPastePlanner } from "@/core/providers/catalog";
 import { applyImportedReview } from "@/core/review-import";
+import { applyExecutionRecord } from "@/core/records";
 import { completePlanner } from "@/core/providers/complete";
 import { resolvePlanner } from "@/core/providers/router";
 import { messageToReview, parseControlMessage } from "@/core/protocol";
@@ -28,10 +30,11 @@ import {
   touchSession,
 } from "@/core/session";
 import { getSession, loadConfig, upsertSession } from "@/core/store";
-import { loadWorkspaceFiles } from "@/core/workspace";
+import { loadWorkspaceFiles, resolveWorkspaceRoot } from "@/core/workspace";
 import {
   isHarnessId,
   resolveHarnessTeam,
+  type ExecutionExitStatus,
   type HarnessId,
   type PlannerChoice,
   type SessionRecord,
@@ -224,6 +227,57 @@ export async function runExecute(input: {
   );
 }
 
+export async function runRecord(input: {
+  sessionId: string;
+  owner: HarnessId;
+  changedFiles?: string[];
+  tests?: string;
+  exitStatus?: ExecutionExitStatus;
+  /** CLI `--cwd` only. HTTP callers omit this. */
+  cwd?: string;
+}): Promise<SessionRecord> {
+  const existing = await getSession(input.sessionId);
+  if (!existing) {
+    throw new Error("Record needs an existing session.");
+  }
+  if (!existing.harnessTeam.includes(input.owner)) {
+    throw new Error(`${input.owner} is not on this session's harness team.`);
+  }
+  const root = resolveWorkspaceRoot({ cwd: input.cwd, env: process.env });
+  const provided = input.changedFiles?.filter(Boolean) ?? [];
+  const meta =
+    provided.length > 0
+      ? { changedFiles: provided, diffStat: "", isGit: true }
+      : await collectGitMetadata(root);
+  let changedFiles = meta.changedFiles;
+  if (changedFiles.length === 0 && !meta.isGit) {
+    const packet = existing.plan?.packets.find((item) => item.owner === input.owner);
+    changedFiles = packet?.files ?? [];
+  }
+  const teammateFiles = new Set(
+    (existing.plan?.packets ?? [])
+      .filter((packet) => packet.owner !== input.owner)
+      .flatMap((packet) => packet.files),
+  );
+  changedFiles = changedFiles.filter((file) => !teammateFiles.has(file));
+  const exitStatus = input.exitStatus ?? (meta.isGit ? "ok" : "unknown");
+  const tests =
+    input.tests?.trim() ||
+    (exitStatus === "fail" ? "failed" : meta.isGit ? "recorded" : "unknown");
+  return upsertSession(
+    applyExecutionRecord(existing, {
+      taskId: existing.id,
+      iteration: existing.plan?.iteration ?? 1,
+      owner: input.owner,
+      changedFiles,
+      tests,
+      exitStatus,
+      recordedAt: new Date().toISOString(),
+      diffStat: meta.diffStat,
+    }),
+  );
+}
+
 export async function runReview(input: {
   sessionId: string;
   changedFiles: string[];
@@ -260,12 +314,17 @@ export async function runReview(input: {
   });
 
   if (isPastePlanner(existing.planner) && !input.importedRaw) {
+    const diffStat = existing.records
+      .map((item) => `${item.owner}: ${item.diffStat}`)
+      .filter((line) => !line.endsWith(": "))
+      .join("\n");
     const reviewPastePrompt = buildReviewPastePrompt({
       pack: reusedPack(existing),
       taskId: existing.id,
       iteration: existing.plan.iteration,
       changedFiles,
       tests,
+      diffStat: diffStat || undefined,
     });
     return upsertSession(
       touchSession(

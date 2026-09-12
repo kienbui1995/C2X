@@ -1781,7 +1781,7 @@ import { spawn } from "node:child_process";
 
 Không trả nội dung hunk.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { mkdir, writeFile } from "node:fs/promises";
@@ -1822,23 +1822,23 @@ describe("collectGitMetadata", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/core/__tests__/records.test.ts`
 
 Expected: FAIL — `@/core/git-meta` missing.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 `src/core/git-meta.ts`: helper `runGit(root, args): Promise<{ ok: boolean; stdout: string }>` dùng `spawn` + `cwd` không cần nếu đã `-C`. Parse porcelain: mỗi dòng non-empty, path = phần sau cột status (`line.slice(3).replace(/^"|"$/g, "").split(" -> ").at(-1)`).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/core/__tests__/records.test.ts`
 
 Expected: PASS (`git` phải có trên PATH của agent — môi trường Cloud có git).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/core/git-meta.ts src/core/__tests__/records.test.ts

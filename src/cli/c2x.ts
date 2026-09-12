@@ -9,11 +9,13 @@ import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
-import { importControlMessage, runPlan, runReview } from "@/core/run-loop";
+import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { estimateSavings } from "@/core/savings";
 import { getSession } from "@/core/store";
 import { formatTokens, formatUsd } from "@/core/tokens";
 import {
+  isExecutionExitStatus,
+  isHarnessId,
   isPlannerChoice,
   isWorkspaceSource,
   resolveHarnessTeam,
@@ -188,6 +190,37 @@ program
         : await readFile(opts.rawFile, "utf8");
     const session = await importControlMessage({ sessionId: opts.session, raw });
     process.stdout.write(`${session.id} ${session.state}\n`);
+  });
+
+program
+  .command("record")
+  .requiredOption("--session <id>")
+  .requiredOption("--owner <id>")
+  .option("--cwd <path>", "workspace root (CLI only)")
+  .option("--tests <text>")
+  .option("--exit-status <status>", "ok|fail|unknown")
+  .action(async (opts: {
+    session: string;
+    owner: string;
+    cwd?: string;
+    tests?: string;
+    exitStatus?: string;
+  }) => {
+    if (!isHarnessId(opts.owner)) {
+      throw new Error(`unknown harness: ${opts.owner}`);
+    }
+    if (opts.exitStatus && !isExecutionExitStatus(opts.exitStatus)) {
+      throw new Error(`unknown exit-status: ${opts.exitStatus}`);
+    }
+    const session = await runRecord({
+      sessionId: opts.session,
+      owner: opts.owner,
+      cwd: opts.cwd,
+      tests: opts.tests,
+      exitStatus:
+        opts.exitStatus && isExecutionExitStatus(opts.exitStatus) ? opts.exitStatus : undefined,
+    });
+    process.stdout.write(`${session.id} ${session.state} ${opts.owner}\n`);
   });
 
 program
