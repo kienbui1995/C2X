@@ -1,5 +1,5 @@
 import { renderPackForPlanner } from "@/core/packer";
-import { filesFromPack, parseWorkPackets, splitWorkPackets } from "@/core/packets";
+import { filesFromPack, packetOverlapWarning, parseWorkPackets, splitWorkPackets } from "@/core/packets";
 import { createTaskId, listItems, parseControlMessage, planToMessage } from "@/core/protocol";
 import { estimateTokens } from "@/core/tokens";
 import {
@@ -182,6 +182,14 @@ export function parsePlannerOutput(text: string, fallback: ExecutionPlan): Execu
     if (message.state !== "PLAN") {
       return fallback;
     }
+    const packets = parseWorkPackets(message.sections.PACKETS).length
+      ? parseWorkPackets(message.sections.PACKETS)
+      : fallback.packets;
+    const risks = listItems(message.sections.RISKS);
+    const overlap = packetOverlapWarning(packets);
+    if (overlap && !risks.includes(overlap)) {
+      risks.push(overlap);
+    }
     return {
       taskId: message.taskId || fallback.taskId,
       iteration: message.iteration || fallback.iteration,
@@ -199,10 +207,8 @@ export function parsePlannerOutput(text: string, fallback: ExecutionPlan): Execu
       successCriteria: listItems(message.sections.SUCCESS_CRITERIA).length
         ? listItems(message.sections.SUCCESS_CRITERIA)
         : fallback.successCriteria,
-      risks: listItems(message.sections.RISKS),
-      packets: parseWorkPackets(message.sections.PACKETS).length
-        ? parseWorkPackets(message.sections.PACKETS)
-        : fallback.packets,
+      risks,
+      packets,
     };
   } catch {
     return fallback;

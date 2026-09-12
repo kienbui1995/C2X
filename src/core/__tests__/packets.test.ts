@@ -8,7 +8,7 @@ import { getHarness, HARNESS_BY_ID, HARNESS_CATALOG } from "@/core/providers/cat
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { mergeConfig } from "@/core/config";
 import { completeHarnessRun, createSession, mergedExecutionReport } from "@/core/session";
-import { splitWorkPackets } from "@/core/packets";
+import { packetOverlapWarning, splitWorkPackets } from "@/core/packets";
 import {
   HARNESS_IDS,
   PROVIDER_IDS,
@@ -75,6 +75,59 @@ describe("splitWorkPackets", () => {
     expect(packets[0]?.actions.length).toBeGreaterThan(0);
   });
 
+  it("does not mention createTask when the goal is unrelated", () => {
+    const packets = splitWorkPackets({
+      team: ["codex"],
+      files: ["src/theme.ts"],
+      goal: "Add a dark mode toggle",
+      taskId: "c2x_dark",
+    });
+    expect(packets[0]?.actions.join(" ")).not.toMatch(/createTask/i);
+    expect(packets[0]?.actions.join(" ")).toMatch(/dark mode/i);
+  });
+
+  it("builds generic packets from a non-demo workspace shape", () => {
+    const files = ["src/theme.ts", "src/theme.test.ts", "src/tokens.css"];
+    const packets = splitWorkPackets({
+      team: ["opencode", "kiro-cli"],
+      files,
+      goal: "Add a dark mode toggle",
+      taskId: "c2x_theme",
+    });
+    const joined = packets.flatMap((packet) => [
+      ...packet.actions,
+      ...packet.tests,
+      ...packet.successCriteria,
+    ]).join(" ");
+    expect(joined).not.toMatch(/createTask/i);
+    expect(joined).not.toMatch(/persist in the shared store/i);
+    expect(joined).toMatch(/dark mode/i);
+    expect(packets.map((packet) => packet.owner)).toEqual(["opencode", "kiro-cli"]);
+    expect(packets[0]?.files).toEqual(["src/theme.ts", "src/tokens.css"]);
+    expect(packets[1]?.files).toEqual(["src/theme.test.ts"]);
+  });
+});
+
+describe("packetOverlapWarning", () => {
+  it("returns null for disjoint packets and a warning when files overlap", () => {
+    const disjoint = splitWorkPackets({
+      team: ["codex", "claude-code"],
+      files: ["src/theme.ts", "src/theme.test.ts"],
+      goal: "Add a dark mode toggle",
+      taskId: "c2x_ok",
+    });
+    expect(packetOverlapWarning(disjoint)).toBeNull();
+
+    const overlapping = [
+      { ...disjoint[0]!, files: ["src/theme.ts"] },
+      { ...disjoint[1]!, files: ["src/theme.ts"] },
+    ];
+    const warning = packetOverlapWarning(overlapping);
+    expect(warning).toMatch(/overlap|chồng/i);
+  });
+});
+
+describe("splitWorkPackets team sizes", () => {
   it("splits a 4-harness team into one packet each with disjoint files", () => {
     const pack = packedDemo();
     const files = pack.excerpts.map((excerpt) => excerpt.path);

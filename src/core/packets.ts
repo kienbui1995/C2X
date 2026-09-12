@@ -63,36 +63,31 @@ export function assignPacketRoles(
   });
 }
 
-function packetActions(role: HarnessPacketRole, files: string[], goal: string): string[] {
-  const mentionsCreate = /createTask/i.test(goal);
-  const mentionsFilter = /filter|lọc|status|url/i.test(goal);
-  const hasTasks = files.some((path) => path.includes("tasks"));
+function clipGoal(goal: string): string {
+  const trimmed = goal.trim().replace(/\s+/g, " ");
+  return trimmed.length > 120 ? `${trimmed.slice(0, 117)}...` : trimmed;
+}
+
+function packetActions(role: HarnessPacketRole, goal: string): string[] {
+  const clipped = clipGoal(goal);
   switch (role) {
     case "implement":
       return [
-        mentionsCreate || hasTasks
-          ? "Fix createTask so new rows persist in the shared store, not a discarded copy."
-          : "Apply the smallest production change that matches the goal.",
-        mentionsFilter
-          ? "Keep the status filter on the URL when the board reloads; wire the control to search params."
-          : "Touch only the production files in this packet.",
+        `Apply the smallest production change that matches: ${clipped}`,
+        "Touch only the production files in this packet.",
         "Do not edit test files owned by another harness.",
         "Stop when the implementation criteria pass. Do not refactor unrelated files.",
       ];
     case "test":
       return [
-        "Add or extend tests for the empty state and the create/filter behavior named in the goal.",
+        `Add or extend tests for: ${clipped}`,
         "Cover the packed test modules only — do not re-implement production files owned by another harness.",
         "Run the focused tests and stop when they pass.",
       ];
     case "general":
       return [
-        mentionsCreate
-          ? "Fix createTask so new rows persist in the shared store, not a discarded copy."
-          : "Read the packed excerpts and apply the smallest change that matches the goal.",
-        mentionsFilter
-          ? "Keep the status filter on the URL when the board reloads; wire the control to search params."
-          : "Touch only files listed in this packet unless a path is missing.",
+        `Read the packed excerpts and apply the smallest change that matches: ${clipped}`,
+        "Touch only files listed in this packet unless a path is missing.",
         "Add or extend tests if this packet includes test files.",
         "Stop when success criteria pass. Do not refactor unrelated files.",
       ];
@@ -101,43 +96,40 @@ function packetActions(role: HarnessPacketRole, files: string[], goal: string): 
   }
 }
 
-function packetTests(role: HarnessPacketRole, files: string[]): string[] {
+function packetTests(role: HarnessPacketRole, files: string[], goal: string): string[] {
+  const clipped = clipGoal(goal);
   switch (role) {
     case "implement":
       return ["Leave automated tests to the test-owner harness unless a smoke check is required."];
     case "test":
       return [
-        "Unit-test create/filter behavior from the packed modules.",
-        "Cover the empty list if the board can render no rows.",
+        `Unit-test the packed modules for: ${clipped}`,
         ...files.filter(isTestOwnedPath).map((path) => `Extend ${path}.`),
       ].slice(0, 6);
     case "general":
-      return [
-        "Unit-test create/filter behavior from the packed modules.",
-        "Cover the empty list if the board can render no rows.",
-      ];
+      return [`Unit-test the packed modules for: ${clipped}`];
     default:
       return assertNever(role, `Unknown packet role: ${role}`);
   }
 }
 
-function packetCriteria(role: HarnessPacketRole): string[] {
+function packetCriteria(role: HarnessPacketRole, goal: string): string[] {
+  const clipped = clipGoal(goal);
   switch (role) {
     case "implement":
       return [
-        "New tasks persist and appear on the board without a full-page rewrite.",
-        "Existing happy path still renders the task list.",
+        `Goal behavior works: ${clipped}`,
         "No files outside this packet were edited.",
       ];
     case "test":
       return [
-        "Empty-state and create/filter tests exist and pass.",
+        `Tests covering ${clipped} exist and pass.`,
         "Tests do not rewrite production files owned by another harness.",
       ];
     case "general":
       return [
-        "Goal behavior works without a full-page rewrite.",
-        "Existing happy path still renders the task list.",
+        `Goal behavior works: ${clipped}`,
+        "No files outside this packet were edited.",
       ];
     default:
       return assertNever(role, `Unknown packet role: ${role}`);
@@ -195,10 +187,10 @@ export function splitWorkPackets(input: {
       id: `${input.taskId}:${owner}`,
       owner,
       role,
-      actions: packetActions(role, files, input.goal),
+      actions: packetActions(role, input.goal),
       files,
-      tests: packetTests(role, files),
-      successCriteria: packetCriteria(role),
+      tests: packetTests(role, files, input.goal),
+      successCriteria: packetCriteria(role, input.goal),
     };
   });
 }
@@ -282,4 +274,11 @@ export function parseWorkPackets(block: string | undefined): WorkPacket[] {
 export function packetsHaveDisjointFiles(packets: WorkPacket[]): boolean {
   const owned = packets.flatMap((packet) => packet.files);
   return new Set(owned).size === owned.length;
+}
+
+export function packetOverlapWarning(packets: WorkPacket[]): string | null {
+  if (packetsHaveDisjointFiles(packets)) {
+    return null;
+  }
+  return "PACKETS overlap files — C2X kept the planner packets and did not auto-split. Mỗi harness chỉ thấy brief của mình.";
 }

@@ -2260,7 +2260,7 @@ Mỗi slice dưới đây vẫn là một đơn vị review riêng. Đừng làm
 
 **Cấm** hàm “smart-split” tự đổi `owner`/cắt file khi `PACKETS` đã có. Cảnh báo chồng file: `export function packetOverlapWarning(packets: WorkPacket[]): string | null` — `null` nếu `packetsHaveDisjointFiles`; import vẫn giữ packet planner.
 
-- [ ] **Step 1: Đổi test demo**
+- [x] **Step 1: Đổi test demo**
 
 `packets.test.ts` hiện expect file `tasks.ts` / test paths — **giữ** (vẫn đúng vì fixture Nhiệm vụ). Thêm test:
 
@@ -2277,13 +2277,13 @@ Mỗi slice dưới đây vẫn là một đơn vị review riêng. Đừng làm
   });
 ```
 
-- [ ] **Step 2: Run — fail vì action vẫn nói createTask / persist store**
+- [x] **Step 2: Run — fail vì action vẫn nói createTask / persist store**
 
-- [ ] **Step 3: Generic actions; `packetOverlapWarning`**
+- [x] **Step 3: Generic actions; `packetOverlapWarning`**
 
-- [ ] **Step 4: `npx vitest run src/core/__tests__/packets.test.ts`**
+- [x] **Step 4: `npx vitest run src/core/__tests__/packets.test.ts`**
 
-- [ ] **Step 5: Commit** `fix: stop hard-coding Nhiệm vụ actions into every packet`
+- [x] **Step 5: Commit** `fix: stop hard-coding Nhiệm vụ actions into every packet`
 
 ### Task 15: Slice 5 — `bin` `chat-to-x` + lệnh `sessions`
 
