@@ -1,7 +1,8 @@
 # Frugal Codex (C2X)
 
-Chat web nghĩ. Nhiều harness chạy cùng phiên. Đừng đốt một hạn mức Codex
-*hoặc* Claude Code cho phần nghĩ — **gộp** chúng.
+Chat web nghĩ. Nhiều harness chạy cùng phiên. Đừng đốt một hạn mức Codex,
+Claude Code, Grok Build hay OpenCode cho phần nghĩ — **gộp** chúng. Chọn bất
+kỳ tập hợp nào trong bốn harness.
 
 Vấn đề thật: một harness làm hết (nghĩ + sửa + test + review) thì hạn mức hết
 nhanh. **ChatGPT web**, **Gemini web** và **Claude web** đã có nhiều lượt chat
@@ -10,7 +11,7 @@ kèm theo gói bạn đang trả. C2X tách vai và **chia việc giữa các ha
 | Vai | Ai | Hạn mức |
 | --- | --- | --- |
 | Plan + review | `chatgpt-web`, `claude-web`, `gemini-web` (rồi mới tới API) | Quota chat lớn / subscription |
-| Execute | Đội harness: mặc định `codex` + `claude-code`; có thể bật `grok-build`, `opencode` | Mỗi tool chỉ chạy packet của mình |
+| Execute | Bất kỳ tập hợp `codex` \| `claude-code` \| `grok-build` \| `opencode` | Mỗi tool chỉ chạy packet của mình |
 
 Planner chia PLAN thành **work packet** (file không chồng khi có thể). Ví dụ:
 Codex sửa `createTask`; Claude Code viết test empty-state. Mỗi harness chỉ thấy
