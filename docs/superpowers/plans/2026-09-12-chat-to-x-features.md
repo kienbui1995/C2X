@@ -2360,15 +2360,15 @@ export function handoffMessage(input: {
 
 Sections đúng C2C: `ORIGINAL_GOAL`, `PROGRESS`, `CURRENT_STATE`, `KNOWN_ISSUES`, `NEXT_EXPECTED_STEP`. Tag `[C2X]`. `assertControlBudget`.
 
-- [ ] **Step 1: Test round-trip parse `HANDOFF` + budget < 1200**
+- [x] **Step 1: Test round-trip parse `HANDOFF` + budget < 1200**
 
-- [ ] **Step 2: Fail — helper missing**
+- [x] **Step 2: Fail — helper missing**
 
-- [ ] **Step 3: Implement encode; CLI `c2x handoff --session <id>` in message**
+- [x] **Step 3: Implement encode; CLI `c2x handoff --session <id>` in message**
 
-- [ ] **Step 4: vitest protocol + review-paste vẫn PASS**
+- [x] **Step 4: vitest protocol + review-paste vẫn PASS**
 
-- [ ] **Step 5: Commit** `feat: emit [C2X] HANDOFF from a local checkpoint`
+- [x] **Step 5: Commit** `feat: emit [C2X] HANDOFF from a local checkpoint`
 
 ### Task 17: Slice 7 — không code trừ khi user xin plan riêng
 
