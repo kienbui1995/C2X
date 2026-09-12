@@ -124,10 +124,11 @@ These are locks, not suggestions. Full table: spec §18.
 
 ## Security
 
-The packer refuses `.env*`, keys, and SSH material. There is no write MCP in
-this slice — the selected harnesses remain the only writers. Keys live in
-`data/config.json` or environment variables, never in git. Web planners never
-receive account credentials.
+The packer refuses `.env*`, keys, and SSH material. Optional `c2x mcp` is
+read-only and binds **127.0.0.1** only — no Cloudflare tunnel, no OAuth, no
+write/shell tools. First-run does not start MCP. Selected harnesses remain the
+only writers. Keys live in `data/config.json` or environment variables, never
+in git. Web planners never receive account credentials.
 
 ## Compatibility
 
@@ -137,14 +138,13 @@ multi-harness, quota-splitting base on top of that idea.
 
 ## Next features
 
-v1 (paste PLAN+REVIEW, `record`, doctor/brief, registry, HANDOFF) is **shipped**.
-Leftovers live in one place:
+v1 plus phase-2 Slice L (`.c2x/briefs/`), P (doctor/dashboard polish), M
+(loopback MCP), and O (OSS notes) are **shipped**. Track tasks in:
 
-- Next implementation plan (Vietnamese): [docs/superpowers/plans/2026-09-12-chat-to-x-next.md](superpowers/plans/2026-09-12-chat-to-x-next.md) — **Slice L first** (`.c2x/briefs/<harness>.md`), then dashboard/doctor polish, optional loopback MCP, OSS launch checklist.
-- Locked design: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](superpowers/specs/2026-09-12-chat-to-x-features-design.md) (§17–§20).
-- Completed v1 plan (do not re-open L/7 there): [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](superpowers/plans/2026-09-12-chat-to-x-features.md).
+- [docs/superpowers/plans/2026-09-12-chat-to-x-next.md](superpowers/plans/2026-09-12-chat-to-x-next.md)
+- Locked design: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](superpowers/specs/2026-09-12-chat-to-x-features-design.md)
+- Completed v1 plan: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](superpowers/plans/2026-09-12-chat-to-x-features.md)
 
 OSS locks (public MIT): publish as `chat-to-x` never `c2x`; no browser
 workspace paths; no harness spawn; no C2C OAuth/tunnel fork. How to add a
-harness: spec §19. Speed locks: spec §18. Fast planner link: spec §20
-(paste shipped; file drop = next Slice L).
+harness: spec §19. Speed locks: spec §18. Fast planner link: spec §20.

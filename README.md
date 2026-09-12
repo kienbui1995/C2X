@@ -54,9 +54,13 @@ npm run c2x -- sessions
 npm run c2x -- doctor
 npm run c2x -- brief --session <id> --owner codex
 npm run c2x -- skill-install
+npm run c2x -- mcp --session <id>
 npm run c2x -- route --choice auto --team codex,claude-code,grok-build,opencode,kiro-cli
 npx chat-to-x sessions
 ```
+
+`c2x mcp` chỉ bind **127.0.0.1** (mặc định cổng 45218): read-only, không Cloudflare
+tunnel, không OAuth, không URL công khai. First-run **không** bật MCP.
 
 Alias local `c2x` chỉ sau `npm install` của **chat-to-x**. **Không** `npx c2x`.
 
@@ -142,13 +146,23 @@ Attribution MIT: ý tưởng protocol từ
 [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt)
 — không fork OAuth / tunnel / cookie. Xem [NOTICE](NOTICE).
 
+## Public / npm
+
+Repo Origin vẫn có thể Private — bật Public là việc maintainers (Settings),
+không phải lệnh trong repo. Clone: `git clone <this-repo>`.
+
+npm: giữ `"private": true` đến khi publish **`chat-to-x`**. Không publish `c2x`.
+
+Sau khi Public: có thể thêm badge CI **từ URL repo thật**. Không commit badge
+trỏ domain hoặc owner bịa.
+
 ## License
 
 MIT. Dự án cộng đồng, không liên kết OpenAI hay Anthropic.
 
 English notes live in [docs/architecture.md](docs/architecture.md).
 
-Kế hoạch **tiếp theo** (chưa implement — drop brief local, polish, MCP tuỳ chọn, OSS launch):
+Kế hoạch phase 2 (Slice L + P đã ship; M + O trong file):
 [docs/superpowers/plans/2026-09-12-chat-to-x-next.md](docs/superpowers/plans/2026-09-12-chat-to-x-next.md).
 
 Baseline v1 đã ship:

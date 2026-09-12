@@ -42,13 +42,7 @@ Baseline đã ship (không lập lại như việc mới): [docs/superpowers/pla
 | `HANDOFF` + `iterationLimit` | `protocol.test.ts` |
 | OSS hygiene | `NOTICE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `/data/*` ignore |
 
-**Chưa ship (đây là việc phase này):**
-
-1. **Slice L** — `.c2x/briefs/<harness>.md` + skill đọc (cầu nhanh, không spawn, không tunnel).
-2. **Slice P** — doctor cache TTL; dashboard không block first paint; empty/error; CONTRIBUTING “10 phút”.
-3. **Slice M** — MCP loopback `127.0.0.1` only (**không chặn** L/P; chỉ khi user xin).
-4. **Slice O** — checklist OSS (badge, screenshot, ghi chú Public). Không bịa URL.
-5. **Khe còn lại vs mục tiêu user** — multi-harness / web planner / sổ tiết kiệm **đã có**. Không đo quota nhà cung cấp thật. Không `--repack`. Không auto-install skill vào nhà Claude/OpenCode/Kiro (chỉ docs).
+**Phase này:** L + P + M + O đã ship. Việc người còn lại: bật Public trên Origin/Settings; chụp screenshot thật; không `npm publish` trừ khi chủ động publish `chat-to-x`.
 
 ---
 
@@ -1252,7 +1246,7 @@ export function handleMcpTool(input: {
 `c2x_get_session`: JSON `{ id, state, planner, harnessTeam, goal }` — **không** `pack.excerpts`, không thân file.  
 `default` trên `name`: `assertNever`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -1314,13 +1308,13 @@ describe("mcp loopback handlers", () => {
 });
 ```
 
-- [ ] **Step 2:** `npx vitest run src/core/__tests__/mcp-loopback.test.ts` → FAIL missing module.
+- [x] **Step 2:** `npx vitest run src/core/__tests__/mcp-loopback.test.ts` → FAIL missing module.
 
-- [ ] **Step 3: Implement `src/core/mcp-loopback.ts`** (import đầu file: `assertNever`, `isHarnessId`, `renderCodexBrief`). Không `http.listen` trong task này.
+- [x] **Step 3: Implement `src/core/mcp-loopback.ts`** (import đầu file: `assertNever`, `isHarnessId`, `renderCodexBrief`). Không `http.listen` trong task này.
 
-- [ ] **Step 4:** test PASS + `npx tsc --noEmit`
+- [x] **Step 4:** test PASS + `npx tsc --noEmit`
 
-- [ ] **Step 5: Commit** `feat: add read-only loopback MCP handlers`
+- [x] **Step 5: Commit** `feat: add read-only loopback MCP handlers`
 
 ### Task M2: CLI `c2x mcp` listen `127.0.0.1`
 
@@ -1351,15 +1345,15 @@ POST `/` JSON `{ "name": "c2x_get_brief", "owner": "codex" }` → `handleMcpTool
 
 Test listen: `createMcpLoopbackServer` + `listen(0, "127.0.0.1")` + `fetch(http://127.0.0.1:${port})` + `server.close()`. Không listen `0.0.0.0`.
 
-- [ ] **Step 1:** test HTTP trên 127.0.0.1 (port 0).
+- [x] **Step 1:** test HTTP trên 127.0.0.1 (port 0).
 
-- [ ] **Step 2:** FAIL missing `createMcpLoopbackServer`.
+- [x] **Step 2:** FAIL missing `createMcpLoopbackServer`.
 
-- [ ] **Step 3:** implement bằng `node:http` (không dep). Import `createServer` ở đầu file.
+- [x] **Step 3:** implement bằng `node:http` (không dep). Import `createServer` ở đầu file.
 
-- [ ] **Step 4:** vitest + `npx tsx src/cli/c2x.ts mcp --help` có `session` / `port`, không có `--host`.
+- [x] **Step 4:** vitest + `npx tsx src/cli/c2x.ts mcp --help` có `session` / `port`, không có `--host`.
 
-- [ ] **Step 5: Commit** `feat: serve read-only C2X MCP on 127.0.0.1`
+- [x] **Step 5: Commit** `feat: serve read-only C2X MCP on 127.0.0.1`
 
 ### Task M3: SECURITY + README một đoạn
 
@@ -1372,7 +1366,7 @@ Optional `c2x mcp` binds 127.0.0.1 only. No Cloudflare tunnel, no OAuth,
 no public URL, no write tools. First-run does not start MCP.
 ```
 
-- [ ] **Step 1–5:** test đọc `SECURITY.md` chứa `127.0.0.1` và `tunnel`; commit `docs: warn that MCP stays loopback-only`
+- [x] **Step 1–5:** test đọc `SECURITY.md` chứa `127.0.0.1` và `tunnel`; commit `docs: warn that MCP stays loopback-only`
 
 ### Slice M — verify
 
@@ -1438,7 +1432,7 @@ Sau khi Public: có thể thêm badge CI **từ URL repo thật**. Không commit
 trỏ domain hoặc owner bịa.
 ```
 
-- [ ] **Step 1:** test đọc `README.md` chứa `private` / `chat-to-x` / `Không` + `npx c2x`; chứa `Settings` hoặc `Public`; **không** match `/github\.com\/[A-Za-z0-9_.-]+\/chat-to-x/`.
+- [x] **Step 1:** test đọc `README.md` chứa `private` / `chat-to-x` / `Không` + `npx c2x`; chứa `Settings` hoặc `Public`; **không** match `/github\.com\/[A-Za-z0-9_.-]+\/chat-to-x/`.
 
 ```ts
   it("does not invent a public GitHub URL and stays private as chat-to-x", () => {
@@ -1452,13 +1446,13 @@ trỏ domain hoặc owner bịa.
 
 Thêm vào `package-meta.test.ts`.
 
-- [ ] **Step 2:** FAIL nếu README chưa có mục Public.
+- [x] **Step 2:** FAIL nếu README chưa có mục Public.
 
-- [ ] **Step 3:** viết mục + `docs/screenshots/README.md`.
+- [x] **Step 3:** viết mục + `docs/screenshots/README.md`.
 
-- [ ] **Step 4:** `npx vitest run src/core/__tests__/package-meta.test.ts`
+- [x] **Step 4:** `npx vitest run src/core/__tests__/package-meta.test.ts`
 
-- [ ] **Step 5: Commit** `docs: add OSS launch notes without a fake repo URL`
+- [x] **Step 5: Commit** `docs: add OSS launch notes without a fake repo URL`
 
 ### Việc người (không phải task agent)
 
