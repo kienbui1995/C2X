@@ -34,8 +34,8 @@ function openaiCompatTarget(id: ProviderId, config: AppConfig): { url: string; h
         url: "https://openrouter.ai/api/v1/chat/completions",
         headers: {
           Authorization: `Bearer ${key}`,
-          "HTTP-Referer": "https://frugal-codex.local",
-          "X-Title": "Frugal Codex",
+          "HTTP-Referer": "https://chat-to-x.local",
+          "X-Title": "chat-to-x",
         },
       };
     case "deepseek":

@@ -2,7 +2,7 @@ export type Lang = "vi" | "en";
 
 export const copy = {
   vi: {
-    product: "Frugal Codex",
+    product: "chat-to-x",
     tagline: "Chat web nghĩ. Nhiều harness chạy cùng phiên.",
     navStudio: "Phòng điều khiển",
     navProviders: "Nhà cung cấp",
@@ -91,7 +91,7 @@ export const copy = {
     teamNeedOne: "Giữ ít nhất một harness.",
   },
   en: {
-    product: "Frugal Codex",
+    product: "chat-to-x",
     tagline: "Web chats think. Several harnesses run one session.",
     navStudio: "Control room",
     navProviders: "Providers",

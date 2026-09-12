@@ -1,7 +1,7 @@
-# Frugal Codex architecture
+# chat-to-x architecture
 
 Inspired by [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt):
-thinking stays off the execution harness. C2X adds a token packer, a provider
+thinking stays off the execution harness. chat-to-x adds a token packer, a provider
 router, a **harness team** that shares one PLAN, and a **quota-split** model so
 scarce Codex / Claude Code / Grok Build / OpenCode / Kiro CLI allowances are
 not burned on plan/review — or on doing the entire job in one tool.
@@ -15,7 +15,7 @@ tiers) the user already pays for.
   (plan + review, large included chat quota)
            │ packed context
            ▼
-      Frugal packer ──► [C2X] PLAN + PACKETS
+      chat-to-x packer ──► [C2X] PLAN + PACKETS
            │
            ├─► brief OWNER=codex        ──► Codex (its files only)
            ├─► brief OWNER=claude-code  ──► Claude Code (its files only)

@@ -11,7 +11,7 @@ import {
   type ReviewVerdict,
 } from "@/core/types";
 
-export const PLANNER_SYSTEM_PROMPT = `You are the planning and review layer of a Frugal Codex (C2X) session.
+export const PLANNER_SYSTEM_PROMPT = `You are the planning and review layer of a chat-to-x (C2X) session.
 The execution harness team (Codex, Claude Code, Grok Build, OpenCode, Kiro CLI — any subset) owns edits, shell, tests, and git.
 You own reasoning, planning, and review. Never spend harness quota on thinking.
 Split the PLAN into per-harness work packets with disjoint file ownership when possible.

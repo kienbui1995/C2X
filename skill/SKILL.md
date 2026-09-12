@@ -1,9 +1,9 @@
 ---
-name: frugal-codex
-description: Use Frugal Codex (C2X) so ChatGPT/Claude/Gemini web chats plan and review, and a selectable harness team (Codex, Claude Code, Grok Build, OpenCode, Kiro CLI) only executes per-harness briefs.
+name: chat-to-x
+description: Use chat-to-x (C2X) so ChatGPT/Claude/Gemini web chats plan and review, and a selectable harness team (Codex, Claude Code, Grok Build, OpenCode, Kiro CLI) only executes per-harness briefs.
 ---
 
-# Frugal Codex
+# chat-to-x
 
 The checkout lives at: replace-with-absolute-path
 
@@ -21,7 +21,7 @@ executes only its brief.
 2. Prefer an enabled web/subscription planner (`chatgpt-web`, `claude-web`,
    `gemini-web`) before any paid API. `auto` already does this.
 3. Never paste file bodies, diffs, or logs into the planner chat. Use the packed
-   prompt from `c2x`.
+   prompt from `c2x` (CLI alias for chat-to-x).
 4. Control messages stay under ~1 KB and start with `[C2X]` (legacy `[C2C]` is
    accepted). A PLAN may include a `PACKETS` section; each execute brief has
    `OWNER`.

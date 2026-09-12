@@ -19,7 +19,7 @@ import {
 } from "@/core/types";
 
 const program = new Command();
-program.name("c2x").description("Frugal Codex — pack, plan on web chat, keep Codex / Claude Code / Grok Build / OpenCode / Kiro CLI thin.");
+program.name("c2x").description("chat-to-x (CLI alias: c2x) — pack, plan on web chat, keep Codex / Claude Code / Grok Build / OpenCode / Kiro CLI thin.");
 
 function teamFromOpts(opts: { team?: string; harness?: string }) {
   return resolveHarnessTeam({

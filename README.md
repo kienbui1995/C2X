@@ -1,4 +1,4 @@
-# Frugal Codex (C2X)
+# chat-to-x (C2X)
 
 Chat web nghĩ. Nhiều harness chạy cùng phiên. Đừng đốt một hạn mức Codex,
 Claude Code, Grok Build, OpenCode hay Kiro CLI cho phần nghĩ — **gộp** chúng.
@@ -6,7 +6,7 @@ Chọn bất kỳ tập hợp nào trong năm harness.
 
 Vấn đề thật: một harness làm hết (nghĩ + sửa + test + review) thì hạn mức hết
 nhanh. **ChatGPT web**, **Gemini web** và **Claude web** đã có nhiều lượt chat
-kèm theo gói bạn đang trả. C2X tách vai và **chia việc giữa các harness**:
+kèm theo gói bạn đang trả. chat-to-x tách vai và **chia việc giữa các harness**:
 
 | Vai | Ai | Hạn mức |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ Codex sửa `createTask`; Claude Code viết test empty-state. Mỗi harness ch�
 brief của mình — tiết kiệm đúng hạn mức khan đó.
 
 Base lấy ý tưởng từ [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt):
-não nghĩ tách khỏi harness. C2X thêm packer token, router đa nhà cung cấp,
+não nghĩ tách khỏi harness. chat-to-x thêm packer token, router đa nhà cung cấp,
 đội harness, và mô hình **tách hạn mức**.
 
 Đây không phải bản fork OAuth + tunnel. Không reverse-proxy, không lấy cookie.
@@ -28,6 +28,8 @@ não nghĩ tách khỏi harness. C2X thêm packer token, router đa nhà cung c�
 Cần Node.js 20+.
 
 ```bash
+git clone <this-repo> chat-to-x
+cd chat-to-x
 npm install
 npm run dev
 ```
@@ -37,14 +39,15 @@ planner giả lập và chế độ dán ChatGPT / Claude / Gemini web.
 
 ```bash
 npm test
-npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock
-npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock --harness codex
-npx tsx src/cli/c2x.ts route --choice auto --team codex,claude-code,grok-build,opencode,kiro-cli
-npx tsx src/cli/c2x.ts plan --goal "Sửa createTask" --planner mock --harness kiro-cli
+npm run c2x -- plan --goal "Sửa createTask" --planner mock
+npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness codex
+npm run c2x -- route --choice auto --team codex,claude-code,grok-build,opencode,kiro-cli
+npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness kiro-cli
 ```
 
-Mặc định CLI dùng đội `codex,claude-code`. `--harness kiro-cli` (hoặc `codex`)
-vẫn là một harness. `--team` chọn bất kỳ tập hợp nào trong năm id.
+Lệnh CLI ngắn là `c2x` (alias của chat-to-x). `npx tsx src/cli/c2x.ts …` cũng
+chạy được. Mặc định CLI dùng đội `codex,claude-code`. `--harness kiro-cli`
+(hoặc `codex`) vẫn là một harness. `--team` chọn bất kỳ tập hợp nào trong năm id.
 
 ## Cách tách hạn mức
 
