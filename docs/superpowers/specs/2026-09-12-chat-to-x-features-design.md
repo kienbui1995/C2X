@@ -1,8 +1,8 @@
 # chat-to-x — thiết kế tính năng tiếp theo
 
 Ngày: 2026-09-12  
-Trạng thái: **đã khóa lựa chọn OSS** (public MIT) + **cầu nhanh harness↔planner**. Chờ duyệt rồi mới code tính năng.  
-Phạm vi: đóng vòng C2X hiện có. Không fork XiaoDuoYa/codex-with-chatgpt. Không triển khai tính năng trong pass này.
+Trạng thái: **đã khóa** (public MIT + cầu nhanh). **v1 đã ship** (plan 2026-09-12). Phần còn lại — Slice L drop `.c2x/briefs/`, polish, MCP loopback tuỳ chọn, OSS launch — một nguồn sự thật: [docs/superpowers/plans/2026-09-12-chat-to-x-next.md](../plans/2026-09-12-chat-to-x-next.md).  
+Phạm vi spec: đóng vòng C2X. Không fork XiaoDuoYa/codex-with-chatgpt. Không đổi lựa chọn đã khóa.
 
 ## 1. Sản phẩm (không đổi)
 
@@ -294,8 +294,8 @@ Mỗi slice ra phần mềm chạy + test. Không “làm platform một lần�
 | 4 | Packet heuristic generic; planner thắng | Không | Bỏ hard-code demo; không smart-split |
 | 5 | CLI đủ vòng + `bin` `chat-to-x`; vẫn `private: true` | Không | Stranger chạy `npx chat-to-x` sau này |
 | 6 | Checkpoint + `HANDOFF` + `maxIterations` | Không | Resume |
-| L | Drop brief workspace `.c2x/briefs/<harness>.md` + skill đọc | Không | **Next latency — plan, không build v1.** Nhanh hơn dán browser; vẫn không tunnel. §20.3 |
-| 7 | MCP loopback (plan riêng) | Không | Chỉ khi user xin; **chỉ** `127.0.0.1`; **không bao giờ** public tunnel cho first-run |
+| L | Drop brief workspace `.c2x/briefs/<harness>.md` + skill đọc | Không | **Next latency — đã chuyển** sang [plan 2026-09-12-next](../plans/2026-09-12-chat-to-x-next.md). Nhanh hơn dán; vẫn không tunnel. §20.3 |
+| 7 | MCP loopback (plan riêng) | Không | **Moved** → plan next Chunk M. Chỉ khi user xin; **chỉ** `127.0.0.1`; **không bao giờ** public tunnel cho first-run |
 
 Phụ thuộc: 0 độc lập với 1. **R** độc lập với 1; nên trước 3 (adapter đọc catalog). **F** cùng 1 hoặc ngay sau (import PLAN đã có; timeout API độc lập). 2 cần import của 1. 3 cần `dataDir` + registry. L sau 3, không chặn v1. 5 gói CLI của 1–3. Publish npm **sau** slice 5 + NOTICE, không trước.
 
@@ -397,9 +397,11 @@ Một người dùng Việt Nam, không cần API key:
 15. `[C2X] EXECUTED` không chứa hunk/`@@`; `c2x record` chỉ metadata.
 16. `npm run dev` / `start` bind `127.0.0.1`. Planner API có timeout + `max_tokens` (test hung fetch fail-fast).
 
-Kế hoạch triển khai: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](../plans/2026-09-12-chat-to-x-features.md).
+Kế hoạch v1 (đã ship): [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](../plans/2026-09-12-chat-to-x-features.md).
 
-Slice tính năng **đầu tiên sau khi duyệt:** Slice 1 (vòng dán PLAN + REVIEW). Slice 0 (OSS hygiene), Slice R (registry + tốc độ), Slice F (cầu nhanh) làm song song, không chặn slice 1. Slice L (drop `.c2x/briefs/`) **không** làm v1.
+Kế hoạch **tiếp theo** (Slice L đầu tiên): [docs/superpowers/plans/2026-09-12-chat-to-x-next.md](../plans/2026-09-12-chat-to-x-next.md).
+
+Slice tính năng v1 **đã xong:** vòng dán PLAN + REVIEW, registry, cầu nhanh pack, `record`, doctor/brief. Slice L (drop `.c2x/briefs/`) **không** nằm v1 — implement trên plan next.
 
 ---
 

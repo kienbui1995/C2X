@@ -1,5 +1,7 @@
 # chat-to-x Features Implementation Plan
 
+> **Baseline v1 — đã ship (2026-09-12).** Leftover **Slice L** (`.c2x/briefs/<harness>.md`) và **Slice 7** (MCP loopback) **đã chuyển** sang plan tiếp: [2026-09-12-chat-to-x-next.md](./2026-09-12-chat-to-x-next.md). Đừng implement L/7 từ file này — một nguồn sự thật.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Đóng vòng C2X thật — chat web làm PLAN *và* REVIEW, harness chỉ execute packet của mình, có bản ghi git/test local — mà không fork OAuth/tunnel của C2C. Cầu harness↔ChatGPT phải **nhanh** (dán/brief local ms); không lấy đường chậm C2C làm mặc định.
@@ -24,7 +26,7 @@
 - Packet: planner `PACKETS` thắng; không smart-split im lặng.
 - **Registry:** một module `src/core/providers/catalog.ts` là nguồn sự thật. `HARNESS_BY_ID satisfies Record<HarnessId, HarnessCatalogEntry>` (planner: `PROVIDER_BY_ID`). `getHarness` / `getProvider` = lookup, không `find` + switch 5 case. Cấm thêm `case "codex":` mới vào studio / CLI / router / `packets.ts`. Không marketplace / `plugins.json` / dynamic `import()`.
 - **Tốc độ (packer/UI):** `packWorkspace` sync; `DEFAULT_IGNORE` gồm `node_modules` / `.git` / `.next`; walk `repo` ≤ 80 file / 120 KB / 250 ms; workspace mặc định `demo`; mock + prompt dán local (ms); `planToBriefs` một lần lúc PLAN; không spawn harness; cache detect/`doctor` theo `PATH`; catalog import trên server — cấm `fetch("/api/providers")` mỗi click; `npm test` không key.
-- **Cầu nhanh (harness↔planner, spec §20):** paste/brief sinh local ms; brief precompute lúc PLAN; `EXECUTED` = metadata (`c2x record`); **tái sử dụng `session.pack`** giữa iteration (cấm `loadWorkspaceFiles` trên import/review); planner API `PLANNER_API_TIMEOUT_MS = 8000` + `PLANNER_API_MAX_TOKENS = 1200`, fail-fast; dashboard/API localhost. Slice L (`.c2x/briefs/<harness>.md`) **không implement v1**.
+- **Cầu nhanh (harness↔planner, spec §20):** paste/brief sinh local ms; brief precompute lúc PLAN; `EXECUTED` = metadata (`c2x record`); **tái sử dụng `session.pack`** giữa iteration (cấm `loadWorkspaceFiles` trên import/review); planner API `PLANNER_API_TIMEOUT_MS = 8000` + `PLANNER_API_MAX_TOKENS = 1200`, fail-fast; dashboard/API localhost. Slice L (`.c2x/briefs/<harness>.md`) **đã chuyển** sang [2026-09-12-chat-to-x-next.md](./2026-09-12-chat-to-x-next.md).
 
 Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/2026-09-12-chat-to-x-features-design.md) — §17 registry, §18 tốc độ, §19 thêm harness 10 phút, **§20 cầu nhanh**.
 
@@ -75,7 +77,7 @@ Spec: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](../specs/
 - `src/core/providers/complete.ts` — `PLANNER_API_TIMEOUT_MS` / `PLANNER_API_MAX_TOKENS`; `AbortSignal`; `max_tokens` trên OpenAI-compat
 - `src/core/__tests__/fast-link.test.ts` — **mới**
 
-**Slice L — next latency, không làm v1:** `.c2x/briefs/<harness>.md` + skill đọc. Chi tiết Chunk L.
+**Slice L — moved:** `.c2x/briefs/<harness>.md` + skill đọc → [2026-09-12-chat-to-x-next.md](./2026-09-12-chat-to-x-next.md) Chunk L. Không implement từ file này.
 
 **Slice 3**
 
@@ -2370,97 +2372,23 @@ Sections đúng C2C: `ORIGINAL_GOAL`, `PROGRESS`, `CURRENT_STATE`, `KNOWN_ISSUES
 
 - [x] **Step 5: Commit** `feat: emit [C2X] HANDOFF from a local checkpoint`
 
-### Task 17: Slice 7 — không code trừ khi user xin plan riêng
+### Task 17: Slice 7 — **moved to next plan**
 
-MCP loopback (không Cloudflare, không cookie, không reverse-proxy ChatGPT) là subsystem riêng. **Không** fork OAuth/tunnel C2C vào repo này. **Không** thêm file trong v1. **Không bao giờ** public tunnel cho first-run. Thứ tự latency: dán v1 (đã khóa) → drop file (Task L, chưa làm) → loopback MCP (chỉ khi user xin). Nếu user xin MCP: plan mới `docs/superpowers/plans/YYYY-MM-DD-c2x-loopback-mcp.md` với ràng buộc bind `127.0.0.1` only.
+MCP loopback **đã chuyển** sang [2026-09-12-chat-to-x-next.md](./2026-09-12-chat-to-x-next.md) Chunk M (Slice M). Không thêm file từ *plan v1* này. Thứ tự latency vẫn: dán (đã ship) → drop file (Slice L trên plan next) → loopback MCP (chỉ khi user xin; bind `127.0.0.1`). **Không bao giờ** public tunnel cho first-run.
 
 ---
 
-## Chunk L: Slice L — next latency (không implement v1)
+## Chunk L: Slice L — **moved to next plan**
 
-**Không làm trong pass này / v1.** Agent đọc plan **không** được commit code Task L trừ khi user xin rõ. Vẫn ghi task đủ TDD để làm sau — nhanh hơn dán browser, **vẫn không tunnel**.
+**Không implement từ file này.** Toàn bộ Task L1+ (drop `.c2x/briefs/<harness>.md`, `syncWorkspaceBriefDrops`, persist lúc PLAN, skill đọc, gitignore) sống ở [2026-09-12-chat-to-x-next.md](./2026-09-12-chat-to-x-next.md) Chunk L. File này giữ lại chỉ để chỉ đường — tránh hai nguồn sự thật.
 
-### Task L1: Drop `.c2x/briefs/<harness>.md` + skill đọc
-
-**Files (khi được phép làm):**
-- Modify: `src/core/harness.ts` — `writeWorkspaceBriefDrop`
-- Modify: `src/core/run-loop.ts` — gọi lúc `applyPlan` / import PLAN
-- Modify: `skill/SKILL.md` — đọc drop của **chính** harness
-- Modify: `.gitignore` — `.c2x/briefs/`
-- Test: `src/core/__tests__/workspace-brief-drop.test.ts`
-
-**Interfaces:**
-
-```ts
-export async function writeWorkspaceBriefDrop(input: {
-  workspaceRoot: string;
-  session: SessionRecord;
-  owner: HarnessId;
-}): Promise<string>;
-```
-
-Path: `path.join(input.workspaceRoot, ".c2x", "briefs", `${input.owner}.md`)`.  
-Nội dung: `renderCodexBrief` đúng `OWNER`. Throw nếu không có brief owner.  
-Khác `dataDir/briefs/<taskId>.<owner>.c2x.md` (Slice 3, kho session).  
-Khi team đổi: ghi owner còn lại; `rm` file owner không còn trong `harnessTeam`.  
-Skill: nếu `.c2x/briefs/<id-của-mình>.md` tồn tại thì đọc nó thay vì chờ paste; **cấm** đọc brief owner khác; **cấm** plan/review.  
-`.gitignore`: `.c2x/briefs/`. Không spawn, không MCP, không path từ browser.
-
-- [ ] **Step 1: Write the failing test** (chỉ khi user xin Slice L)
-
-```ts
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { describe, expect, it } from "vitest";
-import { planToBriefs, renderCodexBrief } from "@/core/brief";
-import { writeWorkspaceBriefDrop } from "@/core/harness";
-import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
-import { packWorkspace } from "@/core/packer";
-import { mockPlanFromPack } from "@/core/planner";
-import { createSession } from "@/core/session";
-
-describe("workspace brief drop", () => {
-  it("writes only that owner brief under .c2x/briefs/<harness>.md", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "c2x-ws-"));
-    const pack = packWorkspace({
-      goal: "Sửa createTask",
-      files: DEMO_FILES,
-      budgetTokens: 2000,
-    });
-    const created = createSession({
-      goal: pack.goal,
-      planner: "mock",
-      plannerChoice: "mock",
-      harnessTeam: ["codex", "claude-code"],
-      budgetTokens: 2000,
-      workspaceSource: "demo",
-    });
-    const plan = mockPlanFromPack(pack, created.id, ["codex", "claude-code"]);
-    const briefs = planToBriefs(plan);
-    const session = { ...created, plan, briefs, brief: briefs[0] ?? null, pack };
-    const briefPath = await writeWorkspaceBriefDrop({
-      workspaceRoot: root,
-      session,
-      owner: "codex",
-    });
-    expect(briefPath).toBe(path.join(root, ".c2x", "briefs", "codex.md"));
-    const text = await readFile(briefPath, "utf8");
-    expect(text).toBe(renderCodexBrief(session.briefs[0]!));
-    expect(text).toMatch(/OWNER:\s*codex/);
-    expect(text).not.toMatch(/OWNER:\s*claude-code/);
-    await rm(root, { recursive: true, force: true });
-  });
-});
-```
-
-- [ ] **Step 2–5:** Fail missing export → implement `mkdir` + `writeFile` → `npx vitest run src/core/__tests__/workspace-brief-drop.test.ts` PASS → commit `feat: drop per-harness briefs for local skills` **chỉ khi user xin**.
+- [x] **Moved:** Slice L → plan next (không phải “xong code”).
 
 ---
 
 ## Thứ tự implement và verify
 
-Tính năng: **F1–F3** (cầu nhanh) rồi Task 1 → 13 (Slice 1 đầu tiên về tính năng paste). Slice 0 (Task 0) và Slice R (Task R1–R2) song song, không chặn Slice 1; **R1 trước Task 11** (adapter đọc catalog); **F1 trước Task 3** (`reusedPack`). Sau mỗi chunk: `npx vitest run && npx tsc --noEmit`. **Không làm Task L / 17** trong v1.
+Tính năng: **F1–F3** (cầu nhanh) rồi Task 1 → 13 (Slice 1 đầu tiên về tính năng paste). Slice 0 (Task 0) và Slice R (Task R1–R2) song song, không chặn Slice 1; **R1 trước Task 11** (adapter đọc catalog); **F1 trước Task 3** (`reusedPack`). Sau mỗi chunk: `npx vitest run && npx tsc --noEmit`. **Task L / 17 đã chuyển** sang [2026-09-12-chat-to-x-next.md](./2026-09-12-chat-to-x-next.md) — đừng làm từ file này.
 
 Verify tích lũy (không phải một screenshot):
 
@@ -2484,7 +2412,7 @@ Verify tích lũy (không phải một screenshot):
 | §19 thêm harness 10 phút | Task 0 `CONTRIBUTING.md` (copy §19) |
 | §20.2 cầu v1 (reuse pack, budget, localhost) | F1–F3 (`fast-link.test.ts`) |
 | §20.2 planner API fail-fast | F2 |
-| §20.3 drop `.c2x/briefs/` | L1 (cố ý không code v1) |
+| §20.3 drop `.c2x/briefs/` | L1 **moved** → [2026-09-12-chat-to-x-next.md](./2026-09-12-chat-to-x-next.md) |
 | §6 vòng dán REVIEW | 2–6 |
 | §6.1 importControlMessage | 4–5 |
 | §6.2 buildReviewPastePrompt | 2 |
@@ -2493,18 +2421,18 @@ Verify tích lũy (không phải một screenshot):
 | §8 adapter + doctor + skill | 11–13 (binaries từ catalog; cache PATH) |
 | §9 packet planner thắng | 14 |
 | §10 bin `chat-to-x` / HANDOFF | 15–16 |
-| §11 / MCP không làm; không marketplace; không public tunnel | 17 (cố ý không code) |
+| §11 / MCP không làm v1; không marketplace; không public tunnel | 17 **moved** → plan next Chunk M |
 | §15.1 cấm publish `c2x` | 15 (`package-meta.test.ts`) |
 | Router/catalog giữ; không nhân switch | mọi task; R1 + regression |
 
 ## Self-review (plan)
 
 - Không còn bước “add validation” / “TBD” / “similar to Task N”.
-- Tên hàm nhất quán: `reusedPack`, `buildReviewPastePrompt`, `applyImportedReview`, `importControlMessage`, `collectGitMetadata`, `applyExecutionRecord`, `runRecord`, `resolveWorkspaceRoot`, `detectHarness`, `writeHarnessBrief`, `writeWorkspaceBriefDrop` (L, chưa làm), `installSkill`, `handoffMessage`.
+- Tên hàm nhất quán: `reusedPack`, `buildReviewPastePrompt`, `applyImportedReview`, `importControlMessage`, `collectGitMetadata`, `applyExecutionRecord`, `runRecord`, `resolveWorkspaceRoot`, `detectHarness`, `writeHarnessBrief`, `installSkill`, `handoffMessage`. `writeWorkspaceBriefDrop` / MCP **moved** → plan next.
 - Hằng số nhất quán: `CONTROL_BUDGET_DEFAULT = 1200`, `CONTROL_BUDGET_MAX = 2000`, `PLANNER_API_TIMEOUT_MS = 8000`, `PLANNER_API_MAX_TOKENS = 1200`.
 - `SessionRecord.reviewPastePrompt` và `records` xuất hiện từ Task 1 và 7; Task 4/9 tiêu thụ đúng tên đó.
 - `import-plan` URL giữ để dashboard cũ không gãy; hành vi mở rộng.
 - Registry: `HARNESS_BY_ID` / `getHarness` / `binaries` — Task R1 định nghĩa; Task 11 chỉ đọc, không copy roster.
 - Tốc độ packer/UI: `MAX_WALK_MS = 250` Task R2; packer vẫn sync; không task nào được thêm `--spawn` hay `fetch` catalog mỗi click.
 - Cầu planner: F1 tái sử dụng pack; F2 abort hung fetch; F3 localhost + trần token. Không task v1 được thêm tunnel / Computer Use / spawn ChatGPT.
-- Task 3 dùng `reusedPack` — F1 phải trước. Task L không chạy trong v1.
+- Task 3 dùng `reusedPack` — F1 phải trước. Task L / 17 không chạy trong v1; implement trên plan next.

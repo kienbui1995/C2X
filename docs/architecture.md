@@ -135,14 +135,16 @@ Control messages accept `[C2X]` and legacy `[C2C]`. You can still run the
 original C2C bridge for ChatGPT Computer Use; this repo is the multi-provider,
 multi-harness, quota-splitting base on top of that idea.
 
-## Next features (not implemented in this checkout)
+## Next features
 
-Design (Vietnamese): [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](superpowers/specs/2026-09-12-chat-to-x-features-design.md)
+v1 (paste PLAN+REVIEW, `record`, doctor/brief, registry, HANDOFF) is **shipped**.
+Leftovers live in one place:
 
-Implementation plan: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](superpowers/plans/2026-09-12-chat-to-x-features.md)
+- Next implementation plan (Vietnamese): [docs/superpowers/plans/2026-09-12-chat-to-x-next.md](superpowers/plans/2026-09-12-chat-to-x-next.md) — **Slice L first** (`.c2x/briefs/<harness>.md`), then dashboard/doctor polish, optional loopback MCP, OSS launch checklist.
+- Locked design: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](superpowers/specs/2026-09-12-chat-to-x-features-design.md) (§17–§20).
+- Completed v1 plan (do not re-open L/7 there): [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](superpowers/plans/2026-09-12-chat-to-x-features.md).
 
 OSS locks (public MIT): publish as `chat-to-x` never `c2x`; no browser
-workspace paths; no harness spawn; no C2C OAuth/tunnel fork. Feature slice 1
-first: web-chat PLAN+REVIEW paste loop. Slice 0 (NOTICE, SECURITY, ignore
-`/data/`) and Slice R (catalog `Record` registry + speed caps) do not block
-that loop. How to add a harness: spec §19. Speed locks: spec §18.
+workspace paths; no harness spawn; no C2C OAuth/tunnel fork. How to add a
+harness: spec §19. Speed locks: spec §18. Fast planner link: spec §20
+(paste shipped; file drop = next Slice L).
