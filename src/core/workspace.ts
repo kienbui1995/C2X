@@ -21,16 +21,23 @@ const TEXT_EXT = new Set([
   ".txt",
 ]);
 
-const MAX_FILES = 80;
-const MAX_BYTES = 120_000;
+export const MAX_FILES = 80;
+export const MAX_BYTES = 120_000;
+export const MAX_WALK_MS = 250;
 
-async function walk(dir: string, root: string, acc: string[]): Promise<void> {
-  if (acc.length >= MAX_FILES) {
+async function walk(
+  dir: string,
+  root: string,
+  acc: string[],
+  started: number,
+  now: () => number,
+): Promise<void> {
+  if (acc.length >= MAX_FILES || now() - started >= MAX_WALK_MS) {
     return;
   }
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
-    if (acc.length >= MAX_FILES) {
+    if (acc.length >= MAX_FILES || now() - started >= MAX_WALK_MS) {
       return;
     }
     const abs = path.join(dir, entry.name);
@@ -39,7 +46,7 @@ async function walk(dir: string, root: string, acc: string[]): Promise<void> {
       continue;
     }
     if (entry.isDirectory()) {
-      await walk(abs, root, acc);
+      await walk(abs, root, acc, started, now);
       continue;
     }
     if (!TEXT_EXT.has(path.extname(entry.name))) {
@@ -49,13 +56,17 @@ async function walk(dir: string, root: string, acc: string[]): Promise<void> {
   }
 }
 
-export async function loadWorkspaceFiles(source: WorkspaceSource): Promise<WorkspaceFile[]> {
+export async function loadWorkspaceFiles(
+  source: WorkspaceSource,
+  now?: () => number,
+): Promise<WorkspaceFile[]> {
   if (source === "demo") {
     return DEMO_FILES;
   }
+  const clock = now ?? Date.now;
   const root = process.cwd();
   const rels: string[] = [];
-  await walk(root, root, rels);
+  await walk(root, root, rels, clock(), clock);
   const files: WorkspaceFile[] = [];
   for (const rel of rels) {
     const abs = path.join(root, rel);
