@@ -11,6 +11,7 @@ import {
   persistWorkspaceBriefs,
   type HarnessDetectResult,
 } from "@/core/harness";
+import { packageRoot } from "@/core/package-root";
 import { runPlan } from "@/core/run-loop";
 import {
   resolveHarnessTeam,
@@ -40,7 +41,7 @@ export async function runInit(input: {
   codexConfigPath?: string;
   budgetTokens?: number;
 }): Promise<InitResult> {
-  const repoRoot = input.repoRoot ?? process.cwd();
+  const repoRoot = input.repoRoot ?? packageRoot();
   const skillHome = input.skillHome ?? path.join(os.homedir(), ".codex/skills");
   const workspaceSource = input.workspaceSource ?? "demo";
   const harnessTeam = resolveHarnessTeam({

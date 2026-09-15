@@ -19,6 +19,7 @@ import {
   writeWorkspaceBriefDrop,
 } from "@/core/harness";
 import { DEFAULT_INIT_GOAL, formatInitReport, runInit } from "@/core/init";
+import { packageRoot } from "@/core/package-root";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
@@ -49,7 +50,7 @@ import {
 } from "@/core/types";
 
 const SIMPLE_USAGE = [
-  "Cài một lần (trong thư mục chat-to-x):  npm install && npm link && c2x init --harness codex",
+  "Cài tool một lần (không clone vào app): npm install && npm link && c2x init --harness codex",
   "Dùng:  cd <project> && codex",
   "Gõ:    Dùng C2X, tự làm hết: <mô tả>",
   "Tuỳ chọn ChatGPT web: nói thêm “dán ChatGPT” (c2x_submit). Không terminal khác.",
@@ -498,7 +499,7 @@ program
       harness: opts.harness && isHarnessId(opts.harness) ? opts.harness : undefined,
       workspaceSource: opts.workspace,
       cwd: opts.cwd,
-      repoRoot: process.cwd(),
+      repoRoot: packageRoot(),
       skillHome: path.join(os.homedir(), ".codex/skills"),
       codexConfigPath: defaultCodexConfigPath(),
       budgetTokens: Number(opts.budget),
@@ -511,13 +512,13 @@ program
   .description("Copy the chat-to-x skill and Codex MCP plugin")
   .action(async () => {
     const dest = await installSkill({
-      repoRoot: process.cwd(),
+      repoRoot: packageRoot(),
       skillHome: path.join(os.homedir(), ".codex/skills"),
     });
     const mcpConfigPath = await installCodexMcp({
       configPath: defaultCodexConfigPath(),
       command: "npx",
-      args: chatToXMcpArgs(process.cwd()),
+      args: chatToXMcpArgs(packageRoot()),
     });
     process.stdout.write(`${dest}\n`);
     process.stdout.write(`${mcpConfigPath}\n`);

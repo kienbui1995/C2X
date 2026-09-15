@@ -30,15 +30,18 @@ não nghĩ tách khỏi harness. chat-to-x thêm packer token, router đa nhà c
 
 Node.js 20+, Codex đã login trên PATH. **Không** `npx c2x` (đó là tool khác).
 
+**Không clone git C2X vào từng app.** Lấy bộ cài **một lần** (chưa publish npm
+nên lần đầu vẫn cần thư mục chat-to-x), rồi `c2x` chạy từ bất kỳ project nào:
+
 ```bash
-git clone <this-repo> chat-to-x
-cd chat-to-x
+# một lần, trong thư mục chat-to-x — không phải trong app của bạn
 npm install && npm link
 c2x init --harness codex
 ```
 
-`init` cài skill **và** plugin Codex MCP (`[mcp_servers.chat-to-x]` trong
-`~/.codex/config.toml`). Sau đó **chỉ làm việc trong Codex**:
+`init` đọc skill và plugin Codex MCP (`[mcp_servers.chat-to-x]` trong
+`~/.codex/config.toml`) từ package đã cài — không cần `cwd` là git C2X.
+Sau đó **chỉ làm việc trong Codex** trên app của bạn:
 
 ```bash
 cd <project-cần-sửa>

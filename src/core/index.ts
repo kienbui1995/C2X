@@ -1,5 +1,6 @@
 export * from "@/core/brief";
 export * from "@/core/config";
+export * from "@/core/package-root";
 export * from "@/core/packer";
 export * from "@/core/packets";
 export * from "@/core/planner";
