@@ -43,9 +43,10 @@ import {
 } from "@/core/types";
 
 const SIMPLE_USAGE = [
-  "Cài một lần (trong thư mục chat-to-x):  npm install && npm link",
-  "Trong project cần sửa:                 c2x \"Sửa createTask\"",
-  "ChatGPT: dán file outbox, lưu trả lời vào .c2x/inbox.md",
+  "Cài một lần (trong thư mục chat-to-x):  npm install && npm link && c2x init --harness codex",
+  "Cách 1 — terminal:                     c2x \"Sửa createTask\"",
+  "Cách 2 — Codex CLI:                    mở `codex` trong project, nói: Dùng C2X, sửa createTask",
+  "ChatGPT: dán outbox, lưu [C2X] vào .c2x/inbox.md  (trong Codex: c2x … --no-spawn)",
   "",
 ].join("\n");
 

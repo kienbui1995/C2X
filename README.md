@@ -36,14 +36,23 @@ cd chat-to-x
 npm install && npm link
 ```
 
-Rồi trong project cần sửa:
+Rồi **một trong hai**:
+
+Trong terminal của project:
 
 ```bash
 c2x "Sửa createTask"
 ```
 
-Dán file `.c2x/outbox/plan-prompt.md` vào ChatGPT. Lưu khối `[C2X]` vào `.c2x/inbox.md`.
-C2X tự mở Codex. Lặp lại với `review-prompt.md` nếu được hỏi.
+Hoặc mở **Codex CLI** ngay trong project (`codex`) rồi nói:
+
+```text
+Dùng C2X, sửa createTask
+```
+
+Skill bảo Codex chạy `c2x "…" --no-spawn` (không đẻ Codex lần nữa), rồi chỉ
+làm `.c2x/briefs/codex.md`. Bạn dán outbox vào ChatGPT, lưu `[C2X]` vào
+`.c2x/inbox.md`.
 
 Thử không dán chat: `c2x "Sửa createTask" --planner mock`
 

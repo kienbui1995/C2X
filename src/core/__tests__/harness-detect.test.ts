@@ -121,6 +121,8 @@ describe("installSkill", () => {
     expect(text).toMatch(/c2x skill-install/);
     expect(text).toMatch(/\.c2x\/briefs\//);
     expect(text).toMatch(/Do not read other/);
+    expect(text).toMatch(/--no-spawn/);
+    expect(text).toMatch(/You \*\*are\*\* the harness|you are the harness/i);
     await rm(skillHome, { recursive: true, force: true });
   });
 });
