@@ -47,6 +47,7 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 ## Commands
 
 ```bash
+npx tsx src/cli/c2x.ts drive --harness codex --spawn
 npx tsx src/cli/c2x.ts init
 npx tsx src/cli/c2x.ts plan --goal "…" --planner auto
 npx tsx src/cli/c2x.ts plan --goal "…" --planner mock --team codex,claude-code,grok-build,opencode,kiro-cli

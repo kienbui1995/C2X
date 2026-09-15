@@ -15,5 +15,8 @@ export * from "@/core/providers/router";
 export * from "@/core/savings";
 export * from "@/core/session";
 export * from "@/core/session-status";
+export * from "@/core/mailbox";
+export * from "@/core/spawn-harness";
+export * from "@/core/drive";
 export * from "@/core/tokens";
 export * from "@/core/types";

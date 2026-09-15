@@ -121,6 +121,9 @@ These are locks, not suggestions. Full table: spec §18.
   It does not spawn a harness or start MCP.
 - Resume a session from `/sessions` (`/?session=<id>`) or `c2x status`.
   The control room shows the next protocol step; it does not rewalk the repo.
+- `c2x drive --spawn` is CLI-only automation: outbox prompts, optional harness
+  spawn from PATH, inbox watch for `[C2X]` replies. Never from HTTP. Never a
+  ChatGPT browser.
 - Default workspace is the in-memory **demo** fixture.
 - Mock planner and web-paste prompts are local (milliseconds). Briefs are
   computed once at PLAN time (`session.briefs`).

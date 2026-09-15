@@ -48,6 +48,7 @@ Stranger CLI: `npx chat-to-x` hoặc `npm run c2x -- …`. **Không** chạy
 `npx c2x` — package npm `c2x` là tool CSS→XPath, không phải repo này.
 
 ```bash
+npm run c2x -- drive --harness codex --spawn
 npm run c2x -- init
 npm run c2x -- plan --goal "Sửa createTask" --planner mock
 npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness codex
@@ -69,6 +70,12 @@ Alias local `c2x` chỉ sau `npm install` của **chat-to-x**. **Không** `npx c
 Lệnh CLI ngắn là `c2x` (alias của chat-to-x). `npx tsx src/cli/c2x.ts …` cũng
 chạy được. Mặc định CLI dùng đội `codex,claude-code`. `--harness kiro-cli`
 (hoặc `codex`) vẫn là một harness. `--team` chọn bất kỳ tập hợp nào trong năm id.
+
+`c2x drive --harness codex --spawn` tự chạy phía máy: ghi prompt ra `.c2x/outbox/`,
+mở Codex (CLI, không HTTP), `record`, rồi chờ review. ChatGPT / Claude / Gemini
+**web** vẫn cần bạn dán outbox vào trang chat (C2X không mở trình duyệt, không
+lấy cookie) và lưu khối `[C2X]` vào `.c2x/inbox/*.md`. Planner `mock` hoặc API
+(`openai`, …) thì không cần inbox.
 
 `c2x init` là lệnh lần đầu: cài skill Codex, chạy `doctor` (không spawn), mock PLAN
 trên workspace **demo**, rồi ghi `.c2x/briefs/<harness>.md`. Claude Code / OpenCode /

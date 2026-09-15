@@ -19,6 +19,7 @@ import { mockPlanFromPack } from "@/core/planner";
 import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { handoffMessage, nextExpectedStep } from "@/core/protocol";
+import { formatDriveReport, runDrive } from "@/core/drive";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { describeSessionStatus, formatSessionStatus } from "@/core/session-status";
 import { estimateSavings } from "@/core/savings";
@@ -387,6 +388,56 @@ program
         resolve();
       });
     });
+  });
+
+program
+  .command("drive")
+  .description("Run the loop: write outbox prompts, spawn harnesses, watch .c2x/inbox (CLI only)")
+  .option("--goal <text>", "new session goal")
+  .option("--session <id>", "resume an existing session")
+  .option("--planner <id>", "auto|mock|chatgpt-web|…", "chatgpt-web")
+  .option("--team <ids>", "comma-separated harness ids")
+  .option("--harness <id>", "single harness")
+  .option("--cwd <path>", "workspace root (CLI only)")
+  .option("--workspace <src>", "demo|repo", "demo")
+  .option("--budget <n>", "token budget", "4000")
+  .option("--spawn", "start each harness from PATH (default)", true)
+  .option("--no-spawn", "do not spawn; leave briefs for a human")
+  .option("--timeout <ms>", "inbox + spawn timeout", "900000")
+  .action(async (opts: {
+    goal?: string;
+    session?: string;
+    planner: string;
+    team?: string;
+    harness?: string;
+    cwd?: string;
+    workspace: string;
+    budget: string;
+    spawn?: boolean;
+    timeout: string;
+  }) => {
+    if (!isPlannerChoice(opts.planner)) {
+      throw new Error(`unknown planner: ${opts.planner}`);
+    }
+    if (!isWorkspaceSource(opts.workspace)) {
+      throw new Error(`unknown workspace: ${opts.workspace}`);
+    }
+    if (opts.harness && !isHarnessId(opts.harness)) {
+      throw new Error(`unknown harness: ${opts.harness}`);
+    }
+    const result = await runDrive({
+      goal: opts.goal,
+      sessionId: opts.session,
+      plannerChoice: opts.planner,
+      harnessTeam: opts.team ? teamFromOpts(opts) : undefined,
+      harness: opts.harness && isHarnessId(opts.harness) ? opts.harness : undefined,
+      workspaceSource: opts.workspace,
+      budgetTokens: Number(opts.budget),
+      cwd: opts.cwd,
+      spawn: opts.spawn !== false,
+      timeoutMs: Number(opts.timeout),
+    });
+    process.stdout.write(formatDriveReport(result));
   });
 
 program

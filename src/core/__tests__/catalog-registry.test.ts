@@ -20,6 +20,7 @@ describe("catalog registry", () => {
       expect(getHarness(id)).toBe(HARNESS_BY_ID[id]);
       expect(HARNESS_BY_ID[id].id).toBe(id);
       expect(HARNESS_BY_ID[id].binaries.length).toBeGreaterThan(0);
+      expect(HARNESS_BY_ID[id].execArgs.length).toBeGreaterThan(0);
     }
     for (const id of PROVIDER_IDS) {
       expect(getProvider(id)).toBe(PROVIDER_BY_ID[id]);

@@ -8,4 +8,7 @@ Repo walks also skip `.c2x/` (default ignore) so drops never re-enter the
 packer. Extra ignores live in a root `.c2xignore` (comments with `#`;
 demo workspace does not read that file).
 
+`c2x drive` writes prompts to `outbox/` and watches `inbox/*.md` for a `[C2X]`
+block. Do not commit inbox or outbox.
+
 See `skill/SKILL.md` and spec §20.3.

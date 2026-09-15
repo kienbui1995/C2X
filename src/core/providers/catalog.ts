@@ -21,7 +21,13 @@ export type HarnessCatalogEntry = {
   quotaVi: string;
   quotaEn: string;
   binaries: readonly string[];
+  /** Non-interactive CLI args. `{brief}` is replaced with `.c2x/briefs/<id>.md`. */
+  execArgs: readonly string[];
 };
+
+export function resolveExecArgs(entry: HarnessCatalogEntry, briefRel: string): string[] {
+  return entry.execArgs.map((arg) => arg.replaceAll("{brief}", briefRel));
+}
 
 export const PROVIDER_BY_ID = {
   mock: {
@@ -220,6 +226,7 @@ export const HARNESS_BY_ID = {
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
     binaries: ["codex"],
+    execArgs: ["exec", "Read and execute only {brief}. Do not plan or review."],
   },
   "claude-code": {
     id: "claude-code",
@@ -230,6 +237,7 @@ export const HARNESS_BY_ID = {
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
     binaries: ["claude"],
+    execArgs: ["-p", "Read and execute only {brief}. Do not plan or review."],
   },
   "grok-build": {
     id: "grok-build",
@@ -240,6 +248,7 @@ export const HARNESS_BY_ID = {
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
     binaries: ["grok", "grok-build"],
+    execArgs: ["--prompt", "Read and execute only {brief}. Do not plan or review."],
   },
   opencode: {
     id: "opencode",
@@ -250,6 +259,7 @@ export const HARNESS_BY_ID = {
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
     binaries: ["opencode"],
+    execArgs: ["run", "Read and execute only {brief}. Do not plan or review."],
   },
   "kiro-cli": {
     id: "kiro-cli",
@@ -260,6 +270,7 @@ export const HARNESS_BY_ID = {
     quotaVi: "Hạn mức harness khan hiếm",
     quotaEn: "Scarce harness quota",
     binaries: ["kiro"],
+    execArgs: ["--prompt", "Read and execute only {brief}. Do not plan or review."],
   },
 } satisfies Record<HarnessId, HarnessCatalogEntry>;
 
