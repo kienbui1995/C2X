@@ -1,6 +1,11 @@
 import os from "node:os";
 import path from "node:path";
 import {
+  chatToXMcpArgs,
+  defaultCodexConfigPath,
+  installCodexMcp,
+} from "@/core/codex-config";
+import {
   detectHarnessTeam,
   installSkill,
   persistWorkspaceBriefs,
@@ -18,6 +23,7 @@ export const DEFAULT_INIT_GOAL = "Khởi tạo vòng C2X trên workspace demo";
 
 export type InitResult = {
   skillPath: string;
+  mcpConfigPath: string;
   doctor: HarnessDetectResult[];
   session: SessionRecord;
   briefDrops: string[];
@@ -31,6 +37,7 @@ export async function runInit(input: {
   cwd?: string;
   repoRoot?: string;
   skillHome?: string;
+  codexConfigPath?: string;
   budgetTokens?: number;
 }): Promise<InitResult> {
   const repoRoot = input.repoRoot ?? process.cwd();
@@ -41,6 +48,11 @@ export async function runInit(input: {
     harness: input.harness,
   });
   const skillPath = await installSkill({ repoRoot, skillHome });
+  const mcpConfigPath = await installCodexMcp({
+    configPath: input.codexConfigPath ?? defaultCodexConfigPath(),
+    command: "npx",
+    args: chatToXMcpArgs(repoRoot),
+  });
   const doctor = await detectHarnessTeam(harnessTeam);
   const session = await runPlan({
     goal: input.goal ?? DEFAULT_INIT_GOAL,
@@ -51,7 +63,7 @@ export async function runInit(input: {
     cwd: input.cwd,
   });
   const briefDrops = await persistWorkspaceBriefs(session, input.cwd);
-  return { skillPath, doctor, session, briefDrops };
+  return { skillPath, mcpConfigPath, doctor, session, briefDrops };
 }
 
 export function formatInitReport(result: InitResult): string {
@@ -66,13 +78,15 @@ export function formatInitReport(result: InitResult): string {
       : ["  (none)"];
   return [
     `skill\t${result.skillPath}`,
+    `codex-plugin\t${result.mcpConfigPath}`,
     "doctor",
     ...doctorLines,
     `session\t${result.session.id} ${result.session.state} ${result.session.planner}`,
     "briefs",
     ...briefLines,
+    "Open Codex in the project and say the goal. Codex uses the chat-to-x MCP tools.",
     "Claude Code: copy the same SKILL.md to ~/.claude/skills/chat-to-x/ (C2X does not auto-install there).",
-    "C2X does not spawn harnesses. Copy each brief into its own tool.",
+    "C2X does not spawn harnesses from init. Codex is the harness.",
     "",
   ].join("\n");
 }

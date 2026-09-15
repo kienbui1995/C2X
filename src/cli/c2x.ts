@@ -8,6 +8,11 @@ import { planToBrief, planToBriefs, renderCodexBrief } from "@/core/brief";
 import { mergeConfig } from "@/core/config";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import {
+  chatToXMcpArgs,
+  defaultCodexConfigPath,
+  installCodexMcp,
+} from "@/core/codex-config";
+import {
   detectHarnessTeam,
   installSkill,
   writeHarnessBrief,
@@ -29,6 +34,7 @@ import {
   assertLoopbackBind,
   createMcpLoopbackServer,
 } from "@/core/mcp-loopback";
+import { runMcpStdio } from "@/core/mcp-stdio";
 import { dataDir, getSession, loadSessions, resolveSessionRecord } from "@/core/store";
 import { resolveWorkspaceRoot } from "@/core/workspace";
 import { formatTokens, formatUsd } from "@/core/tokens";
@@ -44,9 +50,8 @@ import {
 
 const SIMPLE_USAGE = [
   "Cài một lần (trong thư mục chat-to-x):  npm install && npm link && c2x init --harness codex",
-  "Cách 1 — terminal:                     c2x \"Sửa createTask\"",
-  "Cách 2 — Codex CLI:                    mở `codex` trong project, nói: Dùng C2X, sửa createTask",
-  "ChatGPT: dán outbox, lưu [C2X] vào .c2x/inbox.md  (trong Codex: c2x … --no-spawn)",
+  "Rồi chỉ làm trong Codex:               mở `codex` trong project, nói: Dùng C2X, sửa createTask",
+  "ChatGPT: dán prompt tool trả về, dán khối [C2X] lại chat Codex (c2x_submit). Không terminal khác.",
   "",
 ].join("\n");
 
@@ -374,10 +379,15 @@ program
 
 program
   .command("mcp")
-  .description("Read-only loopback MCP on 127.0.0.1 (no tunnel, no OAuth)")
-  .requiredOption("--session <id>")
+  .description("Codex stdio plugin (default). Optional read-only HTTP: --session")
+  .option("--session <id>", "read-only 127.0.0.1 HTTP for one session")
   .option("--port <n>", "loopback port", String(MCP_LOOPBACK_PORT))
-  .action(async (opts: { session: string; port: string }) => {
+  .option("--stdio", "Codex plugin on stdin/stdout (default)", true)
+  .action(async (opts: { session?: string; port: string; stdio?: boolean }) => {
+    if (!opts.session) {
+      await runMcpStdio();
+      return;
+    }
     assertLoopbackBind(MCP_LOOPBACK_HOST);
     const existing = await getSession(opts.session);
     if (!existing) {
@@ -489,6 +499,7 @@ program
       cwd: opts.cwd,
       repoRoot: process.cwd(),
       skillHome: path.join(os.homedir(), ".codex/skills"),
+      codexConfigPath: defaultCodexConfigPath(),
       budgetTokens: Number(opts.budget),
     });
     process.stdout.write(formatInitReport(result));
@@ -496,13 +507,19 @@ program
 
 program
   .command("skill-install")
-  .description("Copy the chat-to-x skill into ~/.codex/skills/chat-to-x/")
+  .description("Copy the chat-to-x skill and Codex MCP plugin")
   .action(async () => {
     const dest = await installSkill({
       repoRoot: process.cwd(),
       skillHome: path.join(os.homedir(), ".codex/skills"),
     });
+    const mcpConfigPath = await installCodexMcp({
+      configPath: defaultCodexConfigPath(),
+      command: "npx",
+      args: chatToXMcpArgs(process.cwd()),
+    });
     process.stdout.write(`${dest}\n`);
+    process.stdout.write(`${mcpConfigPath}\n`);
     process.stdout.write(
       "Claude Code: copy the same SKILL.md to ~/.claude/skills/chat-to-x/ (C2X does not auto-install there).\n",
     );

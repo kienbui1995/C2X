@@ -1,38 +1,40 @@
 ---
 name: chat-to-x
-description: Use chat-to-x (C2X) from Codex CLI. ChatGPT/Claude/Gemini web plans and reviews; this Codex session only executes `.c2x/briefs/codex.md`. Trigger on C2X, chat-to-x, ChatGPT nghĩ Codex chạy, or a goal that should not burn Codex quota on planning.
+description: Use chat-to-x (C2X) MCP from Codex CLI. ChatGPT/Claude/Gemini web plans and reviews; this Codex session only executes the Codex brief. Trigger on C2X, chat-to-x, ChatGPT nghĩ Codex chạy, or a goal that should not burn Codex quota on planning.
 ---
 
 # chat-to-x
 
 The checkout lives at: replace-with-absolute-path
 
-Install this skill with `c2x skill-install` (writes `~/.codex/skills/chat-to-x/SKILL.md`
-and replaces the checkout path). Claude Code: copy the same file to
+Install with `c2x init --harness codex` or `c2x skill-install` (writes
+`~/.codex/skills/chat-to-x/SKILL.md` and `[mcp_servers.chat-to-x]` in
+`~/.codex/config.toml`). Claude Code: copy the same file to
 `~/.claude/skills/chat-to-x/` — C2X does not auto-install there.
 
 ## When the user opens Codex CLI
 
-You **are** the harness. Do not start another `codex` process.
+You **are** the harness. Do not start another `codex` process. Do not open a
+second terminal. Use the **chat-to-x MCP tools** (`c2x_start`, `c2x_submit`,
+`c2x_brief`, `c2x_record`, `c2x_status`).
 
-1. Run (from the project cwd):
+1. Call `c2x_start` with the user goal and this project `cwd`.
+2. If the tool returns `paste_plan` / `paste_review`, show `prompt` to the user.
+   They paste it into ChatGPT (or Claude/Gemini web), then paste the `[C2X]`
+   block **back into this Codex chat**. Call `c2x_submit` with that block.
+   Stay in this chat — do not send them to another app file.
+3. When `.c2x/briefs/<your-harness-id>.md` exists (Codex = `codex.md`) or the
+   tool returns `brief`, read **only** that file / brief. Execute it.
+   Do not read other files in `.c2x/briefs/`. Do not plan or review.
+4. Call `c2x_record`. Repeat paste/submit if a review prompt appears.
+
+If MCP tools are missing, fallback:
 
 ```bash
 c2x "<mục tiêu của user>" --no-spawn
 ```
 
-If `c2x` is missing: `npx --prefix <checkout> chat-to-x "<mục tiêu>" --no-spawn`.
 Never `npx c2x`.
-
-2. If C2X prints an outbox path, tell the user: dán file đó vào ChatGPT, lưu
-   khối `[C2X]` vào `.c2x/inbox.md`, rồi nói "đã dán". Chạy lại cùng lệnh
-   `c2x --session <id> --no-spawn` (hoặc `c2x status` rồi resume).
-3. When `.c2x/briefs/<your-harness-id>.md` exists (Codex = `codex.md`), read
-   **only** that file. Execute it. Do not read other files in `.c2x/briefs/`.
-   Do not plan or review.
-4. Then: `c2x record --session <id> --owner codex`
-5. If C2X writes `review-prompt.md`, user pastes ChatGPT again into
-   `.c2x/inbox.md`. You do not write the DONE verdict.
 
 ## Rules
 
@@ -53,9 +55,9 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 ## Commands
 
 ```bash
+c2x init --harness codex
+c2x_start / c2x_submit / c2x_record
 c2x "<mục tiêu>" --no-spawn
-c2x status
-c2x record --session <id> --owner codex
 c2x skill-install
 ```
 

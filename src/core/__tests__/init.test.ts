@@ -8,6 +8,7 @@ import { DEFAULT_INIT_GOAL, formatInitReport, runInit } from "@/core/init";
 let dataDir = "";
 let workspaceRoot = "";
 let skillHome = "";
+let codexConfigPath = "";
 let prevData: string | undefined;
 let prevWorkspace: string | undefined;
 
@@ -15,6 +16,8 @@ beforeEach(async () => {
   dataDir = await mkdtemp(path.join(os.tmpdir(), "c2x-init-data-"));
   workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "c2x-init-ws-"));
   skillHome = await mkdtemp(path.join(os.tmpdir(), "c2x-init-skill-"));
+  const codexHome = await mkdtemp(path.join(os.tmpdir(), "c2x-init-codex-"));
+  codexConfigPath = path.join(codexHome, "config.toml");
   prevData = process.env.FRUGAL_DATA_DIR;
   prevWorkspace = process.env.C2X_WORKSPACE;
   process.env.FRUGAL_DATA_DIR = dataDir;
@@ -35,6 +38,7 @@ afterEach(async () => {
   await rm(dataDir, { recursive: true, force: true });
   await rm(workspaceRoot, { recursive: true, force: true });
   await rm(skillHome, { recursive: true, force: true });
+  await rm(path.dirname(codexConfigPath), { recursive: true, force: true });
 });
 
 describe("runInit", () => {
@@ -46,8 +50,11 @@ describe("runInit", () => {
       cwd: workspaceRoot,
       repoRoot: process.cwd(),
       skillHome,
+      codexConfigPath,
     });
     expect(result.skillPath).toBe(path.join(skillHome, "chat-to-x", "SKILL.md"));
+    expect(result.mcpConfigPath).toBe(codexConfigPath);
+    expect(await readFile(codexConfigPath, "utf8")).toMatch(/\[mcp_servers\.chat-to-x\]/);
     const skill = await readFile(result.skillPath, "utf8");
     expect(skill).toContain(process.cwd());
     expect(skill).not.toContain("replace-with-absolute-path");
@@ -68,7 +75,8 @@ describe("runInit", () => {
     expect(report).toContain(result.session.id);
     expect(report).toMatch(/Claude Code: copy the same SKILL.md/);
     expect(report).toMatch(/does not spawn/i);
-    expect(report).not.toMatch(/127\.0\.0\.1:45218|mcp /i);
+    expect(report).toMatch(/codex-plugin/);
+    expect(report).not.toMatch(/127\.0\.0\.1:45218/);
   });
 
   it("defaults to the demo workspace and default init goal", async () => {
@@ -76,6 +84,7 @@ describe("runInit", () => {
       skillHome,
       repoRoot: process.cwd(),
       cwd: workspaceRoot,
+      codexConfigPath,
     });
     expect(result.session.workspaceSource).toBe("demo");
     expect(result.session.goal).toBe(DEFAULT_INIT_GOAL);
@@ -102,6 +111,7 @@ describe("runInit --cwd isolation", () => {
       cwd: other,
       repoRoot: process.cwd(),
       skillHome,
+      codexConfigPath,
     });
     expect(result.briefDrops).toEqual([path.join(other, ".c2x", "briefs", "codex.md")]);
     expect(existsSync(path.join(workspaceRoot, ".c2x", "briefs", "codex.md"))).toBe(false);

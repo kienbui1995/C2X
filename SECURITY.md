@@ -20,8 +20,10 @@ Pull requests that add any of the following are out of scope and will be closed:
 
 ## Hardening already locked
 
-Optional `c2x mcp` binds **127.0.0.1** only. No Cloudflare tunnel, no OAuth,
-no public URL, no write tools. First-run does not start MCP.
+`c2x mcp` default is **stdio** for the Codex plugin (same local trust as the
+CLI). It never opens a port, never tunnels, never OAuth, never spawns a
+harness. Optional HTTP `c2x mcp --session` still binds **127.0.0.1** only and
+stays read-only. First-run does not start the HTTP server.
 
 - Dashboard `dev` / `start` bind **`127.0.0.1`** only
 - HTTP bodies must not carry `cwd` / `workspaceRoot` — the process cwd is the repo

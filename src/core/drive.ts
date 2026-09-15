@@ -86,9 +86,7 @@ export async function runDrive(input: {
           break;
         }
         if (!spawnEnabled) {
-          throw new Error(
-            "PLAN is ready. Re-run `c2x drive --spawn` to start each harness, or copy the briefs by hand.",
-          );
+          return { session, outbox, spawns };
         }
         for (const run of pending) {
           const spawned = await runSpawn({

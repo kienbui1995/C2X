@@ -34,27 +34,27 @@ Node.js 20+, Codex đã login trên PATH. **Không** `npx c2x` (đó là tool kh
 git clone <this-repo> chat-to-x
 cd chat-to-x
 npm install && npm link
+c2x init --harness codex
 ```
 
-Rồi **một trong hai**:
-
-Trong terminal của project:
+`init` cài skill **và** plugin Codex MCP (`[mcp_servers.chat-to-x]` trong
+`~/.codex/config.toml`). Sau đó **chỉ làm việc trong Codex**:
 
 ```bash
-c2x "Sửa createTask"
+cd <project-cần-sửa>
+codex
 ```
-
-Hoặc mở **Codex CLI** ngay trong project (`codex`) rồi nói:
 
 ```text
 Dùng C2X, sửa createTask
 ```
 
-Skill bảo Codex chạy `c2x "…" --no-spawn` (không đẻ Codex lần nữa), rồi chỉ
-làm `.c2x/briefs/codex.md`. Bạn dán outbox vào ChatGPT, lưu `[C2X]` vào
+Codex gọi tool `c2x_start` / `c2x_submit` / `c2x_record`. Không mở terminal
+thứ hai, không đẻ Codex lần nữa. Nếu planner là ChatGPT web, dán prompt tool
+trả về vào ChatGPT, rồi dán khối `[C2X]` **lại chat Codex** — không ghi
 `.c2x/inbox.md`.
 
-Thử không dán chat: `c2x "Sửa createTask" --planner mock`
+Thử không dán chat: nói thêm `planner mock`, hoặc `c2x "Sửa createTask" --planner mock`.
 
 Dashboard (tuỳ): `npm run dev` → [http://127.0.0.1:45217](http://127.0.0.1:45217).
 Trong repo này, chưa link: `npx chat-to-x "Sửa createTask"`. **Không** `npx c2x`.
