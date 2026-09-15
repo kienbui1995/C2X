@@ -50,10 +50,10 @@ import {
 } from "@/core/types";
 
 const SIMPLE_USAGE = [
-  "Cài tool một lần (không clone vào app): npm install && npm link && c2x init --harness codex",
+  "Cài một lệnh:  curl -fsSL <raw-install.sh> | bash -s -- --repo <this-repo.git>",
+  "Hoặc trong checkout:  ./install.sh",
   "Dùng:  cd <project> && codex",
   "Gõ:    Dùng C2X, tự làm hết: <mô tả>",
-  "Tuỳ chọn ChatGPT web: nói thêm “dán ChatGPT” (c2x_submit). Không terminal khác.",
   "",
 ].join("\n");
 
