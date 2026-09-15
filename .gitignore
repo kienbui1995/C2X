@@ -41,6 +41,7 @@ yarn-error.log*
 !/data/.gitkeep
 .c2x/briefs/
 .c2x/inbox/
+.c2x/inbox.md
 .c2x/outbox/
 
 # vercel

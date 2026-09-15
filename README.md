@@ -26,60 +26,29 @@ não nghĩ tách khỏi harness. chat-to-x thêm packer token, router đa nhà c
 
 Đây không phải bản fork OAuth + tunnel. Không reverse-proxy, không lấy cookie.
 
-## Chạy local
+## Cài và dùng
 
-Cần Node.js 20+.
+Node.js 20+, Codex đã login trên PATH. **Không** `npx c2x` (đó là tool khác).
 
 ```bash
 git clone <this-repo> chat-to-x
 cd chat-to-x
-npm install
-npm test
-npm run typecheck
-npm run dev
+npm install && npm link
 ```
 
-`npm test` **không** cần API key hay mạng planner.
-
-Mở [http://127.0.0.1:45217](http://127.0.0.1:45217). Không cần API key để dùng
-planner giả lập và chế độ dán ChatGPT / Claude / Gemini web.
-
-Stranger CLI: `npx chat-to-x` hoặc `npm run c2x -- …`. **Không** chạy
-`npx c2x` — package npm `c2x` là tool CSS→XPath, không phải repo này.
+Rồi trong project cần sửa:
 
 ```bash
-npm run c2x -- drive --harness codex --spawn
-npm run c2x -- init
-npm run c2x -- plan --goal "Sửa createTask" --planner mock
-npm run c2x -- plan --goal "Sửa createTask" --planner mock --harness codex
-npm run c2x -- sessions
-npm run c2x -- status
-npm run c2x -- doctor
-npm run c2x -- brief --session <id> --owner codex
-npm run c2x -- skill-install
-npm run c2x -- mcp --session <id>
-npm run c2x -- route --choice auto --team codex,claude-code,grok-build,opencode,kiro-cli
-npx chat-to-x sessions
+c2x "Sửa createTask"
 ```
 
-`c2x mcp` chỉ bind **127.0.0.1** (mặc định cổng 45218): read-only, không Cloudflare
-tunnel, không OAuth, không URL công khai. First-run **không** bật MCP.
+Dán file `.c2x/outbox/plan-prompt.md` vào ChatGPT. Lưu khối `[C2X]` vào `.c2x/inbox.md`.
+C2X tự mở Codex. Lặp lại với `review-prompt.md` nếu được hỏi.
 
-Alias local `c2x` chỉ sau `npm install` của **chat-to-x**. **Không** `npx c2x`.
+Thử không dán chat: `c2x "Sửa createTask" --planner mock`
 
-Lệnh CLI ngắn là `c2x` (alias của chat-to-x). `npx tsx src/cli/c2x.ts …` cũng
-chạy được. Mặc định CLI dùng đội `codex,claude-code`. `--harness kiro-cli`
-(hoặc `codex`) vẫn là một harness. `--team` chọn bất kỳ tập hợp nào trong năm id.
-
-`c2x drive --harness codex --spawn` tự chạy phía máy: ghi prompt ra `.c2x/outbox/`,
-mở Codex (CLI, không HTTP), `record`, rồi chờ review. ChatGPT / Claude / Gemini
-**web** vẫn cần bạn dán outbox vào trang chat (C2X không mở trình duyệt, không
-lấy cookie) và lưu khối `[C2X]` vào `.c2x/inbox/*.md`. Planner `mock` hoặc API
-(`openai`, …) thì không cần inbox.
-
-`c2x init` là lệnh lần đầu: cài skill Codex, chạy `doctor` (không spawn), mock PLAN
-trên workspace **demo**, rồi ghi `.c2x/briefs/<harness>.md`. Claude Code / OpenCode /
-Kiro: copy `SKILL.md` tay — C2X không ghi nhiều cây `$HOME`.
+Dashboard (tuỳ): `npm run dev` → [http://127.0.0.1:45217](http://127.0.0.1:45217).
+Trong repo này, chưa link: `npx chat-to-x "Sửa createTask"`. **Không** `npx c2x`.
 
 ### `.c2xignore`
 

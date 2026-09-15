@@ -30,7 +30,28 @@ function looksLikeControl(raw: string): boolean {
   return trimmed.includes("[C2X]") || trimmed.includes("[C2C]");
 }
 
+async function takeControlFile(abs: string, consumedName: string, workspaceRoot: string): Promise<string | null> {
+  let raw = "";
+  try {
+    raw = await readFile(abs, "utf8");
+  } catch {
+    return null;
+  }
+  if (!looksLikeControl(raw)) {
+    return null;
+  }
+  const consumed = path.join(workspaceRoot, C2X_INBOX_CONSUMED);
+  await mkdir(consumed, { recursive: true });
+  await rename(abs, path.join(consumed, consumedName));
+  return extractControlBlock(raw);
+}
+
 export async function consumeInboxControl(workspaceRoot: string): Promise<string | null> {
+  const single = path.join(workspaceRoot, ".c2x", "inbox.md");
+  const fromSingle = await takeControlFile(single, "inbox.md", workspaceRoot);
+  if (fromSingle) {
+    return fromSingle;
+  }
   const dir = inboxDir(workspaceRoot);
   let names: string[] = [];
   try {
@@ -40,20 +61,10 @@ export async function consumeInboxControl(workspaceRoot: string): Promise<string
   }
   names.sort((a, b) => a.localeCompare(b));
   for (const name of names) {
-    const abs = path.join(dir, name);
-    let raw = "";
-    try {
-      raw = await readFile(abs, "utf8");
-    } catch {
-      continue;
+    const taken = await takeControlFile(path.join(dir, name), name, workspaceRoot);
+    if (taken) {
+      return taken;
     }
-    if (!looksLikeControl(raw)) {
-      continue;
-    }
-    const consumed = path.join(workspaceRoot, C2X_INBOX_CONSUMED);
-    await mkdir(consumed, { recursive: true });
-    await rename(abs, path.join(consumed, name));
-    return extractControlBlock(raw);
   }
   return null;
 }
@@ -81,6 +92,6 @@ export async function waitForInboxControl(input: {
     await sleep(intervalMs);
   }
   throw new Error(
-    `No [C2X] reply in ${inboxDir(input.workspaceRoot)} — paste the ChatGPT / Claude / Gemini block there.`,
+    `Dán khối [C2X] vào ${path.join(input.workspaceRoot, ".c2x", "inbox.md")}`,
   );
 }

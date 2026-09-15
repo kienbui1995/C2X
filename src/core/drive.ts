@@ -54,9 +54,10 @@ export async function runDrive(input: {
       harnessTeam: resolveHarnessTeam({
         harnessTeam: input.harnessTeam,
         harness: input.harness,
+        fallbackTeam: ["codex"],
       }),
       budgetTokens: input.budgetTokens ?? 4000,
-      workspaceSource: input.workspaceSource ?? "demo",
+      workspaceSource: input.workspaceSource ?? "repo",
       cwd: input.cwd,
     });
   }
@@ -160,8 +161,9 @@ export function formatDriveReport(result: DriveResult): string {
     ...outboxLines,
     "spawns",
     ...spawnLines,
-    "ChatGPT / Claude / Gemini web: dán outbox vào chat, lưu khối [C2X] vào .c2x/inbox/*.md.",
-    "C2X does not open a browser or steal cookies. Harness spawn is CLI-only.",
+    result.outbox[0]
+      ? `Dán ${result.outbox[0]} vào ChatGPT. Lưu trả lời vào .c2x/inbox.md`
+      : "Không cần dán chat web.",
     "",
   ].join("\n");
 }

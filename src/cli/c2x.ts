@@ -42,8 +42,15 @@ import {
   type PlannerChoice,
 } from "@/core/types";
 
+const SIMPLE_USAGE = [
+  "Cài một lần (trong thư mục chat-to-x):  npm install && npm link",
+  "Trong project cần sửa:                 c2x \"Sửa createTask\"",
+  "ChatGPT: dán file outbox, lưu trả lời vào .c2x/inbox.md",
+  "",
+].join("\n");
+
 const program = new Command();
-program.name("c2x").description("chat-to-x (CLI alias: c2x) — pack, plan on web chat, keep Codex / Claude Code / Grok Build / OpenCode / Kiro CLI thin.");
+program.name("c2x").description("chat-to-x — ChatGPT nghĩ, Codex chạy. Gõ: c2x \"mục tiêu\"");
 
 function teamFromOpts(opts: { team?: string; harness?: string }) {
   return resolveHarnessTeam({
@@ -391,31 +398,41 @@ program
   });
 
 program
-  .command("drive")
-  .description("Run the loop: write outbox prompts, spawn harnesses, watch .c2x/inbox (CLI only)")
-  .option("--goal <text>", "new session goal")
+  .command("drive", { isDefault: true })
+  .alias("go")
+  .description("ChatGPT nghĩ, Codex chạy — mặc định. c2x \"mục tiêu\"")
+  .argument("[goal]", "mục tiêu")
+  .option("--goal <text>", "mục tiêu (nếu không ghi sau c2x)")
   .option("--session <id>", "resume an existing session")
-  .option("--planner <id>", "auto|mock|chatgpt-web|…", "chatgpt-web")
+  .option("--planner <id>", "chatgpt-web|mock|openai|…", "chatgpt-web")
   .option("--team <ids>", "comma-separated harness ids")
-  .option("--harness <id>", "single harness")
+  .option("--harness <id>", "single harness (mặc định: codex)")
   .option("--cwd <path>", "workspace root (CLI only)")
-  .option("--workspace <src>", "demo|repo", "demo")
+  .option("--workspace <src>", "demo|repo", "repo")
   .option("--budget <n>", "token budget", "4000")
   .option("--spawn", "start each harness from PATH (default)", true)
   .option("--no-spawn", "do not spawn; leave briefs for a human")
   .option("--timeout <ms>", "inbox + spawn timeout", "900000")
-  .action(async (opts: {
-    goal?: string;
-    session?: string;
-    planner: string;
-    team?: string;
-    harness?: string;
-    cwd?: string;
-    workspace: string;
-    budget: string;
-    spawn?: boolean;
-    timeout: string;
-  }) => {
+  .action(async (
+    goalArg: string | undefined,
+    opts: {
+      goal?: string;
+      session?: string;
+      planner: string;
+      team?: string;
+      harness?: string;
+      cwd?: string;
+      workspace: string;
+      budget: string;
+      spawn?: boolean;
+      timeout: string;
+    },
+  ) => {
+    const goal = goalArg?.trim() || opts.goal?.trim();
+    if (!goal && !opts.session) {
+      process.stdout.write(SIMPLE_USAGE);
+      return;
+    }
     if (!isPlannerChoice(opts.planner)) {
       throw new Error(`unknown planner: ${opts.planner}`);
     }
@@ -426,7 +443,7 @@ program
       throw new Error(`unknown harness: ${opts.harness}`);
     }
     const result = await runDrive({
-      goal: opts.goal,
+      goal,
       sessionId: opts.session,
       plannerChoice: opts.planner,
       harnessTeam: opts.team ? teamFromOpts(opts) : undefined,

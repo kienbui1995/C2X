@@ -61,6 +61,16 @@ describe("mailbox", () => {
     expect(await consumeInboxControl(workspaceRoot)).toBeNull();
   });
 
+  it("also reads a single .c2x/inbox.md drop", async () => {
+    await mkdir(path.join(workspaceRoot, ".c2x"), { recursive: true });
+    await writeFile(
+      path.join(workspaceRoot, ".c2x", "inbox.md"),
+      "[C2X]\nSTATE: DONE\nTASK_ID: c2x_x\nITERATION: 1\n",
+      "utf8",
+    );
+    expect(await consumeInboxControl(workspaceRoot)).toMatch(/^\[C2X\]/);
+  });
+
   it("times out when the inbox stays empty", async () => {
     await expect(
       waitForInboxControl({
@@ -130,7 +140,27 @@ describe("runDrive", () => {
     expect(await readFile(path.join(workspaceRoot, ".c2x", "briefs", "codex.md"), "utf8")).toMatch(
       /OWNER:\s*codex/,
     );
-    expect(formatDriveReport(result)).toMatch(/does not open a browser/i);
+    expect(formatDriveReport(result)).toMatch(/Không cần dán|inbox\.md/);
+  });
+
+  it("defaults to Codex only when no team is given", async () => {
+    const result = await runDrive({
+      goal: "Sửa createTask",
+      plannerChoice: "mock",
+      workspaceSource: "demo",
+      cwd: workspaceRoot,
+      spawn: true,
+      spawnHarness: async ({ owner }) => ({
+        owner,
+        command: "codex",
+        args: ["exec"],
+        exitCode: 0,
+        skipped: false,
+        reason: null,
+      }),
+    });
+    expect(result.session.harnessTeam).toEqual(["codex"]);
+    expect(result.session.state).toBe("DONE");
   });
 
   it("writes ChatGPT prompts to outbox and imports inbox replies", async () => {
@@ -207,7 +237,8 @@ Looks good.
 
   it("documents CLI drive and never exposes spawn over HTTP", () => {
     const cli = readFileSync(path.join(process.cwd(), "src/cli/c2x.ts"), "utf8");
-    expect(cli).toMatch(/\.command\("drive"\)/);
+    expect(cli).toMatch(/\.command\("drive"/);
+    expect(cli).toMatch(/isDefault:\s*true/);
     expect(cli).toMatch(/--spawn/);
     for (const id of HARNESS_IDS) {
       expect(cli).not.toMatch(new RegExp(`case "${id}"`));

@@ -106,7 +106,7 @@ export const copy = {
     quotaSingleTeam: "Một harness vẫn hợp lệ — thêm teammate để gộp hạn mức khan.",
     sessionsLead: "Các phiên C2X trên máy này. Planner nghĩ; đội harness chỉ chạy.",
     skillInstallHint:
-      "Tự chạy: `c2x drive --harness codex --spawn` — Codex tự mở, ChatGPT chỉ dán outbox rồi lưu [C2X] vào `.c2x/inbox/`. Lần đầu: `c2x init`. Claude Code: copy SKILL.md tay.",
+      "Trong project: `c2x \"Sửa …\"` — dán outbox vào ChatGPT, lưu [C2X] vào `.c2x/inbox.md`. Cài: `npm link` trong repo chat-to-x.",
     nextStep: "Bước tiếp",
     resumeLatest: "Tiếp tục phiên mới nhất",
     resumeSession: "Mở lại phòng điều khiển",
@@ -219,7 +219,7 @@ export const copy = {
     quotaSingleTeam: "A single harness is valid — add a teammate to split scarce quota.",
     sessionsLead: "C2X sessions on this machine. Planners think; the harness team only executes.",
     skillInstallHint:
-      "Hands-off execute: `c2x drive --harness codex --spawn` starts Codex. For ChatGPT web, paste the outbox prompt and save the [C2X] reply into `.c2x/inbox/`. First run: `c2x init`.",
+      "In a project: `c2x \"Fix …\"`. Paste the outbox into ChatGPT, save the [C2X] block to `.c2x/inbox.md`. Install: `npm link` in the chat-to-x repo.",
     nextStep: "Next step",
     resumeLatest: "Resume latest session",
     resumeSession: "Open in control room",
