@@ -104,6 +104,32 @@ describe("callCodexMcpTool", () => {
     expect(leak.ok).toBe(false);
   });
 
+  it("finishes inside Codex when the user only writes a goal", async () => {
+    const started = await callCodexMcpTool("c2x_start", {
+      goal: "Sửa createTask",
+      cwd: workspaceRoot,
+      workspace: "demo",
+    });
+    expect(started.ok).toBe(true);
+    if (!started.ok) {
+      return;
+    }
+    expect(started.state).toBe("PLAN");
+    expect(started.action).toBe("execute");
+    expect(started.brief).toMatch(/OWNER:\s*codex/);
+    expect(started.prompt).toBeNull();
+    const recorded = await callCodexMcpTool("c2x_record", {
+      session: started.session,
+      cwd: workspaceRoot,
+    });
+    expect(recorded.ok).toBe(true);
+    if (!recorded.ok) {
+      return;
+    }
+    expect(recorded.state).toBe("DONE");
+    expect(recorded.action).toBe("done");
+  });
+
   it("keeps ChatGPT paste inside the Codex chat via c2x_submit", async () => {
     const started = await callCodexMcpTool("c2x_start", {
       goal: "Sửa createTask",
@@ -252,6 +278,7 @@ describe("Codex plugin docs", () => {
     const skill = readFileSync(path.join(process.cwd(), "skill", "SKILL.md"), "utf8");
     expect(skill).toMatch(/c2x_start/);
     expect(skill).toMatch(/c2x_submit/);
+    expect(skill).toMatch(/tự làm hết/);
     expect(skill).toMatch(/You \*\*are\*\* the harness|you are the harness/i);
     expect(skill).not.toMatch(/inbox\.md/);
     const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");

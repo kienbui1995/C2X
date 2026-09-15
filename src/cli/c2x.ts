@@ -50,8 +50,9 @@ import {
 
 const SIMPLE_USAGE = [
   "Cài một lần (trong thư mục chat-to-x):  npm install && npm link && c2x init --harness codex",
-  "Rồi chỉ làm trong Codex:               mở `codex` trong project, nói: Dùng C2X, sửa createTask",
-  "ChatGPT: dán prompt tool trả về, dán khối [C2X] lại chat Codex (c2x_submit). Không terminal khác.",
+  "Dùng:  cd <project> && codex",
+  "Gõ:    Dùng C2X, tự làm hết: <mô tả>",
+  "Tuỳ chọn ChatGPT web: nói thêm “dán ChatGPT” (c2x_submit). Không terminal khác.",
   "",
 ].join("\n");
 

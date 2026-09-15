@@ -46,15 +46,17 @@ codex
 ```
 
 ```text
-Dùng C2X, sửa createTask
+Dùng C2X, tự làm hết: Sửa createTask để persist khi reload
 ```
 
-Codex gọi tool `c2x_start` / `c2x_submit` / `c2x_record`. Không mở terminal
-thứ hai, không đẻ Codex lần nữa. Nếu planner là ChatGPT web, dán prompt tool
-trả về vào ChatGPT, rồi dán khối `[C2X]` **lại chat Codex** — không ghi
-`.c2x/inbox.md`.
+Chỉ cần mô tả. Codex gọi `c2x_start` (planner mặc định `mock`, không dán chat),
+làm brief, rồi `c2x_record` đến DONE. Không mở terminal thứ hai, không đẻ
+Codex lần nữa.
 
-Thử không dán chat: nói thêm `planner mock`, hoặc `c2x "Sửa createTask" --planner mock`.
+Muốn ChatGPT web nghĩ: nói thêm “dán ChatGPT”. Codex hiện prompt; bạn dán
+khối `[C2X]` **lại chat Codex** (`c2x_submit`).
+
+CLI tương đương: `c2x "Sửa createTask" --planner mock --no-spawn`.
 
 Dashboard (tuỳ): `npm run dev` → [http://127.0.0.1:45217](http://127.0.0.1:45217).
 Trong repo này, chưa link: `npx chat-to-x "Sửa createTask"`. **Không** `npx c2x`.

@@ -177,7 +177,7 @@ export function listCodexMcpTools(): CodexMcpToolSpec[] {
     {
       name: "c2x_start",
       description:
-        "Start or resume a C2X session from inside Codex. Never spawn another Codex. ChatGPT/Claude/Gemini web plans; this session only executes.",
+        "Start or resume a C2X session from inside Codex. Default planner is mock so the user only writes a goal and you execute. Pass planner=chatgpt-web only if they asked to paste a web chat. Never spawn another Codex.",
       inputSchema: {
         type: "object",
         properties: {
@@ -275,7 +275,7 @@ async function startTurn(args: Record<string, unknown>): Promise<CodexMcpResult>
   if (!goal) {
     return { ok: false, error: "goal is required" };
   }
-  const plannerRaw = stringArg(args, "planner") ?? "chatgpt-web";
+  const plannerRaw = stringArg(args, "planner") ?? "mock";
   if (!isPlannerChoice(plannerRaw)) {
     return { ok: false, error: `unknown planner: ${plannerRaw}` };
   }

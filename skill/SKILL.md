@@ -1,6 +1,6 @@
 ---
 name: chat-to-x
-description: Use chat-to-x (C2X) MCP from Codex CLI. ChatGPT/Claude/Gemini web plans and reviews; this Codex session only executes the Codex brief. Trigger on C2X, chat-to-x, ChatGPT nghĩ Codex chạy, or a goal that should not burn Codex quota on planning.
+description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you finish it here. Default planner is mock (no paste). Trigger on C2X, chat-to-x, tự làm hết, Dùng C2X, or a coding goal that should not burn Codex quota on planning.
 ---
 
 # chat-to-x
@@ -18,20 +18,25 @@ You **are** the harness. Do not start another `codex` process. Do not open a
 second terminal. Use the **chat-to-x MCP tools** (`c2x_start`, `c2x_submit`,
 `c2x_brief`, `c2x_record`, `c2x_status`).
 
-1. Call `c2x_start` with the user goal and this project `cwd`.
-2. If the tool returns `paste_plan` / `paste_review`, show `prompt` to the user.
-   They paste it into ChatGPT (or Claude/Gemini web), then paste the `[C2X]`
-   block **back into this Codex chat**. Call `c2x_submit` with that block.
-   Stay in this chat — do not send them to another app file.
-3. When `.c2x/briefs/<your-harness-id>.md` exists (Codex = `codex.md`) or the
-   tool returns `brief`, read **only** that file / brief. Execute it.
+Default path — user only writes a description (“tự làm hết”):
+
+1. Call `c2x_start` with the user goal, this project `cwd`, and **no**
+   `chatgpt-web` planner (omit `planner`, or `mock` / an API id).
+2. When the tool returns `brief` or `.c2x/briefs/<your-harness-id>.md` exists
+   (Codex = `codex.md`), read **only** that file / brief. Execute it.
    Do not read other files in `.c2x/briefs/`. Do not plan or review.
-4. Call `c2x_record`. Repeat paste/submit if a review prompt appears.
+3. Call `c2x_record`. If `action` is `done`, stop and tell the user it is done.
+
+Paste path — only if the user asked for ChatGPT / Claude / Gemini **web**:
+
+1. `c2x_start` with `planner=chatgpt-web` (or `claude-web` / `gemini-web`).
+2. Show `prompt`. User pastes the `[C2X]` block **back into this Codex chat**.
+   Call `c2x_submit`. Then execute + `c2x_record` as above.
 
 If MCP tools are missing, fallback:
 
 ```bash
-c2x "<mục tiêu của user>" --no-spawn
+c2x "<mục tiêu của user>" --planner mock --no-spawn
 ```
 
 Never `npx c2x`.
@@ -39,12 +44,11 @@ Never `npx c2x`.
 ## Rules
 
 1. Codex does not plan or review. Only execute the `OWNER: codex` packet.
-2. Prefer `chatgpt-web` / `claude-web` / `gemini-web` for thinking.
+2. Default finishes inside Codex. Web paste is opt-in.
 3. Never paste file bodies, diffs, or logs into the planner chat.
 4. Control messages stay small and start with `[C2X]` (legacy `[C2C]` ok).
-5. After EXECUTED, review stays on the web chat. Do not review here.
-6. Do not show another harness's brief to this session.
-7. If the drop is missing, `c2x brief --session … --owner codex --drop`.
+5. Do not show another harness's brief to this session.
+6. If the drop is missing, `c2x brief --session … --owner codex --drop`.
 
 ## Loop
 
@@ -57,7 +61,7 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 ```bash
 c2x init --harness codex
 c2x_start / c2x_submit / c2x_record
-c2x "<mục tiêu>" --no-spawn
+c2x "<mục tiêu>" --planner mock --no-spawn
 c2x skill-install
 ```
 
