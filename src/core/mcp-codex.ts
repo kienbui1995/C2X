@@ -1,15 +1,22 @@
 import { renderCodexBrief } from "@/core/brief";
+import { getHarness } from "@/core/providers/catalog";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { getSession } from "@/core/store";
 import {
+  PIPELINE_AGY_HARNESS_TEAM,
+  PIPELINE_HARNESS_TEAM,
   assertNever,
   isHarnessId,
   isPlannerChoice,
+  isSessionBrain,
   isWorkspaceSource,
-  PIPELINE_HARNESS_TEAM,
+  resolveBrainTeam,
+  resolveHarnessTeam,
+  resolveSessionBrain,
   type HarnessId,
   type PlannerChoice,
   type ProtocolState,
+  type SessionBrain,
   type SessionRecord,
   type WorkspaceSource,
 } from "@/core/types";
@@ -90,12 +97,50 @@ function ownerFromArgs(args: Record<string, unknown>): HarnessId | CodexMcpFailu
   return raw;
 }
 
-function briefForCodex(session: SessionRecord): string | null {
-  if (!session.harnessTeam.includes(CODEX_MCP_OWNER)) {
-    return null;
+function recordOwnerFromSession(
+  session: SessionRecord,
+  args: Record<string, unknown>,
+): HarnessId | CodexMcpFailure {
+  const brain = resolveSessionBrain(session.brain);
+  switch (brain) {
+    case "codex": {
+      const raw = stringArg(args, "owner");
+      if (raw) {
+        if (!isHarnessId(raw) || !session.harnessTeam.includes(raw)) {
+          return { ok: false, error: `no brief for ${raw}` };
+        }
+        return raw;
+      }
+      const pending = session.harnessRuns.find((run) => run.state !== "executed");
+      const owner = pending?.owner ?? session.harnessTeam[0];
+      if (!owner) {
+        return { ok: false, error: "no harness to record" };
+      }
+      return owner;
+    }
+    case "none": {
+      return ownerFromArgs(args);
+    }
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
   }
-  const brief = session.briefs.find((item) => item.owner === CODEX_MCP_OWNER) ?? null;
-  return brief ? renderCodexBrief(brief) : null;
+}
+
+function briefForCodex(session: SessionRecord): string | null {
+  const brain = resolveSessionBrain(session.brain);
+  switch (brain) {
+    case "codex":
+      return null;
+    case "none": {
+      if (!session.harnessTeam.includes(CODEX_MCP_OWNER)) {
+        return null;
+      }
+      const brief = session.briefs.find((item) => item.owner === CODEX_MCP_OWNER) ?? null;
+      return brief ? renderCodexBrief(brief) : null;
+    }
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
+  }
 }
 
 function instructionFor(action: CodexMcpAction, session?: SessionRecord): string {
@@ -108,7 +153,7 @@ function instructionFor(action: CodexMcpAction, session?: SessionRecord): string
     case "execute":
       return "You are the harness. Execute only this brief. Do not plan or review. Then call c2x_record.";
     case "wait":
-      return "Codex packet xong. Đợi teammate (Claude Code / Grok) execute. Không review. Khi cả đội xong, gọi c2x_status.";
+      return waitInstruction(session);
     case "paste_review":
       return "Hiện review prompt cho user. User dán [C2X] DONE|PLAN|BLOCKED lại chat này, rồi gọi c2x_submit.";
     case "done":
@@ -122,7 +167,26 @@ function instructionFor(action: CodexMcpAction, session?: SessionRecord): string
   }
 }
 
-function actionFor(session: SessionRecord): CodexMcpAction {
+function waitInstruction(session?: SessionRecord): string {
+  if (!session) {
+    return "Codex packet xong. Đợi teammate (Claude Code / Grok) execute. Không review. Khi cả đội xong, gọi c2x_status.";
+  }
+  const brain = resolveSessionBrain(session.brain);
+  switch (brain) {
+    case "codex": {
+      const names =
+        session.harnessTeam.map((id) => getHarness(id).name).join(" / ") || "the harness";
+      const drops = session.harnessTeam.map((id) => `\`.c2x/briefs/${id}.md\``).join(", ");
+      return `You are the brain. Do not write app code. ${names} executes. ${drops} is for the harness — you do not execute it. Call c2x_status after they record. Do not spawn Codex.`;
+    }
+    case "none":
+      return "Codex packet xong. Đợi teammate (Claude Code / Grok) execute. Không review. Khi cả đội xong, gọi c2x_status.";
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
+  }
+}
+
+function actionForCodexHarness(session: SessionRecord): CodexMcpAction {
   switch (session.state) {
     case "INIT":
       return "paste_plan";
@@ -146,6 +210,40 @@ function actionFor(session: SessionRecord): CodexMcpAction {
       return "error";
     default:
       return assertNever(session.state, `Unhandled protocol state: ${session.state}`);
+  }
+}
+
+function actionForCodexBrain(session: SessionRecord): CodexMcpAction {
+  switch (session.state) {
+    case "INIT":
+      return "paste_plan";
+    case "PLAN":
+    case "EXECUTING":
+      return "wait";
+    case "EXECUTED":
+    case "REVIEW":
+      return "paste_review";
+    case "DONE":
+    case "HANDOFF":
+      return "done";
+    case "BLOCKED":
+      return "blocked";
+    case "ERROR":
+      return "error";
+    default:
+      return assertNever(session.state, `Unhandled protocol state: ${session.state}`);
+  }
+}
+
+function actionFor(session: SessionRecord): CodexMcpAction {
+  const brain = resolveSessionBrain(session.brain);
+  switch (brain) {
+    case "codex":
+      return actionForCodexBrain(session);
+    case "none":
+      return actionForCodexHarness(session);
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
   }
 }
 
@@ -200,7 +298,7 @@ export function listCodexMcpTools(): CodexMcpToolSpec[] {
     {
       name: "c2x_start",
       description:
-        "Start or resume a C2X session from inside Codex. Default planner is mock so the user only writes a goal and you execute. Pass planner=chatgpt-web only if they asked to paste a web chat (dán ChatGPT). Pass brainstorm=true or phase=brainstorm for nghiệp vụ notes first. Pass pipeline=true for Claude Code + Codex + Grok. Never spawn another Codex.",
+        "Start or resume a C2X session from inside Codex. Default planner is mock so the user only writes a goal and you execute. Pass planner=chatgpt-web only if they asked to paste a web chat (dán ChatGPT). Pass brainstorm=true or phase=brainstorm for nghiệp vụ notes first. Pass pipeline=true for Claude Code + Codex + Grok. Pass brain=codex and/or harness=agy / team=agy so this chat is the brain and AGY executes — do not write app code and do not spawn Codex. Never spawn another Codex.",
       inputSchema: {
         type: "object",
         properties: {
@@ -218,6 +316,12 @@ export function listCodexMcpTools(): CodexMcpToolSpec[] {
             type: "boolean",
             description: "Team claude-code + codex + grok-build",
           },
+          brain: {
+            type: "string",
+            description: "codex = this chat plans/commands; harness team executes",
+          },
+          harness: { type: "string", description: "Single execute harness (e.g. agy)" },
+          team: { type: "string", description: "Comma-separated execute harness ids" },
         },
       },
     },
@@ -319,17 +423,56 @@ async function startTurn(args: Record<string, unknown>): Promise<CodexMcpResult>
   const workspace: WorkspaceSource = workspaceRaw;
   const brainstorm =
     boolArg(args, "brainstorm") || stringArg(args, "phase") === "brainstorm";
-  const harnessTeam = boolArg(args, "pipeline") ? PIPELINE_HARNESS_TEAM : [CODEX_MCP_OWNER];
+  const started = startTeamFromArgs(args);
+  if ("ok" in started) {
+    return started;
+  }
   const session = await runPlan({
     goal,
     plannerChoice: planner,
-    harnessTeam,
+    harnessTeam: started.harnessTeam,
     budgetTokens: 4000,
     workspaceSource: workspace,
     cwd: stringArg(args, "cwd"),
     brainstorm,
+    brain: started.brain,
   });
   return turnFromSession(session);
+}
+
+function startTeamFromArgs(
+  args: Record<string, unknown>,
+): { harnessTeam: HarnessId[]; brain: SessionBrain } | CodexMcpFailure {
+  const requestedBrain = stringArg(args, "brain");
+  if (requestedBrain && !isSessionBrain(requestedBrain)) {
+    return { ok: false, error: `unknown brain: ${requestedBrain}` };
+  }
+  const harnessArg = stringArg(args, "harness");
+  if (harnessArg && !isHarnessId(harnessArg)) {
+    return { ok: false, error: `unknown harness: ${harnessArg}` };
+  }
+  const teamArg = stringArg(args, "team");
+  const pipeline = boolArg(args, "pipeline");
+  let brain: SessionBrain =
+    requestedBrain && isSessionBrain(requestedBrain) ? requestedBrain : "none";
+  if (brain === "none" && !pipeline && (harnessArg || teamArg)) {
+    const preview = resolveHarnessTeam({
+      harnessTeam: teamArg,
+      harness: harnessArg,
+    });
+    if (!preview.includes(CODEX_MCP_OWNER)) {
+      brain = "codex";
+    }
+  }
+  return {
+    brain,
+    harnessTeam: resolveBrainTeam({
+      brain,
+      harnessTeam: pipeline ? PIPELINE_HARNESS_TEAM : teamArg,
+      harness: pipeline ? undefined : harnessArg,
+      fallbackTeam: brain === "codex" ? PIPELINE_AGY_HARNESS_TEAM : [CODEX_MCP_OWNER],
+    }),
+  };
 }
 
 async function submitTurn(args: Record<string, unknown>): Promise<CodexMcpResult> {
@@ -347,29 +490,45 @@ async function submitTurn(args: Record<string, unknown>): Promise<CodexMcpResult
 }
 
 async function briefTurn(args: Record<string, unknown>): Promise<CodexMcpResult> {
-  const owner = ownerFromArgs(args);
-  if (typeof owner !== "string") {
-    return owner;
-  }
   const existing = await loadSession(stringArg(args, "session"));
   if (isMcpFailure(existing)) {
     return existing;
   }
-  const brief = briefForCodex(existing);
-  if (!brief) {
-    return { ok: false, error: `no brief for ${owner}` };
+  const brain = resolveSessionBrain(existing.brain);
+  switch (brain) {
+    case "codex":
+      return {
+        ok: false,
+        error: "briefs in .c2x/briefs/ are for the harness team — you do not execute them",
+      };
+    case "none": {
+      const owner = ownerFromArgs(args);
+      if (typeof owner !== "string") {
+        return owner;
+      }
+      const brief = briefForCodex(existing);
+      if (!brief) {
+        return { ok: false, error: `no brief for ${owner}` };
+      }
+      return { ...turnFromSession(existing), action: "execute", brief, prompt: null };
+    }
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
   }
-  return { ...turnFromSession(existing), action: "execute", brief, prompt: null };
 }
 
 async function recordTurn(args: Record<string, unknown>): Promise<CodexMcpResult> {
-  const owner = ownerFromArgs(args);
-  if (typeof owner !== "string") {
-    return owner;
-  }
   const sessionId = stringArg(args, "session");
   if (!sessionId) {
     return { ok: false, error: "session is required" };
+  }
+  const existing = await loadSession(sessionId);
+  if (isMcpFailure(existing)) {
+    return existing;
+  }
+  const owner = recordOwnerFromSession(existing, args);
+  if (typeof owner !== "string") {
+    return owner;
   }
   const recorded = await runRecord({
     sessionId,

@@ -43,6 +43,7 @@ describe("catalog packetRole", () => {
     expect(getHarness("grok-build").packetRole).toBe("ci");
     expect(getHarness("opencode").packetRole).toBe("implement");
     expect(getHarness("kiro-cli").packetRole).toBe("implement");
+    expect(getHarness("agy").packetRole).toBe("implement");
     for (const id of HARNESS_IDS) {
       expect(HARNESS_BY_ID[id].packetRole).toBe(getHarness(id).packetRole);
       expect(CATALOG_PACKET_ROLES).toContain(getHarness(id).packetRole);

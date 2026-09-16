@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runPlan } from "@/core/run-loop";
+import { getHarness } from "@/core/providers/catalog";
 import { HARNESS_IDS, isHarnessId } from "@/core/types";
 
 let dataDir = "";
@@ -44,8 +45,9 @@ describe("wiki outbox", () => {
     expect(text).toMatch(/createTask/i);
     expect(text).toMatch(/Azure DevOps|wiki|Jira/i);
     expect(text).not.toMatch(/Authorization:|Bearer |JIRA_API|AZURE_DEVOPS_PAT/i);
-    expect(isHarnessId("agy")).toBe(false);
-    expect(HARNESS_IDS).not.toContain("agy");
+    expect(isHarnessId("agy")).toBe(true);
+    expect(HARNESS_IDS).toContain("agy");
     expect(HARNESS_IDS).not.toContain("jira");
+    expect(getHarness("agy").packetRole).toBe("implement");
   });
 });

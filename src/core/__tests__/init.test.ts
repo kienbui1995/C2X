@@ -134,6 +134,8 @@ describe("runInit", () => {
     expect(cli).toMatch(/no spawn/);
     expect(cli).not.toMatch(/npx c2x/);
     expect(cli).toMatch(/--pipeline/);
+    expect(cli).toMatch(/--brain-codex/);
+    expect(cli).toMatch(/--pipeline-agy/);
     expect(cli).toMatch(/\.command\("brainstorm"\)/);
   });
 

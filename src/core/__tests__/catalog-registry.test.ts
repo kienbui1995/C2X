@@ -28,6 +28,8 @@ describe("catalog registry", () => {
     }
     expect(HARNESS_BY_ID["grok-build"].binaries).toEqual(["grok", "grok-build"]);
     expect(HARNESS_BY_ID["kiro-cli"].binaries).toEqual(["kiro"]);
+    expect(HARNESS_BY_ID.agy.binaries).toEqual(["agy"]);
+    expect(HARNESS_BY_ID.agy.packetRole).toBe("implement");
   });
 
   it("routes execute from catalog names and never lists harnesses as planners", () => {

@@ -1,6 +1,6 @@
 ---
 name: chat-to-x
-description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you finish it here. Default planner is mock (no paste). Trigger on C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, pipeline đầy đủ, ChatGPT + Claude Code + Codex + Grok, or a coding goal that should not burn Codex quota on planning.
+description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you finish it here. Default planner is mock (no paste). Trigger on C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, pipeline đầy đủ, ChatGPT + Claude Code + Codex + Grok, brain-codex, pipeline-agy, Codex là bộ não, AGY, or a coding goal that should not burn Codex quota on planning.
 ---
 
 # chat-to-x
@@ -9,7 +9,8 @@ This is **not** an official OpenAI skill or plugin. Unofficial community project
 
 The checkout lives at: replace-with-absolute-path
 
-Install with `c2x init --harness codex`, `c2x init --pipeline`, or
+Install with `c2x init --harness codex`, `c2x init --pipeline`,
+`c2x init --brain-codex --harness agy`, `c2x init --pipeline-agy`, or
 `c2x skill-install` (writes `$HOME/.agents/skills/chat-to-x/SKILL.md`,
 `~/.codex/skills/chat-to-x/SKILL.md` for older Codex,
 `~/.claude/skills/chat-to-x/SKILL.md`, the C2X block in `~/.codex/AGENTS.md`,
@@ -22,6 +23,7 @@ and `[mcp_servers.chat-to-x]` in `~/.codex/config.toml`).
 | Code | Claude Code |
 | Test + sửa bug (execute) | Codex |
 | CI/CD | Grok Build |
+| Codex = não (lệnh MCP) / AGY = chạy code | Optional: `brain=codex` + harness `agy` |
 | Wiki | `docs/wiki` outbox, dán ADO/Jira |
 
 **Codex does not review.** No official vendor plugin. No Jira OAuth.
@@ -61,8 +63,18 @@ Pipeline — “pipeline” / “ChatGPT + Claude Code + Codex + Grok” / `c2x 
 - UI: run OpenDesign (or any UI tool) **outside** C2X, drop `DESIGN.md` /
   HTML into the repo, then PLAN assigns implement to Claude Code.
 - Wiki: C2X writes `docs/wiki` and `.c2x/outbox/wiki`. User pastes into
-  Azure DevOps wiki / Jira. If `agy` is later on PATH, they can use it
-  themselves — C2X does not invent a fake AGY hook.
+  Azure DevOps wiki / Jira. No Jira OAuth. Do not store provider tokens
+  in the checkout.
+
+Optional Codex-brain + AGY — “Codex là bộ não” / `c2x init --brain-codex --harness agy`
+/ `c2x init --pipeline-agy` / `c2x_start` with `brain=codex` and/or `harness=agy`
+/ `team=agy`:
+
+- **You are the brain.** Do not write app code. AGY executes.
+- Planner stays `mock` unless the user asked to paste a web chat.
+- Do not spawn another `codex` process. Do not execute the implement brief.
+- `.c2x/briefs/agy.md` is for AGY — you do not execute it.
+- After AGY records, call `c2x_status`. You are not a catalog reviewer.
 
 If MCP tools are missing, fallback:
 
@@ -92,6 +104,8 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 ```bash
 c2x init --harness codex
 c2x init --pipeline
+c2x init --brain-codex --harness agy
+c2x init --pipeline-agy
 c2x brainstorm "nghiệp vụ…"
 c2x_start / c2x_submit / c2x_record
 c2x "<mục tiêu>" --planner mock --no-spawn

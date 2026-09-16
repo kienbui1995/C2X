@@ -3,10 +3,12 @@ import { splitWorkPackets } from "@/core/packets";
 import { createTaskId } from "@/core/protocol";
 import {
   isHarnessId,
-  resolveHarnessTeam,
+  resolveBrainTeam,
+  resolveSessionBrain,
   type ContextPack,
   type HarnessId,
   type HarnessRun,
+  type SessionBrain,
   type SessionEvent,
   type SessionRecord,
   type WorkspaceSource,
@@ -58,10 +60,13 @@ export function createSession(input: {
   harnessTeam?: readonly HarnessId[];
   budgetTokens: number;
   workspaceSource: WorkspaceSource;
+  brain?: SessionBrain;
 }): SessionRecord {
   const now = new Date().toISOString();
   const id = createTaskId();
-  const harnessTeam = resolveHarnessTeam({
+  const brain = resolveSessionBrain(input.brain);
+  const harnessTeam = resolveBrainTeam({
+    brain,
     harnessTeam: input.harnessTeam,
     harness: input.harness,
   });
@@ -105,6 +110,7 @@ export function createSession(input: {
     iterationLimit: 12,
     brainstormNotes: null,
     brainstormPending: false,
+    brain,
   };
 }
 
@@ -139,7 +145,9 @@ export function applyPlan(session: SessionRecord, extras: Partial<SessionRecord>
 }
 
 export function normalizeSession(raw: SessionRecord): SessionRecord {
-  const harnessTeam = resolveHarnessTeam({
+  const brain = resolveSessionBrain(raw.brain);
+  const harnessTeam = resolveBrainTeam({
+    brain,
     harnessTeam: raw.harnessTeam,
     harness: raw.harness,
   });
@@ -188,6 +196,7 @@ export function normalizeSession(raw: SessionRecord): SessionRecord {
     iterationLimit: raw.iterationLimit ?? 12,
     brainstormNotes: raw.brainstormNotes ?? null,
     brainstormPending: Boolean(raw.brainstormPending),
+    brain,
   };
 }
 

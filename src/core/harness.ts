@@ -57,9 +57,22 @@ function missingHints(id: HarnessId, names: readonly string[]): Pick<
   "hintVi" | "hintEn"
 > {
   const listed = names.join(" / ");
-  return {
+  return withUnofficialNote(id, {
     hintVi: `Không thấy ${listed}. Sao chép brief \`${id}\` vào tool đó — C2X không spawn harness.`,
     hintEn: `No ${listed} on PATH. Copy the \`${id}\` brief into that tool — C2X does not spawn a harness.`,
+  });
+}
+
+function withUnofficialNote(
+  id: HarnessId,
+  hints: Pick<HarnessDetectResult, "hintVi" | "hintEn">,
+): Pick<HarnessDetectResult, "hintVi" | "hintEn"> {
+  if (!getHarness(id).unofficial) {
+    return hints;
+  }
+  return {
+    hintVi: `${hints.hintVi} Cộng đồng, không chính thức; cờ có thể đổi.`,
+    hintEn: `${hints.hintEn} Unofficial, flags may change.`,
   };
 }
 
@@ -87,8 +100,10 @@ export async function detectHarness(
         id,
         ok: true,
         binary,
-        hintVi: `Đã thấy ${path.basename(binary)} trên PATH. C2X không spawn harness.`,
-        hintEn: `Found ${path.basename(binary)} on PATH. C2X does not spawn a harness.`,
+        ...withUnofficialNote(id, {
+          hintVi: `Đã thấy ${path.basename(binary)} trên PATH. C2X không spawn harness.`,
+          hintEn: `Found ${path.basename(binary)} on PATH. C2X does not spawn a harness.`,
+        }),
       }
     : {
         id,

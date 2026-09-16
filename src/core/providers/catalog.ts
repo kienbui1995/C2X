@@ -26,6 +26,8 @@ export type HarnessCatalogEntry = {
   /** Non-interactive CLI args. `{brief}` is replaced with `.c2x/briefs/<id>.md`. */
   execArgs: readonly string[];
   packetRole: CatalogPacketRole;
+  /** Community / unofficial catalog row — doctor should say flags may change. */
+  unofficial?: boolean;
 };
 
 export function resolveExecArgs(entry: HarnessCatalogEntry, briefRel: string): string[] {
@@ -279,6 +281,19 @@ export const HARNESS_BY_ID = {
     binaries: ["kiro"],
     execArgs: ["--prompt", "Read and execute only {brief}. Do not plan or review."],
     packetRole: "implement",
+  },
+  agy: {
+    id: "agy",
+    name: "AGY",
+    nameVi: "AGY",
+    blurb: "Google Antigravity CLI (agy). Execution only — edit, shell, test, git. Never plan or review. Community catalog entry, not affiliated with Google; unofficial, flags may change.",
+    blurbVi: "Google Antigravity CLI (agy). Chỉ chạy: sửa file, shell, test, git. Không lập kế hoạch hay review. Mục catalog cộng đồng, không liên kết Google; không chính thức, cờ có thể đổi.",
+    quotaVi: "Hạn mức harness khan hiếm",
+    quotaEn: "Scarce harness quota",
+    binaries: ["agy"],
+    execArgs: ["-p", "Read and execute only {brief}. Do not plan or review."],
+    packetRole: "implement",
+    unofficial: true,
   },
 } satisfies Record<HarnessId, HarnessCatalogEntry>;
 

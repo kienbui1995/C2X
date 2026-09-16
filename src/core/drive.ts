@@ -7,9 +7,11 @@ import { getSession } from "@/core/store";
 import { resolveWorkspaceRoot } from "@/core/workspace";
 import {
   assertNever,
-  resolveHarnessTeam,
+  resolveBrainTeam,
+  resolveSessionBrain,
   type HarnessId,
   type PlannerChoice,
+  type SessionBrain,
   type SessionRecord,
   type WorkspaceSource,
 } from "@/core/types";
@@ -35,6 +37,7 @@ export async function runDrive(input: {
   timeoutMs?: number;
   waitForControl?: DriveWaitFn;
   spawnHarness?: SpawnHarnessFn;
+  brain?: SessionBrain;
 }): Promise<DriveResult> {
   const workspaceRoot = resolveWorkspaceRoot({ cwd: input.cwd, env: process.env });
   const spawnEnabled = input.spawn !== false;
@@ -51,7 +54,8 @@ export async function runDrive(input: {
     session = await runPlan({
       goal: input.goal ?? "Drive the C2X loop",
       plannerChoice: input.plannerChoice ?? "chatgpt-web",
-      harnessTeam: resolveHarnessTeam({
+      harnessTeam: resolveBrainTeam({
+        brain: input.brain,
         harnessTeam: input.harnessTeam,
         harness: input.harness,
         fallbackTeam: ["codex"],
@@ -59,6 +63,7 @@ export async function runDrive(input: {
       budgetTokens: input.budgetTokens ?? 4000,
       workspaceSource: input.workspaceSource ?? "repo",
       cwd: input.cwd,
+      brain: input.brain,
     });
   }
 
@@ -75,8 +80,13 @@ export async function runDrive(input: {
       }
       case "PLAN":
       case "EXECUTING": {
-        await persistWorkspaceBriefs(session, input.cwd);
-        const pending = session.harnessRuns.filter((run) => run.state !== "executed");
+        const active = session;
+        if (!active) {
+          throw new Error("Session is missing.");
+        }
+        await persistWorkspaceBriefs(active, input.cwd);
+        const pending = active.harnessRuns.filter((run) => run.state !== "executed");
+        const spawnable = pending.filter((run) => !shouldSkipBrainSpawn(active, run.owner));
         if (pending.length === 0) {
           session = await runReview({
             sessionId: session.id,
@@ -85,10 +95,10 @@ export async function runDrive(input: {
           });
           break;
         }
-        if (!spawnEnabled) {
+        if (!spawnEnabled || spawnable.length === 0) {
           return { session, outbox, spawns };
         }
-        for (const run of pending) {
+        for (const run of spawnable) {
           const spawned = await runSpawn({
             owner: run.owner,
             workspaceRoot,
@@ -141,6 +151,18 @@ export async function runDrive(input: {
     }
   }
   return { session, outbox, spawns };
+}
+
+function shouldSkipBrainSpawn(session: SessionRecord, owner: HarnessId): boolean {
+  const brain = resolveSessionBrain(session.brain);
+  switch (brain) {
+    case "none":
+      return false;
+    case "codex":
+      return owner === brain;
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
+  }
 }
 
 export function formatDriveReport(result: DriveResult): string {

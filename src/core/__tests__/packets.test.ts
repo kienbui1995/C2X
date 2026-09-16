@@ -19,7 +19,7 @@ import {
 } from "@/core/types";
 
 const FOUR_TEAM: HarnessId[] = ["codex", "claude-code", "grok-build", "opencode"];
-const ALL_HARNESSES: HarnessId[] = [...FOUR_TEAM, "kiro-cli"];
+const ALL_HARNESSES: HarnessId[] = [...FOUR_TEAM, "kiro-cli", "agy"];
 
 const DEMO_GOAL =
   "Sửa createTask để việc mới thật sự được lưu, giữ bộ lọc status trên URL khi reload, và thêm test cho empty state.";
@@ -161,7 +161,7 @@ describe("splitWorkPackets team sizes", () => {
 });
 
 describe("harness catalog", () => {
-  it("lists five first-class execution harnesses including kiro-cli", () => {
+  it("lists catalog execution harnesses including kiro-cli and agy", () => {
     expect(HARNESS_IDS).toEqual(ALL_HARNESSES);
     expect(HARNESS_CATALOG.map((entry) => entry.id)).toEqual(ALL_HARNESSES);
     for (const id of HARNESS_IDS) {
@@ -194,7 +194,8 @@ describe("harness catalog", () => {
     ]);
     expect(toggleHarnessInTeam(["opencode"], "grok-build")).toEqual(["grok-build", "opencode"]);
     expect(toggleHarnessInTeam(["codex"], "kiro-cli")).toEqual(["codex", "kiro-cli"]);
-    expect(toggleHarnessInTeam(ALL_HARNESSES, "kiro-cli")).toEqual(FOUR_TEAM);
+    expect(toggleHarnessInTeam(ALL_HARNESSES, "kiro-cli")).toEqual([...FOUR_TEAM, "agy"]);
+    expect(toggleHarnessInTeam(["agy"], "agy")).toEqual(["agy"]);
   });
 });
 
@@ -240,11 +241,12 @@ describe("mockPlanFromPack", () => {
     expect(planToBriefs(plan).map((brief) => brief.owner)).toEqual(FOUR_TEAM);
   });
 
-  it("plans a 5-harness team including kiro-cli", () => {
-    const plan = mockPlanFromPack(packedDemo(), "c2x_five", ALL_HARNESSES);
-    expect(plan.packets).toHaveLength(5);
+  it("plans the full catalog team including kiro-cli and agy", () => {
+    const plan = mockPlanFromPack(packedDemo(), "c2x_catalog", ALL_HARNESSES);
+    expect(plan.packets).toHaveLength(ALL_HARNESSES.length);
     expect(planToBriefs(plan).map((brief) => brief.owner)).toEqual(ALL_HARNESSES);
     expect(plan.packets.some((packet) => packet.owner === "kiro-cli")).toBe(true);
+    expect(plan.packets.some((packet) => packet.owner === "agy")).toBe(true);
   });
 });
 
@@ -309,6 +311,7 @@ describe("routeRole and routeExecuteTeam", () => {
         expect(decision.provider).not.toBe("grok-build");
         expect(decision.provider).not.toBe("opencode");
         expect(decision.provider).not.toBe("kiro-cli");
+        expect(decision.provider).not.toBe("agy");
       }
     }
   });
@@ -338,9 +341,9 @@ describe("routeRole and routeExecuteTeam", () => {
     expect(four.map((item) => item.provider)).toEqual(FOUR_TEAM);
     expect(four.every((item) => item.role === "execute")).toBe(true);
 
-    const five = routeExecuteTeam(ALL_HARNESSES);
-    expect(five.map((item) => item.provider)).toEqual(ALL_HARNESSES);
-    expect(five.every((item) => item.role === "execute")).toBe(true);
+    const catalogTeam = routeExecuteTeam(ALL_HARNESSES);
+    expect(catalogTeam.map((item) => item.provider)).toEqual(ALL_HARNESSES);
+    expect(catalogTeam.every((item) => item.role === "execute")).toBe(true);
   });
 });
 

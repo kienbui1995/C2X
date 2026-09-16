@@ -48,10 +48,12 @@ import { getSession, loadConfig, upsertSession } from "@/core/store";
 import { loadC2xIgnore, loadWorkspaceFiles, resolveWorkspaceRoot } from "@/core/workspace";
 import {
   isHarnessId,
-  resolveHarnessTeam,
+  resolveBrainTeam,
+  resolveSessionBrain,
   type ExecutionExitStatus,
   type HarnessId,
   type PlannerChoice,
+  type SessionBrain,
   type SessionRecord,
   type WorkspaceSource,
 } from "@/core/types";
@@ -72,6 +74,7 @@ export async function runPlan(input: {
   allowFallback?: boolean;
   cwd?: string;
   brainstorm?: boolean;
+  brain?: SessionBrain;
 }): Promise<SessionRecord> {
   const config = await loadConfig();
   const planner = resolvePlanner({
@@ -79,7 +82,9 @@ export async function runPlan(input: {
     config,
     hasKey: (id) => hasProviderKey(config, id),
   });
-  const harnessTeam = resolveHarnessTeam({
+  const brain = resolveSessionBrain(input.brain);
+  const harnessTeam = resolveBrainTeam({
+    brain,
     harnessTeam: input.harnessTeam,
     harness: input.harness,
     fallbackTeam: config.defaultHarnessTeam,
@@ -103,6 +108,7 @@ export async function runPlan(input: {
     harnessTeam,
     budgetTokens: input.budgetTokens,
     workspaceSource: input.workspaceSource,
+    brain,
   });
   session = { ...session, pack };
 

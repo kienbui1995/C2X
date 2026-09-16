@@ -43,11 +43,12 @@ import { resolveWorkspaceRoot } from "@/core/workspace";
 import { formatTokens, formatUsd } from "@/core/tokens";
 import {
   HARNESS_IDS,
+  PIPELINE_AGY_HARNESS_TEAM,
+  PIPELINE_HARNESS_TEAM,
   isExecutionExitStatus,
   isHarnessId,
   isPlannerChoice,
   isWorkspaceSource,
-  PIPELINE_HARNESS_TEAM,
   resolveHarnessTeam,
   type PlannerChoice,
 } from "@/core/types";
@@ -492,6 +493,8 @@ program
   .option("--team <ids>", "comma-separated harness ids")
   .option("--harness <id>", "single harness")
   .option("--pipeline", "alias: team claude-code,codex,grok-build", false)
+  .option("--brain-codex", "Codex CLI is the brain (MCP); harness executes", false)
+  .option("--pipeline-agy", "alias: brain Codex + team agy", false)
   .option("--cwd <path>", "workspace root for brief drops (CLI only)")
   .option("--workspace <src>", "demo|repo", "demo")
   .option("--budget <n>", "token budget", "4000")
@@ -500,6 +503,8 @@ program
     team?: string;
     harness?: string;
     pipeline?: boolean;
+    brainCodex?: boolean;
+    pipelineAgy?: boolean;
     cwd?: string;
     workspace: string;
     budget: string;
@@ -514,11 +519,15 @@ program
       goal: opts.goal,
       harnessTeam: opts.team
         ? teamFromOpts(opts)
-        : opts.pipeline
-          ? PIPELINE_HARNESS_TEAM
-          : undefined,
+        : opts.pipelineAgy
+          ? PIPELINE_AGY_HARNESS_TEAM
+          : opts.pipeline
+            ? PIPELINE_HARNESS_TEAM
+            : undefined,
       harness: opts.harness && isHarnessId(opts.harness) ? opts.harness : undefined,
       pipeline: opts.pipeline,
+      pipelineAgy: opts.pipelineAgy,
+      brain: opts.brainCodex || opts.pipelineAgy ? "codex" : "none",
       workspaceSource: opts.workspace,
       cwd: opts.cwd,
       repoRoot: packageRoot(),

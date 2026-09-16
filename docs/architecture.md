@@ -22,7 +22,8 @@ tiers) the user already pays for.
            ├─► brief OWNER=claude-code  ──► Claude Code (its files only)
            ├─► brief OWNER=grok-build   ──► Grok Build (execute only)
            ├─► brief OWNER=opencode     ──► OpenCode (execute only)
-           └─► brief OWNER=kiro-cli     ──► Kiro CLI (execute only)
+           ├─► brief OWNER=kiro-cli     ──► Kiro CLI (execute only)
+           └─► brief OWNER=agy          ──► AGY / Antigravity CLI (execute only)
            │
            ▼
      EXECUTING per harness ──► EXECUTED merge metadata
@@ -58,6 +59,7 @@ Code sections.
 | Code | Claude Code |
 | Test + sửa bug (execute) | Codex |
 | CI/CD | Grok Build |
+| Codex = não (lệnh MCP) / AGY = chạy code | Optional `brain=codex` + team `[agy]` |
 | Wiki | `docs/wiki` outbox, dán ADO/Jira |
 
 **Codex does not review.** Unofficial community project — not an official
@@ -65,13 +67,16 @@ vendor plugin. No Jira OAuth. Harness `packetRole` lives on the catalog
 entry (`implement` / `fix` / `ci` / `docs`); the splitter `map`s it.
 
 `c2x init --pipeline` sets team `claude-code,codex,grok-build`.
+`c2x init --brain-codex --harness agy` / `--pipeline-agy` sets team `[agy]`
+with `brain: "codex"` — Codex CLI is the MCP brain; AGY executes. Do not
+spawn a Codex harness in that mode.
 `install.sh` stays `c2x init --harness codex`.
 
 | Role | Who | Never |
 | --- | --- | --- |
 | Plan | Web/subscription planners first, then local, then paid APIs | any `HarnessId` |
 | Review | Same as plan | any `HarnessId` |
-| Execute | Any subset of `codex`, `claude-code`, `grok-build`, `opencode`, `kiro-cli` | planners |
+| Execute | Any subset of `codex`, `claude-code`, `grok-build`, `opencode`, `kiro-cli`, `agy` | planners |
 
 Default team is Codex + Claude Code. The control room can pick any one harness
 or several together. A single-harness team is still valid.

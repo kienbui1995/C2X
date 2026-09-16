@@ -16,7 +16,7 @@ export const copy = {
     harness: "Harness chạy",
     harnessTeam: "Đội harness",
     harnessTeamLead:
-      "Bật một hoặc nhiều harness trong cùng phiên (mặc định Codex + Claude Code; có thể thêm Grok Build, OpenCode, Kiro CLI). Planner chat web chia PLAN thành packet; mỗi tool chỉ thấy brief của mình — gộp hạn mức khan, không đốt một tool cho tất cả.",
+      "Bật một hoặc nhiều harness trong cùng phiên (mặc định Codex + Claude Code; có thể thêm Grok Build, OpenCode, Kiro CLI, AGY). Planner chat web chia PLAN thành packet; mỗi tool chỉ thấy brief của mình — gộp hạn mức khan, không đốt một tool cho tất cả.",
     budget: "Ngân sách token",
     workspace: "Workspace",
     demoWorkspace: "App demo Nhiệm vụ",
@@ -31,7 +31,7 @@ export const copy = {
     webTurns: "Lượt chat web",
     emptyTitle: "Chưa có phiên",
     emptyBody:
-      "Hạn mức Codex, Claude Code, Grok Build, OpenCode hay Kiro CLI là ít — đừng bắt một tool nghĩ + chạy + review. Gộp chúng thành đội: ChatGPT / Claude / Gemini web (quota chat lớn) lập kế hoạch và chia packet; mỗi harness khan chỉ nhận brief của mình để chạy.",
+      "Hạn mức Codex, Claude Code, Grok Build, OpenCode, Kiro CLI hay AGY là ít — đừng bắt một tool nghĩ + chạy + review. Gộp chúng thành đội: ChatGPT / Claude / Gemini web (quota chat lớn) lập kế hoạch và chia packet; mỗi harness khan chỉ nhận brief của mình để chạy.",
     packTitle: "Context đã nén",
     omitted: "Bỏ qua",
     secrets: "File nhạy cảm bị chặn",
@@ -57,16 +57,16 @@ export const copy = {
     executing: "Đang ghi nhận…",
     fallback: "Đã fallback planner giả lập",
     providersLead:
-      "ChatGPT web, Claude web, Gemini web = quota chat lớn / subscription — để chúng lập kế hoạch và review. Codex, Claude Code, Grok Build, OpenCode, Kiro CLI = hạn mức harness khan hiếm — chỉ chạy, chọn một hoặc ghép vài cái trong cùng phiên. API trả phí đứng sau chat web. Không reverse-proxy, không lấy cookie.",
+      "ChatGPT web, Claude web, Gemini web = quota chat lớn / subscription — để chúng lập kế hoạch và review. Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, AGY = hạn mức harness khan hiếm — chỉ chạy, chọn một hoặc ghép vài cái trong cùng phiên. API trả phí đứng sau chat web. Không reverse-proxy, không lấy cookie.",
     harnessLead:
-      "Bật đội harness mặc định — bất kỳ tập hợp nào trong Codex, Claude Code, Grok Build, OpenCode, Kiro CLI. Cùng vai trò execute: sửa file, shell, test, git. Planner chia file khi chọn nhiều hơn một. Không bao giờ plan/review.",
+      "Bật đội harness mặc định — bất kỳ tập hợp nào trong Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, AGY. Cùng vai trò execute: sửa file, shell, test, git. Planner chia file khi chọn nhiều hơn một. Không bao giờ plan/review.",
     enabled: "Bật",
     keyLabel: "API key",
     saveConfig: "Lưu cấu hình",
     saving: "Đang lưu…",
     sessionsEmpty: "Chưa có phiên nào. Chạy một kế hoạch ở phòng điều khiển.",
     protocolLead:
-      "C2X tách não nghĩ khỏi harness: INIT → PLAN (kèm packet) → EXECUTING (từng harness) → EXECUTED (gộp metadata) → REVIEW → DONE. Planner là chat web hoặc API rẻ. Execute là đội bạn chọn: Codex, Claude Code, Grok Build, OpenCode, Kiro CLI. Mặt điều khiển dưới 1 KB; file đi qua lớp nén.",
+      "C2X tách não nghĩ khỏi harness: INIT → PLAN (kèm packet) → EXECUTING (từng harness) → EXECUTED (gộp metadata) → REVIEW → DONE. Planner là chat web hoặc API rẻ. Execute là đội bạn chọn: Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, AGY. Mặt điều khiển dưới 1 KB; file đi qua lớp nén.",
     savingsLead:
       "So một mình harness phải nghĩ + đọc cả workspace với C2X: chat web chịu plan/review (lượt chat lớn), mỗi harness trong đội chỉ nhận brief của mình (hạn mức khan). Token và lượt chat đều được giữ.",
     error: "Có lỗi",
@@ -128,7 +128,7 @@ export const copy = {
     harness: "Execution harness",
     harnessTeam: "Harness team",
     harnessTeamLead:
-      "Enable one or more harnesses in the same session (default Codex + Claude Code; optionally Grok Build, OpenCode, Kiro CLI). The web-chat planner splits the PLAN into packets; each tool only sees its own brief — combine scarce quotas instead of burning one tool for everything.",
+      "Enable one or more harnesses in the same session (default Codex + Claude Code; optionally Grok Build, OpenCode, Kiro CLI, AGY). The web-chat planner splits the PLAN into packets; each tool only sees its own brief — combine scarce quotas instead of burning one tool for everything.",
     budget: "Token budget",
     workspace: "Workspace",
     demoWorkspace: "Nhiệm vụ demo app",
@@ -143,7 +143,7 @@ export const copy = {
     webTurns: "Web-chat turns",
     emptyTitle: "No session yet",
     emptyBody:
-      "Codex, Claude Code, Grok Build, OpenCode, or Kiro CLI quota is scarce — do not make one tool think, run, and review. Combine them as a team: ChatGPT / Claude / Gemini web (large chat quota) plans and splits packets; each scarce harness only gets its own execute brief.",
+      "Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, or AGY quota is scarce — do not make one tool think, run, and review. Combine them as a team: ChatGPT / Claude / Gemini web (large chat quota) plans and splits packets; each scarce harness only gets its own execute brief.",
     packTitle: "Packed context",
     omitted: "Omitted",
     secrets: "Sensitive files blocked",
@@ -169,16 +169,16 @@ export const copy = {
     executing: "Recording…",
     fallback: "Fell back to the mock planner",
     providersLead:
-      "ChatGPT web, Claude web, Gemini web = large chat quota / subscription — they should plan and review. Codex, Claude Code, Grok Build, OpenCode, Kiro CLI = scarce harness quota — execute only; pick any subset in one session. Paid APIs sit behind web chats. No reverse proxy, no stolen cookies.",
+      "ChatGPT web, Claude web, Gemini web = large chat quota / subscription — they should plan and review. Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, AGY = scarce harness quota — execute only; pick any subset in one session. Paid APIs sit behind web chats. No reverse proxy, no stolen cookies.",
     harnessLead:
-      "Enable the default harness team — any subset of Codex, Claude Code, Grok Build, OpenCode, Kiro CLI. Same execute job: edit, shell, test, git. The planner splits files when more than one is selected. Never plan or review.",
+      "Enable the default harness team — any subset of Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, AGY. Same execute job: edit, shell, test, git. The planner splits files when more than one is selected. Never plan or review.",
     enabled: "Enabled",
     keyLabel: "API key",
     saveConfig: "Save config",
     saving: "Saving…",
     sessionsEmpty: "No sessions yet. Run a plan from the control room.",
     protocolLead:
-      "C2X splits thinking from the harness: INIT → PLAN (with packets) → EXECUTING (per harness) → EXECUTED (merge metadata) → REVIEW → DONE. The planner is a web chat or a cheap API. Execute is the team you pick: Codex, Claude Code, Grok Build, OpenCode, Kiro CLI. Control messages stay tiny; files move through the packer.",
+      "C2X splits thinking from the harness: INIT → PLAN (with packets) → EXECUTING (per harness) → EXECUTED (merge metadata) → REVIEW → DONE. The planner is a web chat or a cheap API. Execute is the team you pick: Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, AGY. Control messages stay tiny; files move through the packer.",
     savingsLead:
       "Compare a lone harness that thinks and reads the whole workspace with C2X: web chats take plan/review (large allowances), each teammate only gets its own brief (scarce quota). You save both tokens and turns.",
     error: "Something broke",

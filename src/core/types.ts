@@ -28,6 +28,7 @@ export const HARNESS_IDS = [
   "grok-build",
   "opencode",
   "kiro-cli",
+  "agy",
 ] as const;
 export type HarnessId = (typeof HARNESS_IDS)[number];
 
@@ -36,6 +37,12 @@ export const DEFAULT_HARNESS_TEAM: HarnessId[] = ["codex", "claude-code"];
 
 /** ChatGPT + Claude Code + Codex + Grok — `c2x init --pipeline`. */
 export const PIPELINE_HARNESS_TEAM: HarnessId[] = ["claude-code", "codex", "grok-build"];
+
+/** Codex CLI is the brain (MCP). AGY executes — `c2x init --pipeline-agy`. */
+export const PIPELINE_AGY_HARNESS_TEAM: HarnessId[] = ["agy"];
+
+export const SESSION_BRAINS = ["none", "codex"] as const;
+export type SessionBrain = (typeof SESSION_BRAINS)[number];
 
 export const CATALOG_PACKET_ROLES = ["implement", "fix", "ci", "docs"] as const;
 export type CatalogPacketRole = (typeof CATALOG_PACKET_ROLES)[number];
@@ -233,6 +240,8 @@ export type SessionRecord = {
   iterationLimit: number;
   brainstormNotes: string | null;
   brainstormPending: boolean;
+  /** `codex` = this Codex CLI chat plans/commands; harness team executes. */
+  brain: SessionBrain;
 };
 
 export type ProviderStatus = {
@@ -290,6 +299,61 @@ export function isPlannerChoice(value: string): value is PlannerChoice {
 
 export function isHarnessId(value: string): value is HarnessId {
   return (HARNESS_IDS as readonly string[]).includes(value);
+}
+
+export function isSessionBrain(value: string): value is SessionBrain {
+  return (SESSION_BRAINS as readonly string[]).includes(value);
+}
+
+export function resolveSessionBrain(value: unknown): SessionBrain {
+  if (typeof value === "string" && isSessionBrain(value)) {
+    return value;
+  }
+  return "none";
+}
+
+function hasExplicitHarnessTeam(input: {
+  harnessTeam?: unknown;
+  harness?: unknown;
+}): boolean {
+  if (Array.isArray(input.harnessTeam) && input.harnessTeam.length > 0) {
+    return true;
+  }
+  if (typeof input.harnessTeam === "string" && input.harnessTeam.trim().length > 0) {
+    return true;
+  }
+  return typeof input.harness === "string" && isHarnessId(input.harness);
+}
+
+/** Executors for a session. When `brain` is `codex`, Codex is not on the team. */
+export function resolveBrainTeam(input: {
+  brain?: unknown;
+  harnessTeam?: unknown;
+  harness?: unknown;
+  fallbackTeam?: readonly HarnessId[];
+}): HarnessId[] {
+  const brain = resolveSessionBrain(input.brain);
+  switch (brain) {
+    case "none":
+      return resolveHarnessTeam({
+        harnessTeam: input.harnessTeam,
+        harness: input.harness,
+        fallbackTeam: input.fallbackTeam,
+      });
+    case "codex": {
+      const team = hasExplicitHarnessTeam(input)
+        ? resolveHarnessTeam({
+            harnessTeam: input.harnessTeam,
+            harness: input.harness,
+            fallbackTeam: PIPELINE_AGY_HARNESS_TEAM,
+          })
+        : [...PIPELINE_AGY_HARNESS_TEAM];
+      const executors = team.filter((id) => id !== brain);
+      return executors.length > 0 ? executors : [...PIPELINE_AGY_HARNESS_TEAM];
+    }
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
+  }
 }
 
 export function isHarnessPacketRole(value: string): value is HarnessPacketRole {

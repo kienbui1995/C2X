@@ -19,9 +19,13 @@ import { packageRoot } from "@/core/package-root";
 import { getHarness } from "@/core/providers/catalog";
 import { runPlan } from "@/core/run-loop";
 import {
+  PIPELINE_AGY_HARNESS_TEAM,
   PIPELINE_HARNESS_TEAM,
-  resolveHarnessTeam,
+  assertNever,
+  resolveBrainTeam,
+  resolveSessionBrain,
   type HarnessId,
+  type SessionBrain,
   type SessionRecord,
   type WorkspaceSource,
 } from "@/core/types";
@@ -52,17 +56,23 @@ export async function runInit(input: {
   codexConfigPath?: string;
   budgetTokens?: number;
   pipeline?: boolean;
+  pipelineAgy?: boolean;
+  brain?: SessionBrain;
 }): Promise<InitResult> {
   const repoRoot = input.repoRoot ?? packageRoot();
   const skillHomes =
     input.skillHomes ?? (input.skillHome ? [input.skillHome] : defaultSkillHomes());
   const agentsPath = input.agentsPath ?? defaultCodexAgentsPath();
   const workspaceSource = input.workspaceSource ?? "demo";
-  const harnessTeam = resolveHarnessTeam({
+  const brain = input.pipelineAgy ? "codex" : resolveSessionBrain(input.brain);
+  const harnessTeam = resolveBrainTeam({
+    brain,
     harnessTeam:
-      input.pipeline && !input.harnessTeam && !input.harness
-        ? PIPELINE_HARNESS_TEAM
-        : input.harnessTeam,
+      input.pipelineAgy && !input.harnessTeam && !input.harness
+        ? PIPELINE_AGY_HARNESS_TEAM
+        : input.pipeline && !input.harnessTeam && !input.harness
+          ? PIPELINE_HARNESS_TEAM
+          : input.harnessTeam,
     harness: input.harness,
   });
   const skillPaths = await installSkills({ repoRoot, skillHomes });
@@ -87,6 +97,7 @@ export async function runInit(input: {
     budgetTokens: input.budgetTokens ?? 4000,
     workspaceSource,
     cwd: input.cwd,
+    brain,
   });
   const briefDrops = await persistWorkspaceBriefs(session, input.cwd);
   return {
@@ -134,7 +145,7 @@ export function formatInitReport(result: InitResult): string {
     "Open Codex in the project and say the goal. Codex uses the chat-to-x MCP tools.",
     "Claude Code skill: ~/.claude/skills/chat-to-x (written by init / skill-install).",
     pipelineRoleLines(result.session.harnessTeam),
-    "C2X does not spawn harnesses from init. Codex is the harness — it does not review.",
+    ...initClosingLines(result.session),
     "",
   ]
     .filter((line) => line.length > 0)
@@ -147,4 +158,21 @@ function pipelineRoleLines(team: readonly HarnessId[]): string {
     return `  ${id}\t${entry.packetRole}\t${entry.name}`;
   });
   return ["roles", ...rows, "planner\tChatGPT web (paste) or mock"].join("\n");
+}
+
+function initClosingLines(session: SessionRecord): string[] {
+  const brain = resolveSessionBrain(session.brain);
+  switch (brain) {
+    case "codex":
+      return [
+        "Codex is the brain (MCP commands). Do not write app code. The harness team executes.",
+        "C2X does not spawn harnesses from init. Codex does not review.",
+      ];
+    case "none":
+      return [
+        "C2X does not spawn harnesses from init. Codex is the harness — it does not review.",
+      ];
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
+  }
 }

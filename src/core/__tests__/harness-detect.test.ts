@@ -27,6 +27,7 @@ describe("binariesForHarness", () => {
     }
     expect(binariesForHarness("grok-build")).toEqual([...getHarness("grok-build").binaries]);
     expect(binariesForHarness("kiro-cli")).toEqual(["kiro"]);
+    expect(binariesForHarness("agy")).toEqual(["agy"]);
   });
 });
 

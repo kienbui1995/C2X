@@ -2,7 +2,7 @@
   "name": "chat-to-x",
   "version": "0.1.0",
   "private": true,
-  "description": "Web chats think. Pick Codex, Claude Code, Grok Build, OpenCode, and/or Kiro CLI — any subset executes split packets. Combine scarce harness quotas instead of burning one tool for everything.",
+  "description": "Web chats think. Pick Codex, Claude Code, Grok Build, OpenCode, Kiro CLI, and/or AGY — any subset executes split packets. Combine scarce harness quotas instead of burning one tool for everything.",
   "license": "MIT",
   "repository": {
     "type": "git",

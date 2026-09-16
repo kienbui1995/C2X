@@ -5,12 +5,12 @@
 
 **Tiếng Việt** · web chat nghĩ, harness chạy. **English** · web chats think, harnesses execute.
 
-Web chats plan and review. Codex, Claude Code, Grok Build, OpenCode, and/or
-Kiro CLI execute split packets. Combine scarce harness quotas instead of
-burning one tool for think + edit + review.
+Web chats plan and review. Codex, Claude Code, Grok Build, OpenCode, Kiro
+CLI, and/or AGY execute split packets. Combine scarce harness quotas instead
+of burning one tool for think + edit + review.
 
-Chat web lập kế hoạch và review. Codex, Claude Code, Grok Build, OpenCode
-và/hoặc Kiro CLI chạy packet đã chia. Gộp hạn mức harness khan — đừng bắt
+Chat web lập kế hoạch và review. Codex, Claude Code, Grok Build, OpenCode,
+Kiro CLI và/hoặc AGY chạy packet đã chia. Gộp hạn mức harness khan — đừng bắt
 một tool nghĩ + sửa + review.
 
 | Vai | Ai |
@@ -20,12 +20,16 @@ một tool nghĩ + sửa + review.
 | Code | Claude Code |
 | Test + sửa bug (execute) | Codex |
 | CI/CD | Grok Build |
+| Codex = não (lệnh MCP) / AGY = chạy code | Optional: `--brain-codex --harness agy` |
 | Wiki | `docs/wiki` outbox, dán ADO/Jira |
 
 **Codex does not review.** Không plugin chính thức của vendor. Không Jira OAuth.
 
 Đội pipeline: `c2x init --pipeline` (Claude Code + Codex + Grok Build).
 `install.sh` vẫn `c2x init --harness codex` cho người chỉ dùng Codex.
+Optional Codex-brain + AGY: `c2x init --brain-codex --harness agy` hoặc
+`c2x init --pipeline-agy` (team `[agy]`, không `[codex,agy]`). Codex chat
+là não (MCP); AGY chạy code. Không spawn Codex. Không Jira OAuth.
 
 | Tên / Name | Nghĩa / Meaning |
 | --- | --- |
@@ -143,9 +147,9 @@ fixtures/huge
 1. Viết mục tiêu trong **Phòng điều khiển**.
 2. Chọn planner: `auto` (ưu tiên chat web / subscription đang bật), `chatgpt-web`,
    `claude-web`, `gemini-web`, hoặc HTTP API nếu bạn tự mang key.
-3. Chọn **đội harness** (multi-select): `codex`, `claude-code`, `grok-build`,
-   `opencode`, `kiro-cli` — một cái hoặc vài cái. Router **không bao giờ** gửi
-   plan/review sang harness.
+3. Chọn **đội harness** (multi-select): catalog ids (`codex`, `claude-code`,
+   `grok-build`, `opencode`, `kiro-cli`, `agy`) — một cái hoặc vài cái. Router
+   **không bao giờ** gửi plan/review sang harness.
 4. **Đóng gói & lập kế hoạch** — dashboard hiện token, packet / làn việc theo
    từng harness, lượt harness giữ lại / lượt chat web. Số tiết kiệm là ước tính.
 5. Sao chép **brief từng harness**. Dán đúng tool đó. Đừng dán repo, đừng đưa
