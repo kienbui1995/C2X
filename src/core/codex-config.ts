@@ -26,7 +26,12 @@ export function defaultSkillHomes(home = os.homedir()): string[] {
 export const CODEX_AGENTS_BEGIN = "<!-- c2x:begin -->";
 export const CODEX_AGENTS_END = "<!-- c2x:end -->";
 
-export type CodexHookId = "codex-skill" | "codex-skill-legacy" | "codex-agents" | "codex-mcp";
+export type CodexHookId =
+  | "codex-skill"
+  | "codex-skill-legacy"
+  | "claude-skill"
+  | "codex-agents"
+  | "codex-mcp";
 
 export type CodexHookResult = {
   id: CodexHookId;
@@ -61,6 +66,16 @@ function hookHints(id: CodexHookId, ok: boolean): Pick<CodexHookResult, "hintVi"
         : {
             hintVi: "Thiếu ~/.codex/skills/chat-to-x (Codex cũ).",
             hintEn: "Missing ~/.codex/skills/chat-to-x (older Codex).",
+          };
+    case "claude-skill":
+      return ok
+        ? {
+            hintVi: "Skill Claude Code đã có (~/.claude/skills).",
+            hintEn: "Claude Code skill is installed.",
+          }
+        : {
+            hintVi: "Thiếu ~/.claude/skills/chat-to-x. Chạy c2x init --pipeline hoặc c2x skill-install.",
+            hintEn: "Missing ~/.claude/skills/chat-to-x. Run c2x init --pipeline or c2x skill-install.",
           };
     case "codex-agents":
       return ok
@@ -134,9 +149,10 @@ export async function detectCodexHooks(input?: {
   agentsPath?: string;
   mcpConfigPath?: string;
 }): Promise<CodexHookResult[]> {
-  const homes = input?.skillHomes ?? defaultCodexSkillHomes();
+  const homes = input?.skillHomes ?? defaultSkillHomes();
   const current = skillDest(homes[0] ?? path.join(os.homedir(), ".agents", "skills"));
   const legacy = skillDest(homes[1] ?? path.join(os.homedir(), ".codex", "skills"));
+  const claude = skillDest(homes[2] ?? defaultClaudeSkillHome());
   const agentsPath = input?.agentsPath ?? defaultCodexAgentsPath();
   const mcpConfigPath = input?.mcpConfigPath ?? defaultCodexConfigPath();
   const rows: Array<{ id: CodexHookId; path: string; ok: boolean }> = [
@@ -149,6 +165,11 @@ export async function detectCodexHooks(input?: {
       id: "codex-skill-legacy",
       path: legacy,
       ok: await fileLooksReady(legacy, /c2x_start|chat-to-x/),
+    },
+    {
+      id: "claude-skill",
+      path: claude,
+      ok: await fileLooksReady(claude, /c2x_start|chat-to-x/),
     },
     {
       id: "codex-agents",

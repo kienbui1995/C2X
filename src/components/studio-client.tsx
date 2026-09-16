@@ -478,6 +478,9 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{lang === "vi" ? entry.nameVi : entry.name}</p>
                       <p className="text-xs text-muted-foreground">
+                        {packetRoleCopy(entry.packetRole, lang)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
                         {lang === "vi" ? entry.blurbVi : entry.blurb}
                       </p>
                       {detect ? (

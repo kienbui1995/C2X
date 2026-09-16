@@ -230,6 +230,45 @@ Looks good.
     expect(pipeSession?.harnessTeam).toEqual(["codex", "claude-code", "grok-build"]);
     expect(pipe.brief).toMatch(/OWNER:\s*codex/);
     expect(pipe.brief).not.toMatch(/OWNER:\s*claude-code/);
+
+    const recorded = await callCodexMcpTool("c2x_record", {
+      session: pipe.session,
+      cwd: workspaceRoot,
+    });
+    expect(recorded.ok).toBe(true);
+    if (!recorded.ok) {
+      return;
+    }
+    expect(recorded.state).toBe("EXECUTING");
+    expect(recorded.action).toBe("wait");
+    expect(recorded.instruction).toMatch(/đợi|wait|teammate/i);
+    expect(recorded.instruction).not.toMatch(/c2x_record/);
+    expect(recorded.brief).toBeNull();
+    const after = await getSession(pipe.session);
+    expect(after?.harnessRuns.find((run) => run.owner === "codex")?.state).toBe("executed");
+    expect(after?.harnessRuns.find((run) => run.owner === "claude-code")?.state).toBe("pending");
+    expect(after?.harnessRuns.find((run) => run.owner === "grok-build")?.state).toBe("pending");
+    expect(after?.review).toBeNull();
+  });
+
+  it("asks for nghiệp vụ notes, not a [C2X] PLAN, when ChatGPT brainstorm is pending", async () => {
+    const started = await callCodexMcpTool("c2x_start", {
+      goal: "Sửa createTask",
+      cwd: workspaceRoot,
+      planner: "chatgpt-web",
+      workspace: "demo",
+      brainstorm: true,
+    });
+    expect(started.ok).toBe(true);
+    if (!started.ok) {
+      return;
+    }
+    expect(started.state).toBe("INIT");
+    expect(started.action).toBe("paste_plan");
+    expect(started.prompt).toMatch(/nghiệp vụ|Q&A/i);
+    expect(started.prompt).not.toMatch(/STATE:\s*PLAN/);
+    expect(started.instruction).toMatch(/nghiệp vụ|Q&A|notes/i);
+    expect(started.instruction).not.toMatch(/\[C2X\]/);
   });
 });
 

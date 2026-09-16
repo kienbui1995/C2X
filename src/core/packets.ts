@@ -283,13 +283,7 @@ function partitionFiles(
     if (roleFiles.length === 0) {
       continue;
     }
-    let owners = fallbackOwners(team, role);
-    if (role === "implement" && ownersForRole(team, "fix").length === 0 && owners.length > 1) {
-      const workers = owners.slice(0, -1);
-      if (workers.length > 0) {
-        owners = workers;
-      }
-    }
+    const owners = fallbackOwners(team, role);
     if (owners.length === 0) {
       continue;
     }

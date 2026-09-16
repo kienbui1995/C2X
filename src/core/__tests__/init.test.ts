@@ -86,6 +86,7 @@ describe("runInit", () => {
     expect(result.hooks.map((item) => item.id)).toEqual([
       "codex-skill",
       "codex-skill-legacy",
+      "claude-skill",
       "codex-agents",
       "codex-mcp",
     ]);

@@ -46,16 +46,18 @@ describe("detectCodexHooks", () => {
     const home = await mkdtemp(path.join(os.tmpdir(), "c2x-hooks-"));
     const skillCurrent = path.join(home, ".agents", "skills");
     const skillLegacy = path.join(home, ".codex", "skills");
+    const skillClaude = path.join(home, ".claude", "skills");
     const agentsPath = path.join(home, ".codex", "AGENTS.md");
     const mcpConfigPath = path.join(home, ".codex", "config.toml");
     const missing = await detectCodexHooks({
-      skillHomes: [skillCurrent, skillLegacy],
+      skillHomes: [skillCurrent, skillLegacy, skillClaude],
       agentsPath,
       mcpConfigPath,
     });
     expect(missing.map((item) => item.id)).toEqual([
       "codex-skill",
       "codex-skill-legacy",
+      "claude-skill",
       "codex-agents",
       "codex-mcp",
     ]);
@@ -63,6 +65,7 @@ describe("detectCodexHooks", () => {
 
     await mkdir(path.join(skillCurrent, "chat-to-x"), { recursive: true });
     await mkdir(path.join(skillLegacy, "chat-to-x"), { recursive: true });
+    await mkdir(path.join(skillClaude, "chat-to-x"), { recursive: true });
     await writeFile(
       path.join(skillCurrent, "chat-to-x", "SKILL.md"),
       "c2x_start\n",
@@ -73,11 +76,16 @@ describe("detectCodexHooks", () => {
       "c2x_start\n",
       "utf8",
     );
+    await writeFile(
+      path.join(skillClaude, "chat-to-x", "SKILL.md"),
+      "c2x_start\n",
+      "utf8",
+    );
     await writeFile(agentsPath, upsertCodexAgentsMd(""), "utf8");
     await writeFile(mcpConfigPath, "[mcp_servers.chat-to-x]\ncommand = \"tsx\"\n", "utf8");
 
     const ready = await detectCodexHooks({
-      skillHomes: [skillCurrent, skillLegacy],
+      skillHomes: [skillCurrent, skillLegacy, skillClaude],
       agentsPath,
       mcpConfigPath,
     });

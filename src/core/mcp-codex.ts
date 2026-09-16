@@ -29,6 +29,7 @@ export type CodexMcpToolName = (typeof CODEX_MCP_TOOL_NAMES)[number];
 export type CodexMcpAction =
   | "paste_plan"
   | "execute"
+  | "wait"
   | "paste_review"
   | "done"
   | "blocked"
@@ -97,12 +98,17 @@ function briefForCodex(session: SessionRecord): string | null {
   return brief ? renderCodexBrief(brief) : null;
 }
 
-function instructionFor(action: CodexMcpAction): string {
+function instructionFor(action: CodexMcpAction, session?: SessionRecord): string {
   switch (action) {
     case "paste_plan":
+      if (session?.brainstormPending) {
+        return "Hiện prompt nghiệp vụ / Q&A. User dán ghi chú (không khối PLAN). Gọi c2x_submit. Không mở terminal khác. Không spawn Codex.";
+      }
       return "Hiện prompt cho user. User dán vào ChatGPT, rồi dán khối [C2X] lại chat Codex này. Gọi c2x_submit. Không mở terminal khác. Không spawn Codex.";
     case "execute":
       return "You are the harness. Execute only this brief. Do not plan or review. Then call c2x_record.";
+    case "wait":
+      return "Codex packet xong. Đợi teammate (Claude Code / Grok) execute. Không review. Khi cả đội xong, gọi c2x_status.";
     case "paste_review":
       return "Hiện review prompt cho user. User dán [C2X] DONE|PLAN|BLOCKED lại chat này, rồi gọi c2x_submit.";
     case "done":
@@ -116,13 +122,18 @@ function instructionFor(action: CodexMcpAction): string {
   }
 }
 
-function actionFor(state: ProtocolState): CodexMcpAction {
-  switch (state) {
+function actionFor(session: SessionRecord): CodexMcpAction {
+  switch (session.state) {
     case "INIT":
       return "paste_plan";
     case "PLAN":
-    case "EXECUTING":
+    case "EXECUTING": {
+      const mine = session.harnessRuns.find((run) => run.owner === CODEX_MCP_OWNER);
+      if (mine?.state === "executed") {
+        return "wait";
+      }
       return "execute";
+    }
     case "EXECUTED":
     case "REVIEW":
       return "paste_review";
@@ -134,12 +145,12 @@ function actionFor(state: ProtocolState): CodexMcpAction {
     case "ERROR":
       return "error";
     default:
-      return assertNever(state, `Unhandled protocol state: ${state}`);
+      return assertNever(session.state, `Unhandled protocol state: ${session.state}`);
   }
 }
 
 function turnFromSession(session: SessionRecord): CodexMcpTurn {
-  const action = actionFor(session.state);
+  const action = actionFor(session);
   const prompt =
     action === "paste_plan"
       ? session.pastePrompt
@@ -152,7 +163,7 @@ function turnFromSession(session: SessionRecord): CodexMcpTurn {
     session: session.id,
     state: session.state,
     action,
-    instruction: instructionFor(action),
+    instruction: instructionFor(action, session),
     prompt,
     brief,
   };

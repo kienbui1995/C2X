@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { HarnessRow, ProviderRow, PublicConfig } from "@/lib/server-data";
+import { packetRoleCopy } from "@/core/providers/catalog";
 import {
   isHarnessId,
   toggleHarnessInTeam,
@@ -141,7 +142,9 @@ export function ProvidersClient({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle>{lang === "vi" ? harness.nameVi : harness.name}</CardTitle>
-                    <CardDescription>{t.defaultTeam}</CardDescription>
+                    <CardDescription>
+                      {packetRoleCopy(harness.packetRole, lang)} · {t.defaultTeam}
+                    </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">

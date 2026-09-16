@@ -104,8 +104,11 @@ describe("splitWorkPackets", () => {
     expect(joined).not.toMatch(/persist in the shared store/i);
     expect(joined).toMatch(/dark mode/i);
     expect(packets.map((packet) => packet.owner)).toEqual(["opencode", "kiro-cli"]);
-    expect(packets[0]?.files).toEqual(["src/theme.ts", "src/tokens.css"]);
-    expect(packets[1]?.files).toEqual(["src/theme.test.ts"]);
+    expect(packets.every((packet) => packet.role === "implement")).toBe(true);
+    const implementFiles = ["src/theme.ts", "src/tokens.css"];
+    expect(packets[0]?.files.some((file) => implementFiles.includes(file))).toBe(true);
+    expect(packets[1]?.files.some((file) => implementFiles.includes(file))).toBe(true);
+    expect(packets.flatMap((packet) => packet.files).sort()).toEqual([...files].sort());
   });
 });
 

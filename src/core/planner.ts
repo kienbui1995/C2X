@@ -181,8 +181,25 @@ export function parsePlannerOutput(text: string, fallback: ExecutionPlan): Execu
     if (message.state !== "PLAN") {
       return fallback;
     }
-    const packets = parseWorkPackets(message.sections.PACKETS).length
-      ? parseWorkPackets(message.sections.PACKETS)
+    const imported = parseWorkPackets(message.sections.PACKETS);
+    const filesLikelyInvolved = sanitizeImportedFiles(
+      listItems(message.sections.FILES_LIKELY_INVOLVED).length
+        ? listItems(message.sections.FILES_LIKELY_INVOLVED)
+        : fallback.filesLikelyInvolved,
+    );
+    const team = resolveHarnessTeam({
+      harnessTeam: fallback.packets.map((packet) => packet.owner),
+    });
+    const importedFiles = [
+      ...new Set([...filesLikelyInvolved, ...imported.flatMap((packet) => packet.files)]),
+    ];
+    const packets = imported.length
+      ? splitWorkPackets({
+          team,
+          files: importedFiles.length > 0 ? importedFiles : fallback.filesLikelyInvolved,
+          goal: message.sections.GOAL || fallback.goal,
+          taskId: message.taskId || fallback.taskId,
+        })
       : fallback.packets;
     const risks = listItems(message.sections.RISKS);
     const overlap = packetOverlapWarning(packets);
@@ -197,11 +214,7 @@ export function parsePlannerOutput(text: string, fallback: ExecutionPlan): Execu
       actions: listItems(message.sections.ACTIONS).length
         ? listItems(message.sections.ACTIONS)
         : fallback.actions,
-      filesLikelyInvolved: sanitizeImportedFiles(
-        listItems(message.sections.FILES_LIKELY_INVOLVED).length
-          ? listItems(message.sections.FILES_LIKELY_INVOLVED)
-          : fallback.filesLikelyInvolved,
-      ),
+      filesLikelyInvolved,
       tests: listItems(message.sections.TESTS).length
         ? listItems(message.sections.TESTS)
         : fallback.tests,

@@ -24,7 +24,7 @@ import { DEFAULT_INIT_GOAL, formatInitReport, runInit } from "@/core/init";
 import { packageRoot } from "@/core/package-root";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
-import { HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
+import { getHarness, HARNESS_CATALOG, PROVIDER_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { handoffMessage, nextExpectedStep } from "@/core/protocol";
 import { formatDriveReport, runDrive } from "@/core/drive";
@@ -334,7 +334,9 @@ program
     for (const result of results) {
       const status = result.ok ? "ok" : "missing";
       const detail = result.ok ? (result.binary ?? "") : result.hintVi;
-      process.stdout.write(`${result.id}\t${status}\t${detail}\n`);
+      process.stdout.write(
+        `${result.id}\t${getHarness(result.id).packetRole}\t${status}\t${detail}\n`,
+      );
     }
   });
 

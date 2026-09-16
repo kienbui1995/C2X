@@ -2,7 +2,13 @@ import { hasProviderKey, toPublicConfig } from "@/core/config";
 import { detectHarnessTeam, type HarnessDetectResult } from "@/core/harness";
 import { HARNESS_CATALOG, PROVIDER_CATALOG, modelForProvider } from "@/core/providers/catalog";
 import { loadConfig, loadSessions } from "@/core/store";
-import { HARNESS_IDS, type AppConfig, type HarnessId, type ProviderId } from "@/core/types";
+import {
+  HARNESS_IDS,
+  type AppConfig,
+  type CatalogPacketRole,
+  type HarnessId,
+  type ProviderId,
+} from "@/core/types";
 
 export type ProviderRow = {
   id: ProviderId;
@@ -29,6 +35,7 @@ export type HarnessRow = {
   blurbVi: string;
   quotaVi: string;
   quotaEn: string;
+  packetRole: CatalogPacketRole;
   selected: boolean;
 };
 

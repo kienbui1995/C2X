@@ -39,7 +39,11 @@ describe("full-pipeline docs", () => {
     expect(readme).toMatch(/--pipeline/);
     expect(skill).toMatch(/--pipeline|pipeline/);
     expect(skill).toMatch(/ChatGPT \+ Claude Code \+ Codex \+ Grok|pipeline đầy đủ/);
+    expect(skill).toMatch(/pipeline đầy đủ|pipeline=true/);
+    expect(skill).toMatch(/brainstorm=true|phase=brainstorm/);
     expect(skill).toMatch(/\.claude\/skills/);
+    const i18n = readFileSync(path.join(process.cwd(), "src/lib/i18n.ts"), "utf8");
+    expect(i18n).not.toMatch(/packetRoleTest/);
     expect(skill).not.toMatch(/does not auto-install/);
     expect(install).toMatch(/c2x init --harness codex/);
     expect(install).not.toMatch(/c2x init --pipeline/);

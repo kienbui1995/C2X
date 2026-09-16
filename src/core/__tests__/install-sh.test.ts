@@ -106,6 +106,8 @@ describe("install.sh", () => {
     expect(`${doctor.stdout}\n${doctor.stderr}`).not.toMatch(/Cannot find module/);
     expect(doctor.status).toBe(0);
     expect(doctor.stdout).toMatch(/codex-skill/);
+    expect(doctor.stdout).toMatch(/claude-skill/);
+    expect(doctor.stdout).toMatch(/fix/);
 
     await rm(home, { recursive: true, force: true });
     await rm(cwd, { recursive: true, force: true });

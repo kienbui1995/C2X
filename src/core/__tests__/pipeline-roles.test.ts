@@ -8,7 +8,7 @@ import {
   parseWorkPackets,
   splitWorkPackets,
 } from "@/core/packets";
-import { mockPlanFromPack } from "@/core/planner";
+import { mockPlanFromPack, parsePlannerOutput } from "@/core/planner";
 import { packWorkspace } from "@/core/packer";
 import { getHarness, HARNESS_BY_ID } from "@/core/providers/catalog";
 import { createSession } from "@/core/session";
@@ -119,6 +119,100 @@ describe("splitWorkPackets catalog roles", () => {
     expect(packetsSrc).toMatch(/packetRole/);
     expect(packetsSrc).not.toMatch(/index === 0/);
     expect(packetsSrc).not.toMatch(/team\.at\(-1\)|team\[team\.length - 1\]/);
+    expect(packetsSrc).not.toMatch(/owners\.slice\(0,\s*-1\)/);
+  });
+
+  it("does not reserve the last implementer for tests when no fix owner exists", () => {
+    const files = ["src/theme.ts", "src/theme.test.ts", "src/tokens.css"];
+    const packets = splitWorkPackets({
+      team: ["opencode", "kiro-cli"],
+      files,
+      goal: "Add a dark mode toggle",
+      taskId: "c2x_two_impl",
+    });
+    const byOwner = Object.fromEntries(packets.map((packet) => [packet.owner, packet]));
+    expect(packets.every((packet) => packet.role === "implement")).toBe(true);
+    const implementFiles = ["src/theme.ts", "src/tokens.css"];
+    expect(byOwner.opencode?.files.some((file) => implementFiles.includes(file))).toBe(true);
+    expect(byOwner["kiro-cli"]?.files.some((file) => implementFiles.includes(file))).toBe(true);
+    expect(packetsHaveDisjointFiles(packets)).toBe(true);
+    expect(packets.flatMap((packet) => packet.files).sort()).toEqual([...files].sort());
+  });
+
+  it("re-splits imported PACKETS by catalog role instead of trusting the planner", () => {
+    const fallback = mockPlanFromPack(
+      packWorkspace({
+        goal: "Ship the feature with tests and CI",
+        files: PIPELINE_FILES.map((path) => ({ path, content: `${path}\n` })),
+        budgetTokens: 4000,
+      }),
+      "c2x_import_roles",
+      PIPELINE_TEAM,
+    );
+    const imported = parsePlannerOutput(
+      `[C2X]
+STATE: PLAN
+TASK_ID: c2x_import_roles
+ITERATION: 1
+
+GOAL:
+Ship the feature with tests and CI
+
+RATIONALE:
+Planner tried to hand review to Codex.
+
+ACTIONS:
+1. Do everything.
+
+FILES_LIKELY_INVOLVED:
+- src/app/page.tsx
+- src/lib/tasks.test.ts
+- .github/workflows/ci.yml
+
+TESTS:
+- unit
+
+SUCCESS_CRITERIA:
+- tests pass
+
+RISKS:
+- none
+
+PACKETS:
+  ## owner=codex role=implement
+  ACTIONS:
+  1. Review the whole PR and rewrite src.
+  FILES:
+  - src/app/page.tsx
+  - src/lib/tasks.test.ts
+  - .github/workflows/ci.yml
+  - /etc/passwd
+  TESTS:
+  - review
+  SUCCESS_CRITERIA:
+  - reviewed
+  ## owner=claude-code role=fix
+  ACTIONS:
+  1. Also take the same files.
+  FILES:
+  - src/app/page.tsx
+  TESTS:
+  - none
+  SUCCESS_CRITERIA:
+  - overlap
+`,
+      fallback,
+    );
+    const byOwner = Object.fromEntries(imported.packets.map((packet) => [packet.owner, packet]));
+    expect(byOwner.codex?.role).toBe("fix");
+    expect(byOwner["claude-code"]?.role).toBe("implement");
+    expect(byOwner["grok-build"]?.role).toBe("ci");
+    expect(byOwner.codex?.files).toEqual(["src/lib/tasks.test.ts"]);
+    expect(byOwner["claude-code"]?.files).toEqual(["src/app/page.tsx"]);
+    expect(byOwner["grok-build"]?.files).toEqual([".github/workflows/ci.yml"]);
+    expect(byOwner.codex?.actions.join(" ")).not.toMatch(/Review the whole PR/i);
+    expect(imported.packets.flatMap((packet) => packet.files).join("\n")).not.toMatch(/\/etc\/passwd/);
+    expect(packetsHaveDisjointFiles(imported.packets)).toBe(true);
   });
 
   it("accepts legacy role=test as fix when parsing packets", () => {

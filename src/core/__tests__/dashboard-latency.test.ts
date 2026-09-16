@@ -17,7 +17,13 @@ describe("dashboard first paint", () => {
     expect(studio).not.toMatch(/\/api\/providers/);
     expect(studio).toMatch(/\/api\/doctor/);
     expect(studio).toMatch(/HARNESS_CATALOG/);
+    expect(studio).toMatch(/packetRoleCopy\(entry\.packetRole/);
     expect(studio).toMatch(/\/api\/sessions/);
+    const providers = readFileSync(
+      path.join(process.cwd(), "src/components/providers-client.tsx"),
+      "utf8",
+    );
+    expect(providers).toMatch(/packetRoleCopy\(harness\.packetRole|packetRoleCopy\(entry\.packetRole/);
   });
 
   it("keeps a 10-minute harness checklist for contributors", () => {

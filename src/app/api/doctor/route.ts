@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { detectCodexHooks } from "@/core/codex-config";
 import { detectHarnessTeam } from "@/core/harness";
 import { HARNESS_IDS, isHarnessId } from "@/core/types";
 
@@ -12,5 +13,6 @@ export async function GET(request: Request) {
         .filter(isHarnessId)
     : [...HARNESS_IDS];
   const doctor = await detectHarnessTeam(team.length > 0 ? team : [...HARNESS_IDS]);
-  return NextResponse.json({ doctor });
+  const hooks = await detectCodexHooks();
+  return NextResponse.json({ doctor, hooks });
 }

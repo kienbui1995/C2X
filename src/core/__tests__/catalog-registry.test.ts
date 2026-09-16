@@ -10,7 +10,7 @@ import {
 import { HARNESS_IDS, PROVIDER_IDS } from "@/core/types";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { mergeConfig } from "@/core/config";
-import { assignPacketRoles, splitWorkPackets } from "@/core/packets";
+import { assignPacketRoles, packetsHaveDisjointFiles, splitWorkPackets } from "@/core/packets";
 
 describe("catalog registry", () => {
   it("covers every HarnessId and ProviderId without a second list", () => {
@@ -71,6 +71,8 @@ describe("catalog registry", () => {
     expect(packets.map((packet) => packet.owner)).toEqual(["opencode", "kiro-cli"]);
     expect(assignPacketRoles(["kiro-cli"])).toEqual([{ owner: "kiro-cli", role: "implement" }]);
     expect(packets.every((packet) => packet.role === "implement")).toBe(true);
+    expect(packetsHaveDisjointFiles(packets)).toBe(true);
+    expect(packets.flatMap((packet) => packet.files).sort()).toEqual(["src/a.test.ts", "src/a.ts"]);
     expect(packets[0]?.actions.join(" ")).not.toMatch(/createTask/i);
     expect(getHarness("codex").packetRole).toBe("fix");
     expect(getHarness("claude-code").packetRole).toBe("implement");
