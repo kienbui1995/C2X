@@ -12,11 +12,16 @@ npm run c2x -- init
 No planner API key and no network are required. `npm test` is the contract:
 router never sends `plan` / `review` to a harness.
 
+By opening a PR you license your contribution under the MIT License in
+[LICENSE](LICENSE).
+
 ## Product rules
 
 - **Planner ≠ harness.** `routeRole("plan"|"review")` must not return a `HarnessId`.
 - Planner `PACKETS` win. Do not add a silent “smart-split” that rewrites owner or files when `PACKETS` is present.
-- **Do not spawn** `codex` / `claude` / `opencode` / `kiro` / `grok` / `grok-build` **or** ChatGPT / Computer Use / Playwright chat.
+- **Do not spawn** harnesses or ChatGPT from the dashboard or HTTP. CLI
+  `c2x drive --spawn` is allowed. Never spawn ChatGPT / Computer Use /
+  Playwright chat. Never add HTTP `/api/drive`.
 - The default link is local paste / brief (spec §20). **Do not** open PRs that add a Cloudflare tunnel, OAuth pairing, or Computer Use “for speed.”
 - Dashboard / `PUT /api/config` must not accept filesystem paths. CLI may use `--cwd` then `C2X_WORKSPACE`.
 - Keep `package.json` `"name": "chat-to-x"` and `"private": true`. Do not publish npm as `c2x` (that name is already a CSS→XPath tool).
@@ -62,4 +67,5 @@ Hết. Không `plugins.json`, không dynamic `import()`, không npm scope plugin
 
 ## Code of conduct
 
-See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). CoC reports go to GitHub
+Issues or Discussions, not GitHub Security Advisory.

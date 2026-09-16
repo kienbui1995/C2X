@@ -1,5 +1,5 @@
 const SENSITIVE_NAME =
-  /(^|\/)(\.env($|\..+)|.*\.(pem|key|p12|pfx)|id_rsa|id_ed25519|credentials|secret|auth\.json|service-account.*\.json)$/i;
+  /(^|\/)(\.env($|\..+)|\.envrc|\.npmrc|\.netrc|\.git-credentials|.*\.(pem|key|p12|pfx)|id_rsa|id_ed25519|id_ecdsa|credentials|secret|auth\.json|service-account.*\.json)$/i;
 
 const SENSITIVE_DIR = /(^|\/)(\.ssh|secrets|private)(\/|$)/i;
 
@@ -26,6 +26,33 @@ export function isSensitivePath(filePath: string): boolean {
     return false;
   }
   return SENSITIVE_NAME.test(normalized) || SENSITIVE_DIR.test(normalized);
+}
+
+export function isSafeImportedPath(filePath: string): boolean {
+  const trimmed = filePath.trim();
+  if (!trimmed || trimmed === "(none)") {
+    return false;
+  }
+  const normalized = trimmed.replaceAll("\\", "/");
+  if (pathPosixAbsolute(normalized) || pathWin32Absolute(trimmed)) {
+    return false;
+  }
+  if (normalized.split("/").includes("..")) {
+    return false;
+  }
+  return !isSensitivePath(normalized);
+}
+
+function pathPosixAbsolute(filePath: string): boolean {
+  return filePath.startsWith("/");
+}
+
+function pathWin32Absolute(filePath: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(filePath) || filePath.startsWith("\\\\");
+}
+
+export function sanitizeImportedFiles(files: string[]): string[] {
+  return files.filter((item) => isSafeImportedPath(item));
 }
 
 export function isIgnoredPath(filePath: string, extra: string[] = []): boolean {

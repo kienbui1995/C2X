@@ -6,6 +6,7 @@ import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import {
   MCP_LOOPBACK_HOST,
   MCP_LOOPBACK_PORT,
+  MCP_MAX_BODY_BYTES,
   assertLoopbackBind,
   createMcpLoopbackServer,
   handleMcpTool,
@@ -113,6 +114,69 @@ describe("mcp loopback HTTP", () => {
     expect(briefJson.ok).toBe(true);
     expect(briefJson.text).toBe(renderCodexBrief(session.briefs[0]!));
     expect(briefJson.text).not.toMatch(/OWNER:\s*claude-code/);
+  });
+
+  it("pins HTTP getSession to the --session id", async () => {
+    const pinned = sessionTwo();
+    const other = { ...sessionTwo(), id: "c2x_other_session" };
+    const server = createMcpLoopbackServer({
+      pinnedSessionId: pinned.id,
+      getSession: async (id) => (id === pinned.id ? pinned : id === other.id ? other : null),
+    });
+    servers.push(server);
+    const address = await new Promise<{ port: number }>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, MCP_LOOPBACK_HOST, () => {
+        const info = server.address();
+        if (!info || typeof info === "string") {
+          reject(new Error("expected a TCP address"));
+          return;
+        }
+        resolve({ port: info.port });
+      });
+    });
+
+    const leak = await fetch(`http://127.0.0.1:${address.port}/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "c2x_get_session", session: other.id }),
+    });
+    expect(leak.status).toBe(400);
+    const leakJson = (await leak.json()) as { ok?: boolean; text?: string; error?: string };
+    expect(leakJson.text ?? "").not.toContain(other.id);
+    expect(leakJson.ok).toBe(false);
+  });
+
+  it("rejects HTTP bodies larger than ~1MB", async () => {
+    expect(MCP_MAX_BODY_BYTES).toBe(1_048_576);
+    const session = sessionTwo();
+    const server = createMcpLoopbackServer({
+      pinnedSessionId: session.id,
+      getSession: async (id) => (id === session.id ? session : null),
+    });
+    servers.push(server);
+    const address = await new Promise<{ port: number }>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, MCP_LOOPBACK_HOST, () => {
+        const info = server.address();
+        if (!info || typeof info === "string") {
+          reject(new Error("expected a TCP address"));
+          return;
+        }
+        resolve({ port: info.port });
+      });
+    });
+    const huge = "x".repeat(MCP_MAX_BODY_BYTES + 64);
+    const res = await fetch(`http://127.0.0.1:${address.port}/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "c2x_get_session",
+        session: session.id,
+        pad: huge,
+      }),
+    });
+    expect(res.status).toBe(413);
   });
 });
 

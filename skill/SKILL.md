@@ -5,6 +5,8 @@ description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you
 
 # chat-to-x
 
+This is **not** an official OpenAI skill or plugin.
+
 The checkout lives at: replace-with-absolute-path
 
 Install with `c2x init --harness codex` or `c2x skill-install` (writes

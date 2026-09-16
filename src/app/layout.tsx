@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "chat-to-x · C2X",
   description:
-    "Chat web nghĩ. Chọn Codex, Claude Code, Grok Build, OpenCode, Kiro CLI — một hoặc vài cái cùng phiên. Tách hạn mức harness khan hiếm khỏi lượt chat lớn trên ChatGPT, Gemini và Claude web.",
+    "Unofficial. Chat web nghĩ. Chọn Codex, Claude Code, Grok Build, OpenCode, Kiro CLI — một hoặc vài cái cùng phiên. Không liên kết OpenAI, Anthropic, Google, xAI, Amazon, OpenCode.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

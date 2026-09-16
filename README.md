@@ -3,63 +3,70 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js 20+](https://img.shields.io/badge/node-20%2B-brightgreen)](https://nodejs.org/)
 
-Chat web nghĩ. Nhiều harness chạy cùng phiên. Đừng đốt một hạn mức Codex,
-Claude Code, Grok Build, OpenCode hay Kiro CLI cho phần nghĩ — **gộp** chúng.
-Chọn bất kỳ tập hợp nào trong năm harness.
+**Tiếng Việt** · web chat nghĩ, harness chạy. **English** · web chats think, harnesses execute.
 
-Vấn đề thật: một harness làm hết (nghĩ + sửa + test + review) thì hạn mức hết
-nhanh. **ChatGPT web**, **Gemini web** và **Claude web** đã có nhiều lượt chat
-kèm theo gói bạn đang trả. chat-to-x tách vai và **chia việc giữa các harness**:
+Web chats plan and review. Codex, Claude Code, Grok Build, OpenCode, and/or
+Kiro CLI execute split packets. Combine scarce harness quotas instead of
+burning one tool for think + edit + review.
 
-| Vai | Ai | Hạn mức |
+Chat web lập kế hoạch và review. Codex, Claude Code, Grok Build, OpenCode
+và/hoặc Kiro CLI chạy packet đã chia. Gộp hạn mức harness khan — đừng bắt
+một tool nghĩ + sửa + review.
+
+| Role / Vai | Who / Ai | Quota |
 | --- | --- | --- |
-| Plan + review | `chatgpt-web`, `claude-web`, `gemini-web` (rồi mới tới API) | Quota chat lớn / subscription |
-| Execute | Bất kỳ tập hợp `codex` \| `claude-code` \| `grok-build` \| `opencode` \| `kiro-cli` | Mỗi tool chỉ chạy packet của mình |
+| Plan + review | `chatgpt-web`, `claude-web`, `gemini-web` (then HTTP APIs) | Large included chats / subscription |
+| Execute | Any subset of `codex` \| `claude-code` \| `grok-build` \| `opencode` \| `kiro-cli` | Each tool runs only its packet |
 
-Planner chia PLAN thành **work packet** (file không chồng khi có thể). Ví dụ:
-Codex sửa `createTask`; Claude Code viết test empty-state. Mỗi harness chỉ thấy
-brief của mình — tiết kiệm đúng hạn mức khan đó.
+| Tên / Name | Nghĩa / Meaning |
+| --- | --- |
+| **chat-to-x** | Package and repo name. npm stays `"private": true`. |
+| **C2X** | Short name of this project. |
+| **`[C2X]`** | Paste tag for control messages. |
+| **`[C2C]`** | Same paste tag only — not the C2C bridge, tunnel, or OAuth. |
+| **`c2x mcp`** | Local chat-to-x MCP server. Not an official Codex plugin. |
 
-Base lấy ý tưởng từ [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt):
-não nghĩ tách khỏi harness. chat-to-x thêm packer token, router đa nhà cung cấp,
-đội harness, và mô hình **tách hạn mức**.
+**Unofficial; not an official plugin** of OpenAI, Anthropic, Google, xAI,
+Amazon, or OpenCode. **Không liên kết** OpenAI, Anthropic, Google, xAI,
+Amazon, OpenCode, hay các tên sản phẩm ChatGPT, Claude, Gemini, Grok,
+Codex, Claude Code, Kiro, OpenCode. Tên thuộc về chủ sở hữu.
 
-Đây không phải bản fork OAuth + tunnel. Không reverse-proxy, không lấy cookie.
+Web planners are **manual paste**. C2X does not bypass vendor Terms of
+Service or rate limits. Savings numbers are **estimates**, not invoices.
 
-## Cài và dùng
+Trust model and reporting: [SECURITY.md](SECURITY.md).
 
-Node.js 20+, Codex đã login trên PATH. **Không** `npx c2x` (đó là tool khác).
+## Install / Cài
 
-**Không clone git C2X vào từng app.** Một lệnh — `install.sh` tự `npm install`,
-ghi `c2x` vào `~/.local/bin`, và `c2x init --harness codex`:
+Node.js 20+. **Không** `npx c2x` (đó là tool khác — CSS→XPath).
+
+Lead path — clone, then read and run the installer:
+
+```bash
+git clone https://github.com/kienbui1995/chat-to-x.git
+cd chat-to-x
+./install.sh
+```
+
+Second path — pipe only after you have **read `install.sh`**:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kienbui1995/chat-to-x/main/install.sh | bash
 ```
 
-Đã có thư mục chat-to-x trên máy:
-
-```bash
-./install.sh
-```
-
 Repo: [github.com/kienbui1995/chat-to-x](https://github.com/kienbui1995/chat-to-x).
-npm vẫn `"private": true` — khi publish `chat-to-x` mới đổi sang
-`npm i -g chat-to-x && c2x init`. **Không** `npx c2x`.
+npm stays `"private": true`. Do not publish as `c2x`.
 
-`init` đọc skill USER Codex (`$HOME/.agents/skills/chat-to-x`), skill cũ
-(`~/.codex/skills`), khối C2X trong `~/.codex/AGENTS.md`, và plugin MCP
-(`[mcp_servers.chat-to-x]` trong `~/.codex/config.toml`) từ package đã cài —
-không cần `cwd` là git C2X.
+`install.sh` / `c2x init` writes **no Codex splash**. Paths:
 
-C2X **không** hiện banner trong Codex. Cài trên **máy đang chạy Codex** (cài
-trên VM khác thì laptop không thấy). Mở lại Codex rồi kiểm:
+- `$HOME/.agents/skills`
+- `~/.codex/skills`
+- `~/.codex/AGENTS.md`
+- `~/.codex/config.toml` (`[mcp_servers.chat-to-x]`)
+- `~/.local/bin`
 
-- `$chat-to-x` hoặc `/skills` — skill USER
-- `/mcp` hoặc `codex mcp list` — server `chat-to-x`
-- `c2x doctor` — bốn dòng `codex-skill` / `codex-agents` / `codex-mcp` phải `ok`
-
-Sau đó **chỉ làm việc trong Codex** trên app của bạn:
+Cài trên **máy đang chạy Codex**. Mở lại Codex rồi kiểm `$chat-to-x` /
+`/skills`, `/mcp` hoặc `codex mcp list`, và `c2x doctor`.
 
 ```bash
 cd <project-cần-sửa>
@@ -70,17 +77,31 @@ codex
 Dùng C2X, tự làm hết: Sửa createTask để persist khi reload
 ```
 
-Chỉ cần mô tả. Codex gọi `c2x_start` (planner mặc định `mock`, không dán chat),
-làm brief, rồi `c2x_record` đến DONE. Không mở terminal thứ hai, không đẻ
-Codex lần nữa.
+CLI: `c2x "Sửa createTask" --planner mock --no-spawn`.
+Dashboard (optional): `npm run dev` → [http://127.0.0.1:45217](http://127.0.0.1:45217).
+In this checkout, before a global link: `npx chat-to-x "Sửa createTask"`.
+**Không** `npx c2x`.
+
+---
+
+## Cài và dùng (chi tiết)
+
+**Không clone git C2X vào từng app.** Một lần `./install.sh` (hoặc
+`curl|bash` sau khi đọc script) tự `npm ci` khi có lockfile, ghi `c2x`
+vào `~/.local/bin`, và `c2x init --harness codex`.
+
+`init` đọc skill USER Codex (`$HOME/.agents/skills/chat-to-x`), skill cũ
+(`~/.codex/skills`), khối C2X trong `~/.codex/AGENTS.md`, và MCP local
+(`[mcp_servers.chat-to-x]` trong `~/.codex/config.toml`) từ package đã
+cài — không cần `cwd` là git C2X.
+
+C2X **không** hiện banner trong Codex. Chỉ làm việc trong Codex trên app
+của bạn. Codex gọi `c2x_start` (planner mặc định `mock`), làm brief, rồi
+`c2x_record` đến DONE. Không mở terminal thứ hai, không đẻ Codex lần nữa.
 
 Muốn ChatGPT web nghĩ: nói thêm “dán ChatGPT”. Codex hiện prompt; bạn dán
-khối `[C2X]` **lại chat Codex** (`c2x_submit`).
-
-CLI tương đương: `c2x "Sửa createTask" --planner mock --no-spawn`.
-
-Dashboard (tuỳ): `npm run dev` → [http://127.0.0.1:45217](http://127.0.0.1:45217).
-Trong repo này, chưa link: `npx chat-to-x "Sửa createTask"`. **Không** `npx c2x`.
+khối `[C2X]` **lại chat Codex** (`c2x_submit`). Đó là **dán tay** — C2X
+không đăng nhập hộ, không vượt ToS / rate limit của nhà cung cấp.
 
 ### `.c2xignore`
 
@@ -99,12 +120,12 @@ fixtures/huge
 
 1. Viết mục tiêu trong **Phòng điều khiển**.
 2. Chọn planner: `auto` (ưu tiên chat web / subscription đang bật), `chatgpt-web`,
-   `claude-web`, `gemini-web`, hoặc API nếu bạn muốn.
+   `claude-web`, `gemini-web`, hoặc HTTP API nếu bạn tự mang key.
 3. Chọn **đội harness** (multi-select): `codex`, `claude-code`, `grok-build`,
    `opencode`, `kiro-cli` — một cái hoặc vài cái. Router **không bao giờ** gửi
    plan/review sang harness.
 4. **Đóng gói & lập kế hoạch** — dashboard hiện token, packet / làn việc theo
-   từng harness, lượt harness giữ lại / lượt chat web.
+   từng harness, lượt harness giữ lại / lượt chat web. Số tiết kiệm là ước tính.
 5. Sao chép **brief từng harness**. Dán đúng tool đó. Đừng dán repo, đừng đưa
    hết plan cho một harness.
 6. **Giả lập đã chạy** từng lane hoặc tất cả. Review vẫn về planner chat web.
@@ -116,10 +137,10 @@ Chọn `chatgpt-web`, `claude-web`, hoặc `gemini-web`. Sao chép prompt đã n
 vào trang chat bạn đã đăng nhập, dán khối `[C2X] PLAN` (kèm `PACKETS`) trở lại
 ô nhập. Không reverse-proxy, không lấy cookie.
 
-`gemini` (API) vẫn còn — khác với `gemini-web` (dán). `anthropic` (API) khác với
-`claude-web` (dán) và `claude-code` (harness).
+`gemini` (HTTP API) vẫn còn — khác với `gemini-web` (dán). `anthropic` (HTTP API)
+khác với `claude-web` (dán) và `claude-code` (harness).
 
-### Nhà cung cấp API
+### Nhà cung cấp HTTP API
 
 Đặt key trong trang **Nhà cung cấp** hoặc file `.env`. Router chỉ chọn API khi
 không còn planner chat web nào đang bật và sẵn sàng.
@@ -143,10 +164,11 @@ Nếu API lỗi, vòng lặp fallback về planner giả lập để bạn vẫn
 INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REVIEW → PLAN | DONE | BLOCKED
 ```
 
-Mặt điều khiển dùng `[C2X]` (vẫn đọc được `[C2C]` của repo gốc). Không nhét
-diff / log / thân file vào tin nhắn điều khiển. Execute là đội harness; mỗi
-brief có `OWNER`. Thêm harness mới: **một** entry trong registry
-`src/core/providers/catalog.ts` (`HARNESS_BY_ID satisfies Record<HarnessId, …>`).
+Mặt điều khiển dùng `[C2X]` (vẫn đọc được `[C2C]` như **cùng một paste tag**,
+không chạy cầu C2C). Không nhét diff / log / thân file vào tin nhắn điều khiển.
+Execute là đội harness; mỗi brief có `OWNER`. Thêm harness mới: **một** entry
+trong registry `src/core/providers/catalog.ts`
+(`HARNESS_BY_ID satisfies Record<HarnessId, …>`).
 UI / CLI / router / mock splitter `map` catalog — không nhân 5 `switch`.
 Hướng dẫn 10 phút: [spec §19](docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md).
 Không plugin marketplace.
@@ -165,9 +187,9 @@ skill/SKILL.md                  skill cho đội harness trong catalog
 
 Vibe-coding không được chậm. Khóa: packer **sync**; bỏ `node_modules` / `.git` / `.next`;
 workspace mặc định **demo**; walk `repo` ≤ 80 file / 120 KB / 250 ms; mock + prompt dán
-web sinh **local (ms)**; brief tính **một lần** lúc PLAN; **không spawn** harness;
-cache `doctor`/`PATH`; `npm test` không cần API key. Chi tiết:
-[spec §18](docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md).
+web sinh **local (ms)**; brief tính **một lần** lúc PLAN; spawn harness chỉ từ CLI
+`drive --spawn`, không từ dashboard/HTTP; cache `doctor`/`PATH`; `npm test` không cần
+API key. Chi tiết kiến trúc: [docs/architecture.md](docs/architecture.md).
 
 Attribution MIT: ý tưởng protocol từ
 [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt)
@@ -179,16 +201,10 @@ GitHub: [https://github.com/kienbui1995/chat-to-x](https://github.com/kienbui199
 Clone: `git clone https://github.com/kienbui1995/chat-to-x.git`.
 
 npm: giữ `"private": true` đến khi publish **`chat-to-x`**. Không publish `c2x`.
+**Không** `npx c2x`.
 
 ## License
 
-MIT. Dự án cộng đồng, không liên kết OpenAI hay Anthropic.
-
-English notes live in [docs/architecture.md](docs/architecture.md).
-
-Kế hoạch phase 2 (Slice L + P đã ship; M + O trong file):
-[docs/superpowers/plans/2026-09-12-chat-to-x-next.md](docs/superpowers/plans/2026-09-12-chat-to-x-next.md).
-
-Baseline v1 đã ship:
-[thiết kế](docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md) ·
-[plan 2026-09-12](docs/superpowers/plans/2026-09-12-chat-to-x-features.md).
+MIT. Unofficial community project. Không liên kết OpenAI, Anthropic, Google,
+xAI, Amazon, hay OpenCode. See [docs/architecture.md](docs/architecture.md)
+for the English architecture notes.

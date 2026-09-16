@@ -4,6 +4,7 @@ import { assertNever, isHarnessId, type SessionRecord } from "@/core/types";
 
 export const MCP_LOOPBACK_HOST = "127.0.0.1";
 export const MCP_LOOPBACK_PORT = 45218;
+export const MCP_MAX_BODY_BYTES = 1_048_576;
 
 export type McpToolName = "c2x_get_brief" | "c2x_get_session";
 
@@ -56,16 +57,41 @@ export function handleMcpTool(input: {
   }
 }
 
-function readBody(request: IncomingMessage): Promise<string> {
+function readBody(
+  request: IncomingMessage,
+  limit = MCP_MAX_BODY_BYTES,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
+    let size = 0;
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      fn();
+    };
     request.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > limit) {
+        finish(() => {
+          reject(new Error("payload too large"));
+        });
+        return;
+      }
       chunks.push(chunk);
     });
     request.on("end", () => {
-      resolve(Buffer.concat(chunks).toString("utf8"));
+      finish(() => {
+        resolve(Buffer.concat(chunks).toString("utf8"));
+      });
     });
-    request.on("error", reject);
+    request.on("error", (error) => {
+      finish(() => {
+        reject(error);
+      });
+    });
   });
 }
 
@@ -76,6 +102,7 @@ function sendJson(response: ServerResponse, status: number, body: unknown): void
 
 export function createMcpLoopbackServer(input: {
   getSession: (id: string) => Promise<SessionRecord | null>;
+  pinnedSessionId?: string;
 }): Server {
   return createServer((request, response) => {
     void (async () => {
@@ -90,11 +117,20 @@ export function createMcpLoopbackServer(input: {
           owner?: string;
           session?: string;
         };
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message === "payload too large") {
+          sendJson(response, 413, { ok: false, error: "payload too large" });
+          return;
+        }
         sendJson(response, 400, { ok: false, error: "invalid JSON" });
         return;
       }
-      if (!payload.session) {
+      if (input.pinnedSessionId && payload.session && payload.session !== input.pinnedSessionId) {
+        sendJson(response, 400, { ok: false, error: "session not found" });
+        return;
+      }
+      const sessionId = input.pinnedSessionId ?? payload.session;
+      if (!sessionId) {
         sendJson(response, 400, { ok: false, error: "session is required" });
         return;
       }
@@ -102,7 +138,7 @@ export function createMcpLoopbackServer(input: {
         sendJson(response, 400, { ok: false, error: "unknown tool" });
         return;
       }
-      const session = await input.getSession(payload.session);
+      const session = await input.getSession(sessionId);
       if (!session) {
         sendJson(response, 400, { ok: false, error: "session not found" });
         return;

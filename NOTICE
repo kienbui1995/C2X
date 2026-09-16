@@ -4,5 +4,11 @@ That project’s idea — ChatGPT (or another web chat) plans and reviews;
 the coding harness only executes; control messages stay tiny — is reused
 in spirit. This repository is not a fork of its OAuth bridge, Cloudflare
 tunnel, or ChatGPT connector. No unofficial ChatGPT reverse-proxy.
+No source was copied from that project’s bridge, auth, or tunnel.
+
+Copyright (c) the authors of XiaoDuoYa/codex-with-chatgpt (MIT).
+The idea-only reuse above does not copy C2C implementation.
 
 chat-to-x itself is licensed under the MIT License. See LICENSE.
+The MIT License licenses the **code**, not the names chat-to-x or C2X
+as identifiers of this project.

@@ -1,9 +1,10 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import { isIgnoredPath } from "@/core/sensitive";
+import { packWorkspace } from "@/core/packer";
 import {
   loadC2xIgnore,
   loadWorkspaceFiles,
@@ -87,6 +88,26 @@ describe(".c2xignore", () => {
     process.env.C2X_WORKSPACE = root;
     const files = await loadWorkspaceFiles("repo");
     expect(files.map((file) => file.path)).toEqual(["src/keep.ts"]);
+  });
+
+  it("does not pack src/config.ts when it is a symlink to .env", async () => {
+    prevWorkspace = process.env.C2X_WORKSPACE;
+    root = await mkdtemp(path.join(os.tmpdir(), "c2x-symlink-env-"));
+    await mkdir(path.join(root, "src"), { recursive: true });
+    await writeFile(path.join(root, ".env"), "SECRET_LEAK=sk-from-env\n", "utf8");
+    await writeFile(path.join(root, "src", "ok.ts"), "export const ok = 1;\n", "utf8");
+    await symlink(path.join(root, ".env"), path.join(root, "src", "config.ts"));
+    process.env.C2X_WORKSPACE = root;
+    const files = await loadWorkspaceFiles("repo");
+    const pack = packWorkspace({
+      goal: "read config",
+      files,
+      budgetTokens: 4000,
+    });
+    expect(files.some((file) => file.path === "src/config.ts" || file.path === ".env")).toBe(false);
+    expect(JSON.stringify(pack)).not.toContain("SECRET_LEAK");
+    expect(pack.excerpts.every((item) => !item.path.includes(".env"))).toBe(true);
+    expect(files.map((file) => file.path)).toEqual(["src/ok.ts"]);
   });
 });
 

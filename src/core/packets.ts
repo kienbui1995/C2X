@@ -1,3 +1,4 @@
+import { sanitizeImportedFiles } from "@/core/sensitive";
 import {
   assertNever,
   isHarnessId,
@@ -257,7 +258,9 @@ export function parseWorkPackets(block: string | undefined): WorkPacket[] {
       continue;
     }
     const sections = parseInnerSections(lines.slice(1).join("\n"));
-    const files = listItems(sections.FILES).filter((item) => item !== "(none)");
+    const files = sanitizeImportedFiles(
+      listItems(sections.FILES).filter((item) => item !== "(none)"),
+    );
     packets.push({
       id: `${match[1]}:${packets.length}`,
       owner: match[1],

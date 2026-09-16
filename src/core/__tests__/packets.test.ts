@@ -4,7 +4,7 @@ import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import { packWorkspace } from "@/core/packer";
 import { mockPlanFromPack } from "@/core/planner";
 import { canTransition, messageToPlan, parseControlMessage, planToMessage } from "@/core/protocol";
-import { getHarness, HARNESS_BY_ID, HARNESS_CATALOG } from "@/core/providers/catalog";
+import { getHarness, getProvider, HARNESS_BY_ID, HARNESS_CATALOG } from "@/core/providers/catalog";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { mergeConfig } from "@/core/config";
 import { completeHarnessRun, createSession, mergedExecutionReport } from "@/core/session";
@@ -169,6 +169,10 @@ describe("harness catalog", () => {
     expect(kiro.name).toBe("Kiro CLI");
     expect(kiro.blurbVi).toMatch(/Kiro CLI — harness thực thi/);
     expect(kiro.blurb).toMatch(/Kiro CLI — execution harness/i);
+    expect(kiro.blurb).toMatch(/community, unofficial|unofficial/i);
+    expect(getHarness("grok-build").blurb).toMatch(/community, unofficial|unofficial/i);
+    expect(getProvider("openai").blurb).toMatch(/HTTP API \(bring your own key\)/);
+    expect(getProvider("openai").blurb).not.toMatch(/Official API/);
   });
 
   it("lets the user add or drop any harness while keeping at least one", () => {

@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "unknown flag: $1" >&2
-      echo "usage: install.sh [--repo <git-url>] [--in-place]" >&2
+      echo "usage: install.sh [--repo <git-url>] [--in-place] [--home <dir>]" >&2
       exit 1
       ;;
   esac
@@ -53,6 +53,16 @@ is_checkout() {
   grep -q '"name": "chat-to-x"' "${dir}/package.json"
 }
 
+refuse_dest() {
+  local dest="$1"
+  case "${dest}" in
+    /|"${HOME}"|"${HOME}/")
+      echo "refusing to install into ${dest}" >&2
+      exit 1
+      ;;
+  esac
+}
+
 CHECKOUT=""
 if is_checkout "$(pwd)"; then
   CHECKOUT="$(pwd)"
@@ -70,7 +80,17 @@ if [[ "${IN_PLACE}" == "1" ]]; then
     exit 1
   fi
   DEST="${C2X_HOME:-${CHECKOUT}}"
+fi
+
+refuse_dest "${DEST}"
+
+if [[ "${IN_PLACE}" == "1" ]]; then
+  true
 elif [[ -n "${CHECKOUT}" && "${CHECKOUT}" != "${DEST}" ]]; then
+  if [[ -e "${DEST}" ]] && ! is_checkout "${DEST}"; then
+    echo "refusing to overwrite ${DEST} (not a chat-to-x checkout)" >&2
+    exit 1
+  fi
   need tar
   mkdir -p "${DEST}"
   tar -C "${CHECKOUT}" \
@@ -81,18 +101,16 @@ elif [[ -n "${CHECKOUT}" && "${CHECKOUT}" != "${DEST}" ]]; then
     -cf - . | tar -C "${DEST}" -xf -
 elif [[ -n "${REPO}" ]]; then
   need git
-  case "${DEST}" in
-    /|"${HOME}"|"${HOME}/")
-      echo "refusing to install into ${DEST}" >&2
-      exit 1
-      ;;
-  esac
   if [[ -d "${DEST}/.git" ]] && is_checkout "${DEST}"; then
     git -C "${DEST}" pull --ff-only
-  else
+  elif [[ ! -e "${DEST}" ]]; then
     mkdir -p "$(dirname "${DEST}")"
-    rm -rf "${DEST}"
     git clone --depth 1 "${REPO}" "${DEST}"
+  elif is_checkout "${DEST}"; then
+    true
+  else
+    echo "refusing to overwrite ${DEST} (not a chat-to-x checkout)" >&2
+    exit 1
   fi
   if ! is_checkout "${DEST}"; then
     echo "cloned repo is not chat-to-x; refusing to continue" >&2
@@ -113,10 +131,16 @@ if ! is_checkout "${DEST}"; then
 fi
 
 echo "Installing chat-to-x into ${DEST}"
+echo "c2x init will write:"
+echo "  ${HOME}/.agents/skills"
+echo "  ${HOME}/.codex/skills"
+echo "  ${HOME}/.codex/AGENTS.md"
+echo "  ${HOME}/.codex/config.toml"
+echo "  ${BIN_DIR}"
 (
   cd "${DEST}"
   if [[ -f package-lock.json ]]; then
-    npm install
+    npm ci
   else
     npm install
   fi

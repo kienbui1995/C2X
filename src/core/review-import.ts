@@ -1,6 +1,11 @@
 import { planToBriefs } from "@/core/brief";
 import { extractControlBlock, parsePlannerOutput } from "@/core/planner";
-import { messageToReview, parseControlMessage } from "@/core/protocol";
+import {
+  CONTROL_BUDGET_MAX,
+  assertControlBudget,
+  messageToReview,
+  parseControlMessage,
+} from "@/core/protocol";
 import { estimateSavings } from "@/core/savings";
 import { applyPlan, blockAtIterationLimit, reusedPack, touchSession } from "@/core/session";
 import type { SessionRecord } from "@/core/types";
@@ -9,7 +14,9 @@ export function applyImportedReview(session: SessionRecord, raw: string): Sessio
   if (session.state !== "EXECUTED" && session.state !== "REVIEW") {
     throw new Error("Review import needs EXECUTED or REVIEW.");
   }
-  const message = parseControlMessage(extractControlBlock(raw));
+  const block = extractControlBlock(raw);
+  assertControlBudget(block, CONTROL_BUDGET_MAX);
+  const message = parseControlMessage(block);
   if (message.state === "DONE" || message.state === "BLOCKED") {
     const review = messageToReview(message);
     return touchSession({ ...session, review }, {

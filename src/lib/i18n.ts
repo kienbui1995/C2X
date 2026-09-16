@@ -113,6 +113,8 @@ export const copy = {
     sessionMissing: "Không thấy phiên đó. Chạy plan mới hoặc chọn phiên khác.",
     loadingSession: "Đang mở phiên…",
     sessionId: "Phiên",
+    unaffiliated:
+      "Dự án cộng đồng, không chính thức. Không liên kết OpenAI, Anthropic, Google, xAI, Amazon hay OpenCode. Tên sản phẩm thuộc về chủ sở hữu.",
   },
   en: {
     product: "chat-to-x",
@@ -226,5 +228,7 @@ export const copy = {
     sessionMissing: "That session is gone. Run a new plan or pick another session.",
     loadingSession: "Opening session…",
     sessionId: "Session",
+    unaffiliated:
+      "Unofficial community project. Not affiliated with OpenAI, Anthropic, Google, xAI, Amazon, or OpenCode. Product names belong to their owners.",
   },
 } as const;

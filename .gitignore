@@ -33,6 +33,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+
+# local agent / editor homes (never commit)
+.codex/
+.agents/
+.cursor/
 
 # env files (can opt-in for committing if needed)
 .env*

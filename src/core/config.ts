@@ -137,3 +137,20 @@ export function maskSecret(value: string | undefined): string {
   }
   return `${value.slice(0, 3)}••••${value.slice(-2)}`;
 }
+
+export type PublicAppConfig = AppConfig & {
+  configured: Record<ProviderId, boolean>;
+};
+
+export function toPublicConfig(config: AppConfig): PublicAppConfig {
+  const keys = Object.fromEntries(
+    PROVIDER_CATALOG.map((entry) => [entry.id, maskSecret(config.keys[entry.id])]),
+  ) as AppConfig["keys"];
+  return {
+    ...config,
+    keys,
+    configured: Object.fromEntries(
+      PROVIDER_CATALOG.map((entry) => [entry.id, hasProviderKey(config, entry.id)]),
+    ) as Record<ProviderId, boolean>,
+  };
+}

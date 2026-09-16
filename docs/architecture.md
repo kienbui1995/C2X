@@ -1,7 +1,8 @@
 # chat-to-x architecture
 
-Inspired by [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt):
-thinking stays off the execution harness. chat-to-x adds a token packer, a provider
+Inspired by [XiaoDuoYa/codex-with-chatgpt](https://github.com/XiaoDuoYa/codex-with-chatgpt)
+(idea only): thinking stays off the execution harness. Parsing a `[C2C]` paste
+tag is **not** running C2C. chat-to-x adds a token packer, a provider
 router, a **harness team** that shares one PLAN, and a **quota-split** model so
 scarce Codex / Claude Code / Grok Build / OpenCode / Kiro CLI allowances are
 not burned on plan/review — or on doing the entire job in one tool.
@@ -123,9 +124,9 @@ These are locks, not suggestions. Full table: spec §18.
   It does not spawn a harness or start MCP.
 - Resume a session from `/sessions` (`/?session=<id>`) or `c2x status`.
   The control room shows the next protocol step; it does not rewalk the repo.
-- Codex plugin: `c2x mcp` stdio (`[mcp_servers.chat-to-x]`). Tools
+- Local MCP server: `c2x mcp` stdio (`[mcp_servers.chat-to-x]`). Tools
   `c2x_start` / `c2x_submit` / `c2x_record` keep the user inside Codex.
-  Never spawn another Codex. Never a ChatGPT browser.
+  Not an official Codex plugin. Never spawn another Codex. Never a ChatGPT browser.
 - `c2x drive --spawn` is CLI-only automation: outbox prompts, optional harness
   spawn from PATH, inbox watch for `[C2X]` replies. Never from HTTP. Never a
   ChatGPT browser.
@@ -138,18 +139,20 @@ These are locks, not suggestions. Full table: spec §18.
 
 ## Security
 
-The packer refuses `.env*`, keys, and SSH material. Default `c2x mcp` is
-stdio for the Codex plugin (same local writes as the CLI). Optional HTTP
-`c2x mcp --session` is read-only and binds **127.0.0.1** only — no Cloudflare
-tunnel, no OAuth. First-run does not start HTTP MCP. Selected harnesses remain
-the only writers. Keys live in `data/config.json` or environment variables,
-never in git. Web planners never receive account credentials.
+The packer refuses `.env*`, keys, and SSH material. Default `c2x mcp` is a
+local MCP server on stdio (same local writes as the CLI). Optional HTTP
+`c2x mcp --session` is read-only, pinned to that session, and binds
+**127.0.0.1** only — no Cloudflare tunnel, no OAuth. First-run does not start
+HTTP MCP. Selected harnesses remain the only writers. Keys live in
+`data/config.json` or environment variables, never in git. Web planners never
+receive account credentials.
 
 ## Compatibility
 
-Control messages accept `[C2X]` and legacy `[C2C]`. You can still run the
-original C2C bridge for ChatGPT Computer Use; this repo is the multi-provider,
-multi-harness, quota-splitting base on top of that idea.
+Control messages accept `[C2X]` and legacy `[C2C]`. `[C2C]` parse is the same
+paste tag only — it is not running the C2C bridge, auth, or tunnel. This repo
+is inspired by that idea; it is the multi-provider, multi-harness, quota-splitting
+base on top of it.
 
 ## Next features
 

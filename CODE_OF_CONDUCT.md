@@ -60,7 +60,8 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement via GitHub
-Security Advisory on this repository. All complaints will be reviewed and
+Issues or Discussions on this repository — **not** GitHub Security Advisory
+(GHSA is for vulnerabilities only). All complaints will be reviewed and
 investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the

@@ -123,8 +123,8 @@ export async function writeWorkspaceBriefDrop(input: {
     throw new Error(`No precomputed brief for owner ${input.owner}.`);
   }
   const dest = workspaceBriefPath(input.workspaceRoot, input.owner);
-  await mkdir(path.dirname(dest), { recursive: true });
-  await writeFile(dest, renderCodexBrief(brief), "utf8");
+  await mkdir(path.dirname(dest), { recursive: true, mode: 0o700 });
+  await writeFile(dest, renderCodexBrief(brief), { encoding: "utf8", mode: 0o600 });
   return dest;
 }
 
@@ -188,8 +188,8 @@ export async function writeHarnessBrief(input: {
     throw new Error(`No precomputed brief for owner ${input.owner}.`);
   }
   const dest = path.join(input.dataDir, "briefs", `${input.session.id}.${input.owner}.c2x.md`);
-  await mkdir(path.dirname(dest), { recursive: true });
-  await writeFile(dest, renderCodexBrief(brief), "utf8");
+  await mkdir(path.dirname(dest), { recursive: true, mode: 0o700 });
+  await writeFile(dest, renderCodexBrief(brief), { encoding: "utf8", mode: 0o600 });
   return dest;
 }
 

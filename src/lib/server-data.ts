@@ -1,4 +1,4 @@
-import { hasProviderKey } from "@/core/config";
+import { hasProviderKey, toPublicConfig } from "@/core/config";
 import { detectHarnessTeam, type HarnessDetectResult } from "@/core/harness";
 import { HARNESS_CATALOG, PROVIDER_CATALOG, modelForProvider } from "@/core/providers/catalog";
 import { loadConfig, loadSessions } from "@/core/store";
@@ -37,13 +37,7 @@ export type PublicConfig = AppConfig & {
 };
 
 export async function getPublicConfig(): Promise<PublicConfig> {
-  const config = await loadConfig();
-  return {
-    ...config,
-    configured: Object.fromEntries(
-      PROVIDER_CATALOG.map((entry) => [entry.id, hasProviderKey(config, entry.id)]),
-    ) as Record<ProviderId, boolean>,
-  };
+  return toPublicConfig(await loadConfig());
 }
 
 export async function getProviderRows(): Promise<ProviderRow[]> {

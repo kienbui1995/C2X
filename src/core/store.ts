@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { mergeConfig } from "@/core/config";
 import { normalizeSession } from "@/core/session";
@@ -35,7 +35,13 @@ function sessionsPath(): string {
 }
 
 async function ensureDir(): Promise<void> {
-  await mkdir(dataDir(), { recursive: true });
+  await mkdir(dataDir(), { recursive: true, mode: 0o700 });
+  await chmod(dataDir(), 0o700);
+}
+
+async function writePrivateFile(filePath: string, body: string): Promise<void> {
+  await writeFile(filePath, body, { encoding: "utf8", mode: 0o600 });
+  await chmod(filePath, 0o600);
 }
 
 export async function loadConfig(): Promise<AppConfig> {
@@ -50,7 +56,7 @@ export async function loadConfig(): Promise<AppConfig> {
 export async function saveConfig(config: AppConfig): Promise<AppConfig> {
   await ensureDir();
   const merged = mergeConfig(config);
-  await writeFile(configPath(), `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  await writePrivateFile(configPath(), `${JSON.stringify(merged, null, 2)}\n`);
   return merged;
 }
 
@@ -68,7 +74,7 @@ export async function loadSessions(): Promise<SessionRecord[]> {
 
 export async function saveSessions(sessions: SessionRecord[]): Promise<void> {
   await ensureDir();
-  await writeFile(sessionsPath(), `${JSON.stringify(sessions, null, 2)}\n`, "utf8");
+  await writePrivateFile(sessionsPath(), `${JSON.stringify(sessions, null, 2)}\n`);
 }
 
 export async function upsertSession(session: SessionRecord): Promise<SessionRecord> {

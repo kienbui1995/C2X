@@ -19,7 +19,12 @@ import { applyImportedReview } from "@/core/review-import";
 import { applyExecutionRecord } from "@/core/records";
 import { completePlanner } from "@/core/providers/complete";
 import { resolvePlanner } from "@/core/providers/router";
-import { messageToReview, parseControlMessage } from "@/core/protocol";
+import {
+  CONTROL_BUDGET_MAX,
+  assertControlBudget,
+  messageToReview,
+  parseControlMessage,
+} from "@/core/protocol";
 import { estimateSavings } from "@/core/savings";
 import {
   applyPlan,
@@ -159,7 +164,9 @@ export async function importPlan(input: {
   sessionId?: string;
   raw: string;
 }): Promise<SessionRecord> {
-  const message = parseControlMessage(extractControlBlock(input.raw));
+  const block = extractControlBlock(input.raw);
+  assertControlBudget(block, CONTROL_BUDGET_MAX);
+  const message = parseControlMessage(block);
   if (message.state !== "PLAN") {
     throw new Error(`Imported message must be PLAN (got ${message.state}).`);
   }
@@ -203,7 +210,9 @@ export async function importControlMessage(input: {
   sessionId?: string;
   raw: string;
 }): Promise<SessionRecord> {
-  const message = parseControlMessage(extractControlBlock(input.raw));
+  const block = extractControlBlock(input.raw);
+  assertControlBudget(block, CONTROL_BUDGET_MAX);
+  const message = parseControlMessage(block);
   const existing = input.sessionId ? await getSession(input.sessionId) : null;
   if (
     existing &&

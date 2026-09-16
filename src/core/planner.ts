@@ -1,6 +1,7 @@
 import { renderPackForPlanner } from "@/core/packer";
 import { filesFromPack, packetOverlapWarning, parseWorkPackets, splitWorkPackets } from "@/core/packets";
 import { createTaskId, listItems, parseControlMessage, planToMessage } from "@/core/protocol";
+import { sanitizeImportedFiles } from "@/core/sensitive";
 import { estimateTokens } from "@/core/tokens";
 import {
   DEFAULT_HARNESS_TEAM,
@@ -198,9 +199,11 @@ export function parsePlannerOutput(text: string, fallback: ExecutionPlan): Execu
       actions: listItems(message.sections.ACTIONS).length
         ? listItems(message.sections.ACTIONS)
         : fallback.actions,
-      filesLikelyInvolved: listItems(message.sections.FILES_LIKELY_INVOLVED).length
-        ? listItems(message.sections.FILES_LIKELY_INVOLVED)
-        : fallback.filesLikelyInvolved,
+      filesLikelyInvolved: sanitizeImportedFiles(
+        listItems(message.sections.FILES_LIKELY_INVOLVED).length
+          ? listItems(message.sections.FILES_LIKELY_INVOLVED)
+          : fallback.filesLikelyInvolved,
+      ),
       tests: listItems(message.sections.TESTS).length
         ? listItems(message.sections.TESTS)
         : fallback.tests,

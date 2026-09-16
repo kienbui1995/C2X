@@ -11,10 +11,10 @@ import {
 
 describe("defaultCodexSkillHomes", () => {
   it("puts the current Codex USER skill home first, then the legacy Codex path", () => {
-    const homes = defaultCodexSkillHomes("/home/kien");
+    const homes = defaultCodexSkillHomes("/home/alice");
     expect(homes).toEqual([
-      path.join("/home/kien", ".agents", "skills"),
-      path.join("/home/kien", ".codex", "skills"),
+      path.join("/home/alice", ".agents", "skills"),
+      path.join("/home/alice", ".codex", "skills"),
     ]);
   });
 });

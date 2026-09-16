@@ -1,25 +1,11 @@
 import { NextResponse } from "next/server";
-import { hasProviderKey, maskSecret, mergeConfig } from "@/core/config";
-import { PROVIDER_CATALOG } from "@/core/providers/catalog";
+import { mergeConfig, toPublicConfig } from "@/core/config";
 import { loadConfig, saveConfig } from "@/core/store";
 import { isProviderId, type AppConfig, type ProviderId } from "@/core/types";
 
-function publicConfig(config: AppConfig) {
-  const keys = Object.fromEntries(
-    PROVIDER_CATALOG.map((entry) => [entry.id, maskSecret(config.keys[entry.id])]),
-  ) as Record<ProviderId, string>;
-  return {
-    ...config,
-    keys,
-    configured: Object.fromEntries(
-      PROVIDER_CATALOG.map((entry) => [entry.id, hasProviderKey(config, entry.id)]),
-    ) as Record<ProviderId, boolean>,
-  };
-}
-
 export async function GET() {
   const config = await loadConfig();
-  return NextResponse.json({ config: publicConfig(config) });
+  return NextResponse.json({ config: toPublicConfig(config) });
 }
 
 export async function PUT(request: Request) {
@@ -46,5 +32,5 @@ export async function PUT(request: Request) {
       keys: nextKeys,
     }),
   );
-  return NextResponse.json({ config: publicConfig(saved) });
+  return NextResponse.json({ config: toPublicConfig(saved) });
 }

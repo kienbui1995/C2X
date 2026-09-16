@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import { isIgnoredPath, isSensitivePath } from "@/core/sensitive";
@@ -68,6 +68,9 @@ async function walk(
     if (acc.length >= MAX_FILES || now() - started >= MAX_WALK_MS) {
       return;
     }
+    if (entry.isSymbolicLink()) {
+      continue;
+    }
     const abs = path.join(dir, entry.name);
     const rel = path.relative(root, abs).replaceAll("\\", "/");
     if (isIgnoredPath(rel, extra) || isSensitivePath(rel)) {
@@ -98,8 +101,27 @@ export async function loadWorkspaceFiles(
   const rels: string[] = [];
   await walk(root, root, rels, clock(), clock, extra);
   const files: WorkspaceFile[] = [];
+  let rootReal = root;
+  try {
+    rootReal = await realpath(root);
+  } catch {
+    return files;
+  }
   for (const rel of rels) {
     const abs = path.join(root, rel);
+    let real: string;
+    try {
+      real = await realpath(abs);
+    } catch {
+      continue;
+    }
+    if (real !== rootReal && !real.startsWith(`${rootReal}${path.sep}`)) {
+      continue;
+    }
+    const realRel = path.relative(rootReal, real).replaceAll("\\", "/");
+    if (isSensitivePath(realRel)) {
+      continue;
+    }
     const info = await stat(abs);
     if (info.size > MAX_BYTES) {
       continue;

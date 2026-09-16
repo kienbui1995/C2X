@@ -390,10 +390,10 @@ program
 
 program
   .command("mcp")
-  .description("Codex stdio plugin (default). Optional read-only HTTP: --session")
+  .description("Local chat-to-x MCP control plane (stdio). Optional read-only HTTP: --session")
   .option("--session <id>", "read-only 127.0.0.1 HTTP for one session")
   .option("--port <n>", "loopback port", String(MCP_LOOPBACK_PORT))
-  .option("--stdio", "Codex plugin on stdin/stdout (default)", true)
+  .option("--stdio", "local chat-to-x MCP on stdin/stdout (default)", true)
   .action(async (opts: { session?: string; port: string; stdio?: boolean }) => {
     if (!opts.session) {
       await runMcpStdio();
@@ -405,6 +405,7 @@ program
       throw new Error(`unknown session: ${opts.session}`);
     }
     const server = createMcpLoopbackServer({
+      pinnedSessionId: opts.session,
       getSession: (id) => getSession(id),
     });
     const port = Number(opts.port) || MCP_LOOPBACK_PORT;

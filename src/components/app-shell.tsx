@@ -62,7 +62,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </aside>
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1">
+          {children}
+          <p className="mt-10 max-w-2xl text-xs text-muted-foreground">{t.unaffiliated}</p>
+        </main>
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 backdrop-blur md:hidden">
         <div className="grid grid-cols-5">
