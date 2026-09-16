@@ -9,6 +9,7 @@ let dataDir = "";
 let workspaceRoot = "";
 let skillHome = "";
 let skillHomeLegacy = "";
+let skillHomeClaude = "";
 let codexConfigPath = "";
 let agentsPath = "";
 let prevData: string | undefined;
@@ -19,6 +20,7 @@ beforeEach(async () => {
   workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "c2x-init-ws-"));
   skillHome = await mkdtemp(path.join(os.tmpdir(), "c2x-init-skill-"));
   skillHomeLegacy = await mkdtemp(path.join(os.tmpdir(), "c2x-init-skill-legacy-"));
+  skillHomeClaude = await mkdtemp(path.join(os.tmpdir(), "c2x-init-skill-claude-"));
   const codexHome = await mkdtemp(path.join(os.tmpdir(), "c2x-init-codex-"));
   codexConfigPath = path.join(codexHome, "config.toml");
   agentsPath = path.join(codexHome, "AGENTS.md");
@@ -43,6 +45,7 @@ afterEach(async () => {
   await rm(workspaceRoot, { recursive: true, force: true });
   await rm(skillHome, { recursive: true, force: true });
   await rm(skillHomeLegacy, { recursive: true, force: true });
+  await rm(skillHomeClaude, { recursive: true, force: true });
   await rm(path.dirname(codexConfigPath), { recursive: true, force: true });
 });
 
@@ -54,7 +57,7 @@ describe("runInit", () => {
       workspaceSource: "demo",
       cwd: workspaceRoot,
       repoRoot: process.cwd(),
-      skillHomes: [skillHome, skillHomeLegacy],
+      skillHomes: [skillHome, skillHomeLegacy, skillHomeClaude],
       agentsPath,
       codexConfigPath,
     });
@@ -62,6 +65,7 @@ describe("runInit", () => {
     expect(result.skillPaths).toEqual([
       path.join(skillHome, "chat-to-x", "SKILL.md"),
       path.join(skillHomeLegacy, "chat-to-x", "SKILL.md"),
+      path.join(skillHomeClaude, "chat-to-x", "SKILL.md"),
     ]);
     expect(result.agentsPath).toBe(agentsPath);
     expect(result.mcpConfigPath).toBe(codexConfigPath);
@@ -78,6 +82,7 @@ describe("runInit", () => {
     expect(skill).not.toContain("replace-with-absolute-path");
     expect(await readdir(skillHome)).toEqual(["chat-to-x"]);
     expect(await readdir(skillHomeLegacy)).toEqual(["chat-to-x"]);
+    expect(await readdir(skillHomeClaude)).toEqual(["chat-to-x"]);
     expect(result.hooks.map((item) => item.id)).toEqual([
       "codex-skill",
       "codex-skill-legacy",
@@ -101,7 +106,8 @@ describe("runInit", () => {
     expect(report).toContain(result.session.id);
     expect(report).toMatch(/codex-skill/);
     expect(report).toMatch(/codex-agents/);
-    expect(report).toMatch(/Claude Code: copy the same SKILL.md/);
+    expect(report).toContain(path.join(skillHomeClaude, "chat-to-x", "SKILL.md"));
+    expect(report).not.toMatch(/does not auto-install/);
     expect(report).toMatch(/does not spawn/i);
     expect(report).toMatch(/codex-plugin/);
     expect(report).not.toMatch(/127\.0\.0\.1:45218/);
@@ -126,6 +132,32 @@ describe("runInit", () => {
     expect(cli).toMatch(/\.command\("init"\)/);
     expect(cli).toMatch(/no spawn/);
     expect(cli).not.toMatch(/npx c2x/);
+    expect(cli).toMatch(/--pipeline/);
+    expect(cli).toMatch(/\.command\("brainstorm"\)/);
+  });
+
+  it("accepts --pipeline as the claude-code + codex + grok-build team", async () => {
+    const result = await runInit({
+      pipeline: true,
+      workspaceSource: "demo",
+      cwd: workspaceRoot,
+      repoRoot: process.cwd(),
+      skillHomes: [skillHome, skillHomeLegacy, skillHomeClaude],
+      agentsPath,
+      codexConfigPath,
+    });
+    expect(result.session.harnessTeam).toEqual(["codex", "claude-code", "grok-build"]);
+    expect(result.session.planner).toBe("mock");
+    expect(result.doctor.map((item) => item.id)).toEqual([
+      "codex",
+      "claude-code",
+      "grok-build",
+    ]);
+    const report = formatInitReport(result);
+    expect(report).toMatch(/Claude Code|implement/i);
+    expect(report).toMatch(/Codex|fix/i);
+    expect(report).toMatch(/Grok|ci|CI/i);
+    expect(report).toMatch(/ChatGPT|planner/i);
   });
 });
 

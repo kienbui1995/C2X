@@ -59,5 +59,33 @@ describe("packWorkspace", () => {
     expect(pack.tree).toContain("src/keep.ts");
     expect(pack.tree).not.toContain("vendor/lib.ts");
   });
+
+  it("packs DESIGN.md and design/** when present and never treats them as a harness", () => {
+    const noise = {
+      path: "src/generated/noise.ts",
+      content: `export const noise = ${JSON.stringify("keep ".repeat(400))};\n`,
+    };
+    const pack = packWorkspace({
+      goal: "keep.ts vendor board",
+      files: [
+        { path: "src/keep.ts", content: "export const keep = 1;\n" },
+        {
+          path: "DESIGN.md",
+          content: "# OpenDesign drop\nPrimary board layout for the task list.\n",
+        },
+        {
+          path: "design/board.html",
+          content: "<html><body>task board mock</body></html>\n",
+        },
+        noise,
+      ],
+      budgetTokens: 900,
+    });
+    const paths = pack.excerpts.map((item) => item.path);
+    expect(paths).toContain("DESIGN.md");
+    expect(paths).toContain("design/board.html");
+    expect(pack.tree).toContain("DESIGN.md");
+    expect(pack.skippedSensitive).not.toContain("DESIGN.md");
+  });
 });
 

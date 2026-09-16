@@ -4,12 +4,14 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { planToBriefs, renderCodexBrief } from "@/core/brief";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
+import { defaultClaudeSkillHome, defaultSkillHomes } from "@/core/codex-config";
 import {
   DETECT_CACHE_TTL_MS,
   binariesForHarness,
   clearDetectCache,
   detectHarness,
   installSkill,
+  installSkills,
   writeHarnessBrief,
 } from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
@@ -124,5 +126,31 @@ describe("installSkill", () => {
     expect(text).toMatch(/--no-spawn/);
     expect(text).toMatch(/You \*\*are\*\* the harness|you are the harness/i);
     await rm(skillHome, { recursive: true, force: true });
+  });
+
+  it("writes Codex homes and ~/.claude/skills from injected fake homes", async () => {
+    expect(defaultClaudeSkillHome("/home/alice")).toBe(
+      path.join("/home/alice", ".claude", "skills"),
+    );
+    expect(defaultSkillHomes("/home/alice")).toEqual([
+      path.join("/home/alice", ".agents", "skills"),
+      path.join("/home/alice", ".codex", "skills"),
+      path.join("/home/alice", ".claude", "skills"),
+    ]);
+    const root = await mkdtemp(path.join(os.tmpdir(), "c2x-skills-"));
+    const agents = path.join(root, ".agents", "skills");
+    const codex = path.join(root, ".codex", "skills");
+    const claude = path.join(root, ".claude", "skills");
+    const dests = await installSkills({
+      repoRoot: process.cwd(),
+      skillHomes: [agents, codex, claude],
+    });
+    expect(dests).toEqual([
+      path.join(agents, "chat-to-x", "SKILL.md"),
+      path.join(codex, "chat-to-x", "SKILL.md"),
+      path.join(claude, "chat-to-x", "SKILL.md"),
+    ]);
+    expect(await readFile(dests[2]!, "utf8")).toMatch(/c2x skill-install/);
+    await rm(root, { recursive: true, force: true });
   });
 });

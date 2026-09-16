@@ -20,7 +20,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { renderCodexBrief } from "@/core/brief";
 import type { HarnessDetectResult } from "@/core/harness";
-import { HARNESS_CATALOG, getHarness, isPastePlanner, PROVIDER_CATALOG } from "@/core/providers/catalog";
+import {
+  HARNESS_CATALOG,
+  getHarness,
+  isPastePlanner,
+  packetRoleCopy,
+  PROVIDER_CATALOG,
+} from "@/core/providers/catalog";
 import { planToMessage } from "@/core/protocol";
 import { describeSessionStatus } from "@/core/session-status";
 import { formatTokens } from "@/core/tokens";
@@ -32,7 +38,6 @@ import {
   isWorkspaceSource,
   toggleHarnessInTeam,
   type HarnessId,
-  type HarnessPacketRole,
   type HarnessRunState,
   type PlannerChoice,
   type SessionRecord,
@@ -53,22 +58,6 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
     throw new Error(json.error || `HTTP ${response.status}`);
   }
   return json;
-}
-
-function packetRoleLabel(
-  role: HarnessPacketRole,
-  t: { packetRoleImplement: string; packetRoleTest: string; packetRoleGeneral: string },
-): string {
-  switch (role) {
-    case "implement":
-      return t.packetRoleImplement;
-    case "test":
-      return t.packetRoleTest;
-    case "general":
-      return t.packetRoleGeneral;
-    default:
-      return assertNever(role, `Unknown packet role: ${role}`);
-  }
 }
 
 function runStateLabel(
@@ -902,7 +891,7 @@ export function StudioClient({ doctor: initialDoctor = [] }: { doctor?: HarnessD
                         <div>
                           <p className="font-medium">{lang === "vi" ? harness.nameVi : harness.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {packetRoleLabel(packet.role, t)}
+                            {packetRoleCopy(packet.role, lang)}
                           </p>
                         </div>
                         <Badge variant="outline">

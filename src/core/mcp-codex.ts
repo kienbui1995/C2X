@@ -6,6 +6,7 @@ import {
   isHarnessId,
   isPlannerChoice,
   isWorkspaceSource,
+  PIPELINE_HARNESS_TEAM,
   type HarnessId,
   type PlannerChoice,
   type ProtocolState,
@@ -63,6 +64,17 @@ export type CodexMcpToolSpec = {
 function stringArg(args: Record<string, unknown>, key: string): string | undefined {
   const value = args[key];
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function boolArg(args: Record<string, unknown>, key: string): boolean {
+  const value = args[key];
+  if (value === true || value === 1) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return /^(1|true|yes)$/i.test(value.trim());
+  }
+  return false;
 }
 
 function isCodexMcpToolName(value: string): value is CodexMcpToolName {
@@ -177,15 +189,24 @@ export function listCodexMcpTools(): CodexMcpToolSpec[] {
     {
       name: "c2x_start",
       description:
-        "Start or resume a C2X session from inside Codex. Default planner is mock so the user only writes a goal and you execute. Pass planner=chatgpt-web only if they asked to paste a web chat. Never spawn another Codex.",
+        "Start or resume a C2X session from inside Codex. Default planner is mock so the user only writes a goal and you execute. Pass planner=chatgpt-web only if they asked to paste a web chat (dán ChatGPT). Pass brainstorm=true or phase=brainstorm for nghiệp vụ notes first. Pass pipeline=true for Claude Code + Codex + Grok. Never spawn another Codex.",
       inputSchema: {
         type: "object",
         properties: {
           goal: { type: "string", description: "User goal" },
           session: { type: "string", description: "Resume session id" },
           cwd: { type: "string", description: "Project workspace (CLI/MCP only)" },
-          planner: { type: "string", description: "chatgpt-web (default), mock, or an API id" },
+          planner: { type: "string", description: "mock (default), chatgpt-web, or an API id" },
           workspace: { type: "string", description: "repo (default) or demo" },
+          brainstorm: {
+            type: "boolean",
+            description: "Synthesize or paste nghiệp vụ notes before PLAN",
+          },
+          phase: { type: "string", description: "brainstorm | plan" },
+          pipeline: {
+            type: "boolean",
+            description: "Team claude-code + codex + grok-build",
+          },
         },
       },
     },
@@ -285,13 +306,17 @@ async function startTurn(args: Record<string, unknown>): Promise<CodexMcpResult>
     return { ok: false, error: `unknown workspace: ${workspaceRaw}` };
   }
   const workspace: WorkspaceSource = workspaceRaw;
+  const brainstorm =
+    boolArg(args, "brainstorm") || stringArg(args, "phase") === "brainstorm";
+  const harnessTeam = boolArg(args, "pipeline") ? PIPELINE_HARNESS_TEAM : [CODEX_MCP_OWNER];
   const session = await runPlan({
     goal,
     plannerChoice: planner,
-    harnessTeam: [CODEX_MCP_OWNER],
+    harnessTeam,
     budgetTokens: 4000,
     workspaceSource: workspace,
     cwd: stringArg(args, "cwd"),
+    brainstorm,
   });
   return turnFromSession(session);
 }

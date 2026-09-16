@@ -103,6 +103,8 @@ export function createSession(input: {
     ],
     savings: null,
     iterationLimit: 12,
+    brainstormNotes: null,
+    brainstormPending: false,
   };
 }
 
@@ -184,6 +186,8 @@ export function normalizeSession(raw: SessionRecord): SessionRecord {
     records: raw.records ?? [],
     reviewPastePrompt: raw.reviewPastePrompt ?? null,
     iterationLimit: raw.iterationLimit ?? 12,
+    brainstormNotes: raw.brainstormNotes ?? null,
+    brainstormPending: Boolean(raw.brainstormPending),
   };
 }
 

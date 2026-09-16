@@ -13,10 +13,19 @@ Chat web lập kế hoạch và review. Codex, Claude Code, Grok Build, OpenCode
 và/hoặc Kiro CLI chạy packet đã chia. Gộp hạn mức harness khan — đừng bắt
 một tool nghĩ + sửa + review.
 
-| Role / Vai | Who / Ai | Quota |
-| --- | --- | --- |
-| Plan + review | `chatgpt-web`, `claude-web`, `gemini-web` (then HTTP APIs) | Large included chats / subscription |
-| Execute | Any subset of `codex` \| `claude-code` \| `grok-build` \| `opencode` \| `kiro-cli` | Each tool runs only its packet |
+| Vai | Ai |
+| --- | --- |
+| Brainstorm / nghiệp vụ / PLAN / REVIEW | ChatGPT web (dán) |
+| UI | OpenDesign ngoài C2X → `DESIGN.md` |
+| Code | Claude Code |
+| Test + sửa bug (execute) | Codex |
+| CI/CD | Grok Build |
+| Wiki | `docs/wiki` outbox, dán ADO/Jira |
+
+**Codex does not review.** Không plugin chính thức của vendor. Không Jira OAuth.
+
+Đội pipeline: `c2x init --pipeline` (Claude Code + Codex + Grok Build).
+`install.sh` vẫn `c2x init --harness codex` cho người chỉ dùng Codex.
 
 | Tên / Name | Nghĩa / Meaning |
 | --- | --- |
@@ -61,6 +70,7 @@ npm stays `"private": true`. Do not publish as `c2x`.
 
 - `$HOME/.agents/skills`
 - `~/.codex/skills`
+- `~/.claude/skills`
 - `~/.codex/AGENTS.md`
 - `~/.codex/config.toml` (`[mcp_servers.chat-to-x]`)
 - `~/.local/bin`
@@ -103,6 +113,17 @@ của bạn. Codex gọi `c2x_start` (planner mặc định `mock`), làm brief,
 Muốn ChatGPT web nghĩ: nói thêm “dán ChatGPT”. Codex hiện prompt; bạn dán
 khối `[C2X]` **lại chat Codex** (`c2x_submit`). Đó là **dán tay** — C2X
 không đăng nhập hộ, không vượt ToS / rate limit của nhà cung cấp.
+
+Pipeline đầy đủ (ChatGPT + Claude Code + Codex + Grok): `c2x init --pipeline`
+rồi nói “pipeline” / “ChatGPT + Claude Code + Codex + Grok”. OpenDesign chạy
+**ngoài** C2X — thả `DESIGN.md` / HTML vào repo rồi PLAN giao implement cho
+Claude Code. Wiki: C2X ghi `docs/wiki` + `.c2x/outbox/wiki` — bạn dán sang
+Azure DevOps / Jira. Không OAuth, không PAT trong repo.
+
+Brainstorm nghiệp vụ trước PLAN: `c2x brainstorm "…"` hoặc `c2x_start` với
+`brainstorm=true` / `phase=brainstorm`. Mock tự ghi chú ngắn rồi PLAN
+(Codex-in-loop vẫn “tự làm hết”). ChatGPT web: dán Q&A trước, notes vào
+PLAN sau.
 
 ### `.c2xignore`
 

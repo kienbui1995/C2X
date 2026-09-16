@@ -1,19 +1,30 @@
 ---
 name: chat-to-x
-description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you finish it here. Default planner is mock (no paste). Trigger on C2X, chat-to-x, tự làm hết, Dùng C2X, or a coding goal that should not burn Codex quota on planning.
+description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you finish it here. Default planner is mock (no paste). Trigger on C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, pipeline đầy đủ, ChatGPT + Claude Code + Codex + Grok, or a coding goal that should not burn Codex quota on planning.
 ---
 
 # chat-to-x
 
-This is **not** an official OpenAI skill or plugin.
+This is **not** an official OpenAI skill or plugin. Unofficial community project.
 
 The checkout lives at: replace-with-absolute-path
 
-Install with `c2x init --harness codex` or `c2x skill-install` (writes
-`$HOME/.agents/skills/chat-to-x/SKILL.md`, `~/.codex/skills/chat-to-x/SKILL.md`
-for older Codex, the C2X block in `~/.codex/AGENTS.md`, and
-`[mcp_servers.chat-to-x]` in `~/.codex/config.toml`). Claude Code: copy the
-same file to `~/.claude/skills/chat-to-x/` — C2X does not auto-install there.
+Install with `c2x init --harness codex`, `c2x init --pipeline`, or
+`c2x skill-install` (writes `$HOME/.agents/skills/chat-to-x/SKILL.md`,
+`~/.codex/skills/chat-to-x/SKILL.md` for older Codex,
+`~/.claude/skills/chat-to-x/SKILL.md`, the C2X block in `~/.codex/AGENTS.md`,
+and `[mcp_servers.chat-to-x]` in `~/.codex/config.toml`).
+
+| Vai | Ai |
+| --- | --- |
+| Brainstorm / nghiệp vụ / PLAN / REVIEW | ChatGPT web (dán) |
+| UI | OpenDesign ngoài C2X → DESIGN.md |
+| Code | Claude Code |
+| Test + sửa bug (execute) | Codex |
+| CI/CD | Grok Build |
+| Wiki | `docs/wiki` outbox, dán ADO/Jira |
+
+**Codex does not review.** No official vendor plugin. No Jira OAuth.
 
 ## When the user opens Codex CLI
 
@@ -30,11 +41,28 @@ Default path — user only writes a description (“tự làm hết”):
    Do not read other files in `.c2x/briefs/`. Do not plan or review.
 3. Call `c2x_record`. If `action` is `done`, stop and tell the user it is done.
 
-Paste path — only if the user asked for ChatGPT / Claude / Gemini **web**:
+Paste path — only if the user asked for ChatGPT / Claude / Gemini **web**
+(“dán ChatGPT”):
 
 1. `c2x_start` with `planner=chatgpt-web` (or `claude-web` / `gemini-web`).
 2. Show `prompt`. User pastes the `[C2X]` block **back into this Codex chat**.
    Call `c2x_submit`. Then execute + `c2x_record` as above.
+
+Brainstorm — nghiệp vụ before PLAN:
+
+- `c2x brainstorm "…"` or `c2x_start` with `brainstorm=true` / `phase=brainstorm`.
+- Mock synthesizes short notes then PLAN (still execute-only).
+- ChatGPT web: first paste is Q&A; stored notes feed the next PLAN prompt.
+
+Pipeline — “pipeline” / “ChatGPT + Claude Code + Codex + Grok” / `c2x init --pipeline`:
+
+- `c2x_start` with `pipeline=true` (team Claude Code implement, Codex fix,
+  Grok Build ci). You still execute **only** the Codex brief.
+- UI: run OpenDesign (or any UI tool) **outside** C2X, drop `DESIGN.md` /
+  HTML into the repo, then PLAN assigns implement to Claude Code.
+- Wiki: C2X writes `docs/wiki` and `.c2x/outbox/wiki`. User pastes into
+  Azure DevOps wiki / Jira. If `agy` is later on PATH, they can use it
+  themselves — C2X does not invent a fake AGY hook.
 
 If MCP tools are missing, fallback:
 
@@ -63,6 +91,8 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 
 ```bash
 c2x init --harness codex
+c2x init --pipeline
+c2x brainstorm "nghiệp vụ…"
 c2x_start / c2x_submit / c2x_record
 c2x "<mục tiêu>" --planner mock --no-spawn
 c2x skill-install

@@ -1,8 +1,15 @@
+import {
+  buildBrainstormPastePrompt,
+  hasControlTag,
+  parseBrainstormReply,
+  synthesizeBrainstormNotes,
+} from "@/core/brainstorm";
 import { planToBriefs } from "@/core/brief";
 import { hasProviderKey } from "@/core/config";
 import { collectGitMetadata } from "@/core/git-meta";
 import { persistWorkspaceBriefs } from "@/core/harness";
 import { packWorkspace } from "@/core/packer";
+import { applyIssuesToPlan } from "@/core/packets";
 import {
   PLANNER_SYSTEM_PROMPT,
   buildPlanUserPrompt,
@@ -14,6 +21,7 @@ import {
   mockReview,
   parsePlannerOutput,
 } from "@/core/planner";
+import { persistWikiOutbox } from "@/core/wiki";
 import { isPastePlanner } from "@/core/providers/catalog";
 import { applyImportedReview } from "@/core/review-import";
 import { applyExecutionRecord } from "@/core/records";
@@ -50,6 +58,7 @@ import {
 
 async function persistPlanDrops(session: SessionRecord, cwd?: string): Promise<SessionRecord> {
   await persistWorkspaceBriefs(session, cwd);
+  await persistWikiOutbox(session, cwd);
   return session;
 }
 
@@ -62,6 +71,7 @@ export async function runPlan(input: {
   workspaceSource: WorkspaceSource;
   allowFallback?: boolean;
   cwd?: string;
+  brainstorm?: boolean;
 }): Promise<SessionRecord> {
   const config = await loadConfig();
   const planner = resolvePlanner({
@@ -96,8 +106,40 @@ export async function runPlan(input: {
   });
   session = { ...session, pack };
 
+  if (input.brainstorm && isPastePlanner(planner)) {
+    const pastePrompt = buildBrainstormPastePrompt(pack.goal, session.id);
+    session = touchSession(
+      {
+        ...session,
+        pastePrompt,
+        brainstormPending: true,
+        brainstormNotes: null,
+        savings: estimateSavings({ pack, brief: null, planner }),
+      },
+      {
+        state: "INIT",
+        actor: "planner",
+        note: `${planner}: first paste is nghiệp vụ Q&A (not PLAN). Store notes, then PLAN.`,
+      },
+    );
+    return persistPlanDrops(await upsertSession(session), input.cwd);
+  }
+
+  if (input.brainstorm) {
+    session = {
+      ...session,
+      brainstormNotes: synthesizeBrainstormNotes(input.goal),
+      brainstormPending: false,
+    };
+  }
+
   if (isPastePlanner(planner)) {
-    const pastePrompt = buildWebPastePrompt(pack, session.id, harnessTeam);
+    const pastePrompt = buildWebPastePrompt(
+      pack,
+      session.id,
+      harnessTeam,
+      session.brainstormNotes,
+    );
     session = touchSession(
       {
         ...session,
@@ -126,7 +168,10 @@ export async function runPlan(input: {
       allowFallback: input.allowFallback,
       messages: [
         { role: "system", content: PLANNER_SYSTEM_PROMPT },
-        { role: "user", content: buildPlanUserPrompt(pack, session.id, harnessTeam) },
+        {
+          role: "user",
+          content: buildPlanUserPrompt(pack, session.id, harnessTeam, session.brainstormNotes),
+        },
       ],
     });
     usedFallback = completion.usedFallback;
@@ -206,14 +251,45 @@ export async function importPlan(input: {
   return persistPlanDrops(await upsertSession(next));
 }
 
+async function importBrainstormNotes(
+  existing: SessionRecord,
+  raw: string,
+): Promise<SessionRecord> {
+  const notes = parseBrainstormReply(raw);
+  const pack = reusedPack(existing);
+  const pastePrompt = buildWebPastePrompt(
+    pack,
+    existing.id,
+    existing.harnessTeam,
+    notes,
+  );
+  const next = touchSession(
+    {
+      ...existing,
+      brainstormNotes: notes,
+      brainstormPending: false,
+      pastePrompt,
+    },
+    {
+      state: "INIT",
+      actor: "user",
+      note: "Stored brainstorm notes. Next paste is the [C2X] PLAN.",
+    },
+  );
+  return persistPlanDrops(await upsertSession(next));
+}
+
 export async function importControlMessage(input: {
   sessionId?: string;
   raw: string;
 }): Promise<SessionRecord> {
+  const existing = input.sessionId ? await getSession(input.sessionId) : null;
+  if (existing?.brainstormPending && !hasControlTag(input.raw)) {
+    return importBrainstormNotes(existing, input.raw);
+  }
   const block = extractControlBlock(input.raw);
   assertControlBudget(block, CONTROL_BUDGET_MAX);
   const message = parseControlMessage(block);
-  const existing = input.sessionId ? await getSession(input.sessionId) : null;
   if (
     existing &&
     (existing.state === "EXECUTED" || existing.state === "REVIEW") &&
@@ -414,10 +490,18 @@ export async function runReview(input: {
     }
   }
 
+  const plan =
+    review.state === "PLAN" && reviewing.plan
+      ? applyIssuesToPlan(reviewing.plan, existing.harnessTeam, review.issues)
+      : reviewing.plan;
+  const briefs = plan ? planToBriefs(plan) : reviewing.briefs;
   const next = touchSession(
     {
       ...reviewing,
       review,
+      plan,
+      briefs,
+      brief: briefs[0] ?? reviewing.brief,
       usedFallback,
       fallbackReason,
     },
@@ -427,5 +511,6 @@ export async function runReview(input: {
       note: review.summary || `Review ended in ${review.state}.`,
     },
   );
-  return upsertSession(next);
+  const saved = await upsertSession(next);
+  return review.state === "PLAN" ? persistPlanDrops(saved) : saved;
 }

@@ -7,6 +7,7 @@ import { upsertCodexMcpToml } from "@/core/codex-config";
 import { runDrive } from "@/core/drive";
 import { callCodexMcpTool, listCodexMcpTools } from "@/core/mcp-codex";
 import { handleMcpStdioMessage } from "@/core/mcp-stdio";
+import { getSession } from "@/core/store";
 
 let dataDir = "";
 let workspaceRoot = "";
@@ -191,6 +192,44 @@ Looks good.
     }
     expect(done.state).toBe("DONE");
     expect(done.action).toBe("done");
+  });
+
+  it("accepts brainstorm and pipeline args on c2x_start", async () => {
+    const tools = listCodexMcpTools();
+    const start = tools.find((tool) => tool.name === "c2x_start");
+    expect(JSON.stringify(start?.inputSchema)).toMatch(/brainstorm/);
+    expect(JSON.stringify(start?.inputSchema)).toMatch(/pipeline|phase/);
+
+    const brain = await callCodexMcpTool("c2x_start", {
+      goal: "Sửa createTask",
+      cwd: workspaceRoot,
+      planner: "mock",
+      workspace: "demo",
+      brainstorm: true,
+    });
+    expect(brain.ok).toBe(true);
+    if (!brain.ok) {
+      return;
+    }
+    const brainSession = await getSession(brain.session);
+    expect(brainSession?.brainstormNotes).toMatch(/createTask|Nghiệp vụ/i);
+    expect(brain.state).toBe("PLAN");
+
+    const pipe = await callCodexMcpTool("c2x_start", {
+      goal: "Sửa createTask",
+      cwd: workspaceRoot,
+      planner: "mock",
+      workspace: "demo",
+      pipeline: true,
+    });
+    expect(pipe.ok).toBe(true);
+    if (!pipe.ok) {
+      return;
+    }
+    const pipeSession = await getSession(pipe.session);
+    expect(pipeSession?.harnessTeam).toEqual(["codex", "claude-code", "grok-build"]);
+    expect(pipe.brief).toMatch(/OWNER:\s*codex/);
+    expect(pipe.brief).not.toMatch(/OWNER:\s*claude-code/);
   });
 });
 

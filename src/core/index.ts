@@ -1,3 +1,4 @@
+export * from "@/core/brainstorm";
 export * from "@/core/brief";
 export * from "@/core/config";
 export * from "@/core/package-root";
@@ -24,3 +25,4 @@ export * from "@/core/spawn-harness";
 export * from "@/core/drive";
 export * from "@/core/tokens";
 export * from "@/core/types";
+export * from "@/core/wiki";

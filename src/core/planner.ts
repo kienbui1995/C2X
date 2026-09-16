@@ -1,5 +1,6 @@
 import { renderPackForPlanner } from "@/core/packer";
 import { filesFromPack, packetOverlapWarning, parseWorkPackets, splitWorkPackets } from "@/core/packets";
+import { getHarness } from "@/core/providers/catalog";
 import { createTaskId, listItems, parseControlMessage, planToMessage } from "@/core/protocol";
 import { sanitizeImportedFiles } from "@/core/sensitive";
 import { estimateTokens } from "@/core/tokens";
@@ -24,18 +25,12 @@ export function buildPlanUserPrompt(
   pack: ContextPack,
   taskId: string,
   team: readonly HarnessId[] = DEFAULT_HARNESS_TEAM,
+  notes?: string | null,
 ): string {
   const harnessTeam = resolveHarnessTeam({ harnessTeam: team });
   const packetStub = harnessTeam
-    .map((owner, index) => {
-      const role =
-        harnessTeam.length === 1
-          ? "general"
-          : index === 0
-            ? "implement"
-            : index === harnessTeam.length - 1
-              ? "test"
-              : "general";
+    .map((owner) => {
+      const role = getHarness(owner).packetRole;
       return `## owner=${owner} role=${role}
 ACTIONS:
 1. ...
@@ -47,8 +42,11 @@ SUCCESS_CRITERIA:
 - ...`;
     })
     .join("\n\n");
+  const notesBlock = notes?.trim()
+    ? `\nBRAINSTORM_NOTES:\n${notes.trim()}\n`
+    : "";
   return `${renderPackForPlanner(pack)}
-
+${notesBlock}
 Return only:
 
 [C2X]
@@ -274,8 +272,9 @@ export function buildWebPastePrompt(
   pack: ContextPack,
   taskId: string,
   team: readonly HarnessId[] = DEFAULT_HARNESS_TEAM,
+  notes?: string | null,
 ): string {
-  const planPrompt = buildPlanUserPrompt(pack, taskId, team);
+  const planPrompt = buildPlanUserPrompt(pack, taskId, team, notes);
   return `${PLANNER_SYSTEM_PROMPT}
 
 ${planPrompt}`;

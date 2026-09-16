@@ -1,8 +1,10 @@
 import { planToBriefs } from "@/core/brief";
+import { applyIssuesToPlan } from "@/core/packets";
 import { extractControlBlock, parsePlannerOutput } from "@/core/planner";
 import {
   CONTROL_BUDGET_MAX,
   assertControlBudget,
+  listItems,
   messageToReview,
   parseControlMessage,
 } from "@/core/protocol";
@@ -34,10 +36,12 @@ export function applyImportedReview(session: SessionRecord, raw: string): Sessio
     if (fallback.iteration >= session.iterationLimit) {
       return blockAtIterationLimit(session);
     }
-    const plan = parsePlannerOutput(raw, fallback);
-    if (plan.iteration >= session.iterationLimit) {
+    const imported = parsePlannerOutput(raw, fallback);
+    if (imported.iteration >= session.iterationLimit) {
       return blockAtIterationLimit(session);
     }
+    const issues = listItems(message.sections.ISSUES);
+    const plan = applyIssuesToPlan(imported, session.harnessTeam, issues);
     const briefs = planToBriefs(plan);
     return applyPlan(
       touchSession(session, {

@@ -3,7 +3,7 @@ import {
   chatToXMcpLaunch,
   defaultCodexAgentsPath,
   defaultCodexConfigPath,
-  defaultCodexSkillHomes,
+  defaultSkillHomes,
   detectCodexHooks,
   installCodexAgents,
   installCodexMcp,
@@ -16,8 +16,10 @@ import {
   type HarnessDetectResult,
 } from "@/core/harness";
 import { packageRoot } from "@/core/package-root";
+import { getHarness } from "@/core/providers/catalog";
 import { runPlan } from "@/core/run-loop";
 import {
+  PIPELINE_HARNESS_TEAM,
   resolveHarnessTeam,
   type HarnessId,
   type SessionRecord,
@@ -49,14 +51,18 @@ export async function runInit(input: {
   agentsPath?: string;
   codexConfigPath?: string;
   budgetTokens?: number;
+  pipeline?: boolean;
 }): Promise<InitResult> {
   const repoRoot = input.repoRoot ?? packageRoot();
   const skillHomes =
-    input.skillHomes ?? (input.skillHome ? [input.skillHome] : defaultCodexSkillHomes());
+    input.skillHomes ?? (input.skillHome ? [input.skillHome] : defaultSkillHomes());
   const agentsPath = input.agentsPath ?? defaultCodexAgentsPath();
   const workspaceSource = input.workspaceSource ?? "demo";
   const harnessTeam = resolveHarnessTeam({
-    harnessTeam: input.harnessTeam,
+    harnessTeam:
+      input.pipeline && !input.harnessTeam && !input.harness
+        ? PIPELINE_HARNESS_TEAM
+        : input.harnessTeam,
     harness: input.harness,
   });
   const skillPaths = await installSkills({ repoRoot, skillHomes });
@@ -126,8 +132,19 @@ export function formatInitReport(result: InitResult): string {
     "briefs",
     ...briefLines,
     "Open Codex in the project and say the goal. Codex uses the chat-to-x MCP tools.",
-    "Claude Code: copy the same SKILL.md to ~/.claude/skills/chat-to-x/ (C2X does not auto-install there).",
-    "C2X does not spawn harnesses from init. Codex is the harness.",
+    "Claude Code skill: ~/.claude/skills/chat-to-x (written by init / skill-install).",
+    pipelineRoleLines(result.session.harnessTeam),
+    "C2X does not spawn harnesses from init. Codex is the harness — it does not review.",
     "",
-  ].join("\n");
+  ]
+    .filter((line) => line.length > 0)
+    .join("\n");
+}
+
+function pipelineRoleLines(team: readonly HarnessId[]): string {
+  const rows = team.map((id) => {
+    const entry = getHarness(id);
+    return `  ${id}\t${entry.packetRole}\t${entry.name}`;
+  });
+  return ["roles", ...rows, "planner\tChatGPT web (paste) or mock"].join("\n");
 }

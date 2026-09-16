@@ -9,7 +9,7 @@ import {
   chatToXMcpLaunch,
   defaultCodexAgentsPath,
   defaultCodexConfigPath,
-  defaultCodexSkillHomes,
+  defaultSkillHomes,
   detectCodexHooks,
   installCodexAgents,
   installCodexMcp,
@@ -47,6 +47,7 @@ import {
   isHarnessId,
   isPlannerChoice,
   isWorkspaceSource,
+  PIPELINE_HARNESS_TEAM,
   resolveHarnessTeam,
   type PlannerChoice,
 } from "@/core/types";
@@ -82,7 +83,9 @@ program
     }
     process.stdout.write("harnesses (execute only; may share one plan)\n");
     for (const entry of HARNESS_CATALOG) {
-      process.stdout.write(`  ${entry.id.padEnd(20)} harness         ${entry.quotaEn}\n`);
+      process.stdout.write(
+        `  ${entry.id.padEnd(20)} ${entry.packetRole.padEnd(14)} ${entry.quotaEn}\n`,
+      );
     }
   });
 
@@ -486,6 +489,7 @@ program
   .option("--goal <text>", "mock PLAN goal", DEFAULT_INIT_GOAL)
   .option("--team <ids>", "comma-separated harness ids")
   .option("--harness <id>", "single harness")
+  .option("--pipeline", "alias: team claude-code,codex,grok-build", false)
   .option("--cwd <path>", "workspace root for brief drops (CLI only)")
   .option("--workspace <src>", "demo|repo", "demo")
   .option("--budget <n>", "token budget", "4000")
@@ -493,6 +497,7 @@ program
     goal: string;
     team?: string;
     harness?: string;
+    pipeline?: boolean;
     cwd?: string;
     workspace: string;
     budget: string;
@@ -505,17 +510,76 @@ program
     }
     const result = await runInit({
       goal: opts.goal,
-      harnessTeam: opts.team ? teamFromOpts(opts) : undefined,
+      harnessTeam: opts.team
+        ? teamFromOpts(opts)
+        : opts.pipeline
+          ? PIPELINE_HARNESS_TEAM
+          : undefined,
       harness: opts.harness && isHarnessId(opts.harness) ? opts.harness : undefined,
+      pipeline: opts.pipeline,
       workspaceSource: opts.workspace,
       cwd: opts.cwd,
       repoRoot: packageRoot(),
-      skillHomes: defaultCodexSkillHomes(),
+      skillHomes: defaultSkillHomes(),
       agentsPath: defaultCodexAgentsPath(),
       codexConfigPath: defaultCodexConfigPath(),
       budgetTokens: Number(opts.budget),
     });
     process.stdout.write(formatInitReport(result));
+  });
+
+program
+  .command("brainstorm")
+  .description("Nghiệp vụ notes before PLAN (ChatGPT paste or mock)")
+  .argument("<notes>", "nghiệp vụ / goal")
+  .option("--planner <id>", "mock|chatgpt-web|…", "mock")
+  .option("--team <ids>", "comma-separated harness ids")
+  .option("--harness <id>", "single harness")
+  .option("--pipeline", "alias: team claude-code,codex,grok-build", false)
+  .option("--cwd <path>", "workspace root (CLI only)")
+  .option("--workspace <src>", "demo|repo", "demo")
+  .option("--budget <n>", "token budget", "4000")
+  .action(async (
+    notes: string,
+    opts: {
+      planner: string;
+      team?: string;
+      harness?: string;
+      pipeline?: boolean;
+      cwd?: string;
+      workspace: string;
+      budget: string;
+    },
+  ) => {
+    if (!isPlannerChoice(opts.planner)) {
+      throw new Error(`unknown planner: ${opts.planner}`);
+    }
+    if (!isWorkspaceSource(opts.workspace)) {
+      throw new Error(`unknown workspace: ${opts.workspace}`);
+    }
+    const session = await runPlan({
+      goal: notes,
+      plannerChoice: opts.planner,
+      harnessTeam: opts.team
+        ? teamFromOpts(opts)
+        : opts.pipeline
+          ? PIPELINE_HARNESS_TEAM
+          : undefined,
+      harness: opts.harness && isHarnessId(opts.harness) ? opts.harness : undefined,
+      budgetTokens: Number(opts.budget),
+      workspaceSource: opts.workspace,
+      cwd: opts.cwd,
+      brainstorm: true,
+    });
+    if (session.pastePrompt && session.brainstormPending) {
+      process.stdout.write(session.pastePrompt);
+      process.stdout.write("\n");
+      return;
+    }
+    process.stdout.write(`${session.id} ${session.state}\n`);
+    if (session.brainstormNotes) {
+      process.stdout.write(`${session.brainstormNotes}\n`);
+    }
   });
 
 program
@@ -525,7 +589,7 @@ program
     const repoRoot = packageRoot();
     const dests = await installSkills({
       repoRoot,
-      skillHomes: defaultCodexSkillHomes(),
+      skillHomes: defaultSkillHomes(),
     });
     const agentsPath = await installCodexAgents({
       agentsPath: defaultCodexAgentsPath(),
@@ -541,9 +605,7 @@ program
     }
     process.stdout.write(`${agentsPath}\n`);
     process.stdout.write(`${mcpConfigPath}\n`);
-    process.stdout.write(
-      "Claude Code: copy the same SKILL.md to ~/.claude/skills/chat-to-x/ (C2X does not auto-install there).\n",
-    );
+    process.stdout.write("Claude Code skill: ~/.claude/skills/chat-to-x\n");
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

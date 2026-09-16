@@ -34,7 +34,13 @@ export type HarnessId = (typeof HARNESS_IDS)[number];
 /** Default collaboration team. Any non-empty subset of `HARNESS_IDS` is valid. */
 export const DEFAULT_HARNESS_TEAM: HarnessId[] = ["codex", "claude-code"];
 
-export const HARNESS_PACKET_ROLES = ["implement", "test", "general"] as const;
+/** ChatGPT + Claude Code + Codex + Grok — `c2x init --pipeline`. */
+export const PIPELINE_HARNESS_TEAM: HarnessId[] = ["claude-code", "codex", "grok-build"];
+
+export const CATALOG_PACKET_ROLES = ["implement", "fix", "ci", "docs"] as const;
+export type CatalogPacketRole = (typeof CATALOG_PACKET_ROLES)[number];
+
+export const HARNESS_PACKET_ROLES = ["implement", "fix", "ci", "docs", "general"] as const;
 export type HarnessPacketRole = (typeof HARNESS_PACKET_ROLES)[number];
 
 export const HARNESS_RUN_STATES = ["pending", "executing", "executed"] as const;
@@ -225,6 +231,8 @@ export type SessionRecord = {
   events: SessionEvent[];
   savings: TokenLedger | null;
   iterationLimit: number;
+  brainstormNotes: string | null;
+  brainstormPending: boolean;
 };
 
 export type ProviderStatus = {

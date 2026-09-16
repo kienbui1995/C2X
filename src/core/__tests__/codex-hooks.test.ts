@@ -97,7 +97,7 @@ describe("Codex visibility docs", () => {
     expect(readme).toMatch(/AGENTS\.md/);
     expect(readme).toMatch(/\/mcp|codex mcp/);
     const cli = readFileSync(path.join(process.cwd(), "src/cli/c2x.ts"), "utf8");
-    expect(cli).toMatch(/defaultCodexSkillHomes|installSkills/);
+    expect(cli).toMatch(/defaultSkillHomes|defaultCodexSkillHomes|installSkills/);
     expect(cli).toMatch(/installCodexAgents|defaultCodexAgentsPath/);
     expect(cli).toMatch(/detectCodexHooks/);
     expect(cli).toMatch(/\$chat-to-x|\/mcp/);

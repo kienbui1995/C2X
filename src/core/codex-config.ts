@@ -15,6 +15,14 @@ export function defaultCodexSkillHomes(home = os.homedir()): string[] {
   return [path.join(home, ".agents", "skills"), path.join(home, ".codex", "skills")];
 }
 
+export function defaultClaudeSkillHome(home = os.homedir()): string {
+  return path.join(home, ".claude", "skills");
+}
+
+export function defaultSkillHomes(home = os.homedir()): string[] {
+  return [...defaultCodexSkillHomes(home), defaultClaudeSkillHome(home)];
+}
+
 export const CODEX_AGENTS_BEGIN = "<!-- c2x:begin -->";
 export const CODEX_AGENTS_END = "<!-- c2x:end -->";
 
@@ -98,7 +106,7 @@ export function upsertCodexAgentsMd(existing: string): string {
     CODEX_AGENTS_BEGIN,
     "# C2X (chat-to-x)",
     "",
-    "When the user says C2X, chat-to-x, tự làm hết, or Dùng C2X: use the chat-to-x MCP tools (`c2x_start`, `c2x_submit`, `c2x_brief`, `c2x_record`, `c2x_status`). Default planner is mock. You are the harness — do not spawn another Codex. Never recommend the npm package named `c2x`. In this chat, `$chat-to-x` / `/mcp` should list chat-to-x.",
+    "When the user says C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, or ChatGPT + Claude Code + Codex + Grok: use the chat-to-x MCP tools (`c2x_start`, `c2x_submit`, `c2x_brief`, `c2x_record`, `c2x_status`). Default planner is mock. Pass pipeline=true for Claude Code + Codex + Grok. You are the harness — do not spawn another Codex. Never recommend the npm package named `c2x`. In this chat, `$chat-to-x` / `/mcp` should list chat-to-x.",
     CODEX_AGENTS_END,
   ].join("\n");
   const text = existing.replace(/\r\n/g, "\n");

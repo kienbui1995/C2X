@@ -52,11 +52,12 @@ describe("splitWorkPackets", () => {
     expect(owned.length).toBeGreaterThan(1);
     expect(new Set(owned).size).toBe(owned.length);
 
-    const implement = packets[0];
-    const tester = packets[1];
-    expect(implement.files.some((path) => path.includes("tasks.ts"))).toBe(true);
-    expect(tester.files.some((path) => /test/i.test(path))).toBe(true);
-    expect(implement.files.some((path) => /test/i.test(path))).toBe(false);
+    const byOwner = Object.fromEntries(packets.map((packet) => [packet.owner, packet]));
+    expect(byOwner["claude-code"]?.role).toBe("implement");
+    expect(byOwner.codex?.role).toBe("fix");
+    expect(byOwner["claude-code"]?.files.some((path) => path.includes("tasks.ts"))).toBe(true);
+    expect(byOwner.codex?.files.some((path) => /test/i.test(path))).toBe(true);
+    expect(byOwner["claude-code"]?.files.some((path) => /test/i.test(path))).toBe(false);
   });
 
   it("keeps a single-harness team as one packet that owns every planned file", () => {
@@ -146,8 +147,13 @@ describe("splitWorkPackets team sizes", () => {
     expect(new Set(owned).size).toBe(owned.length);
     expect(owned.some((path) => path.includes("tasks.ts"))).toBe(true);
     expect(owned.some((path) => /test/i.test(path))).toBe(true);
-    expect(packets[0]?.files.some((path) => /test/i.test(path))).toBe(false);
-    expect(packets[3]?.files.some((path) => /test/i.test(path))).toBe(true);
+    const byOwner = Object.fromEntries(packets.map((packet) => [packet.owner, packet]));
+    expect(byOwner.codex?.role).toBe("fix");
+    expect(byOwner["claude-code"]?.role).toBe("implement");
+    expect(byOwner["grok-build"]?.role).toBe("ci");
+    expect(byOwner.opencode?.role).toBe("implement");
+    expect(byOwner.codex?.files.some((path) => /test/i.test(path))).toBe(true);
+    expect(byOwner["claude-code"]?.files.some((path) => /test/i.test(path))).toBe(false);
   });
 });
 

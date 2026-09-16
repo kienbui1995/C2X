@@ -51,6 +51,22 @@ Code sections.
 
 ## Roles
 
+| Vai | Ai |
+| --- | --- |
+| Brainstorm / nghiệp vụ / PLAN / REVIEW | ChatGPT web (dán) |
+| UI | OpenDesign ngoài C2X → DESIGN.md |
+| Code | Claude Code |
+| Test + sửa bug (execute) | Codex |
+| CI/CD | Grok Build |
+| Wiki | `docs/wiki` outbox, dán ADO/Jira |
+
+**Codex does not review.** Unofficial community project — not an official
+vendor plugin. No Jira OAuth. Harness `packetRole` lives on the catalog
+entry (`implement` / `fix` / `ci` / `docs`); the splitter `map`s it.
+
+`c2x init --pipeline` sets team `claude-code,codex,grok-build`.
+`install.sh` stays `c2x init --harness codex`.
+
 | Role | Who | Never |
 | --- | --- | --- |
 | Plan | Web/subscription planners first, then local, then paid APIs | any `HarnessId` |
@@ -70,12 +86,19 @@ input price, then name.
 
 ## Work packets
 
-The planner (including the mock planner) splits packed files into packets:
+The planner (including the mock planner) splits packed files into packets
+by **catalog `packetRole`**, not team position:
 
-| Team size | Split |
+| Role | Typical paths |
 | --- | --- |
-| 1 | One `general` packet owns every planned file |
-| 2+ | First harness `implement` (non-test files), last harness `test` (`*.test.*`, `test-hint`, `__tests__`). Middle teammates get remaining implement files. If the pack has only one class of files, files are partitioned so ownership stays disjoint. |
+| `implement` | `app` / `src`, `DESIGN.md`, `design/**` — not `.github`, not deploy |
+| `fix` | tests (`*.test.*`, `__tests__`, `tests/`) and ISSUES after REVIEW |
+| `ci` | `.github/`, Dockerfile, `deploy/`, `infra`, `scripts/deploy` |
+| `docs` | `docs/wiki` (outbox; paste into ADO/Jira — no API) |
+
+A single-harness team still owns every planned file, using that harness's
+catalog role. Missing specialists fall back to an implementer. Ownership
+stays disjoint.
 
 Each packet carries owner, role, actions, files, tests, and success criteria.
 `planToBriefs` renders one `[C2X]` brief per owner so a harness never receives
@@ -119,9 +142,9 @@ These are locks, not suggestions. Full table: spec §18.
   Repo walks also honor a root `.c2xignore` (one path per line). Demo stays
   in-memory.
 - `c2x init` composes skill-install + doctor + mock PLAN + brief drops.
-  Skill goes to `$HOME/.agents/skills` (current Codex USER) and
-  `~/.codex/skills` (older Codex), plus a C2X block in `~/.codex/AGENTS.md`.
-  It does not spawn a harness or start MCP.
+  Skill goes to `$HOME/.agents/skills` (current Codex USER),
+  `~/.codex/skills` (older Codex), and `~/.claude/skills`, plus a C2X block
+  in `~/.codex/AGENTS.md`. It does not spawn a harness or start MCP.
 - Resume a session from `/sessions` (`/?session=<id>`) or `c2x status`.
   The control room shows the next protocol step; it does not rewalk the repo.
 - Local MCP server: `c2x mcp` stdio (`[mcp_servers.chat-to-x]`). Tools
@@ -163,6 +186,6 @@ v1 plus phase-2 Slice L (`.c2x/briefs/`), P (doctor/dashboard polish), M
 - Locked design: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](superpowers/specs/2026-09-12-chat-to-x-features-design.md)
 - Completed v1 plan: [docs/superpowers/plans/2026-09-12-chat-to-x-features.md](superpowers/plans/2026-09-12-chat-to-x-features.md)
 
-OSS locks (public MIT): publish as `chat-to-x` never `c2x`; no browser
-workspace paths; no harness spawn; no C2C OAuth/tunnel fork. How to add a
-harness: spec §19. Speed locks: spec §18. Fast planner link: spec §20.
+OSS locks (public MIT): publish as `chat-to-x` never `c2x`; Never `npx c2x`;
+no browser workspace paths; no harness spawn; no C2C OAuth/tunnel fork.
+How to add a harness: spec §19. Speed locks: spec §18. Fast planner link: spec §20.

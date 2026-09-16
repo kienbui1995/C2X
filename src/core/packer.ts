@@ -1,3 +1,4 @@
+import { isDesignPath } from "@/core/packets";
 import { isIgnoredPath, isSensitivePath } from "@/core/sensitive";
 import { clampBudget, estimateTokens } from "@/core/tokens";
 import type { ContextPack, PackedExcerpt, WorkspaceFile } from "@/core/types";
@@ -28,6 +29,9 @@ function scoreFile(file: WorkspaceFile, terms: string[]): number {
   }
   if (file.path.endsWith("package.json") || file.path.endsWith("README.md")) {
     score += 3;
+  }
+  if (isDesignPath(file.path)) {
+    score += 12;
   }
   return score;
 }

@@ -60,7 +60,7 @@ describe("catalog registry", () => {
     }
   });
 
-  it("splits packets by team position, not by named harness id", () => {
+  it("splits packets by catalog packetRole, not by team position or named id switch", () => {
     const files = ["src/a.ts", "src/a.test.ts"];
     const packets = splitWorkPackets({
       team: ["opencode", "kiro-cli"],
@@ -69,7 +69,10 @@ describe("catalog registry", () => {
       taskId: "c2x_reg",
     });
     expect(packets.map((packet) => packet.owner)).toEqual(["opencode", "kiro-cli"]);
-    expect(assignPacketRoles(["kiro-cli"])).toEqual([{ owner: "kiro-cli", role: "general" }]);
+    expect(assignPacketRoles(["kiro-cli"])).toEqual([{ owner: "kiro-cli", role: "implement" }]);
+    expect(packets.every((packet) => packet.role === "implement")).toBe(true);
     expect(packets[0]?.actions.join(" ")).not.toMatch(/createTask/i);
+    expect(getHarness("codex").packetRole).toBe("fix");
+    expect(getHarness("claude-code").packetRole).toBe("implement");
   });
 });

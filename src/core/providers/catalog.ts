@@ -3,7 +3,9 @@ import {
   HARNESS_IDS,
   PROVIDER_IDS,
   type AppConfig,
+  type CatalogPacketRole,
   type HarnessId,
+  type HarnessPacketRole,
   type ProviderCatalogEntry,
   type ProviderId,
   type WebSubscriptionPlanner,
@@ -23,6 +25,7 @@ export type HarnessCatalogEntry = {
   binaries: readonly string[];
   /** Non-interactive CLI args. `{brief}` is replaced with `.c2x/briefs/<id>.md`. */
   execArgs: readonly string[];
+  packetRole: CatalogPacketRole;
 };
 
 export function resolveExecArgs(entry: HarnessCatalogEntry, briefRel: string): string[] {
@@ -227,6 +230,7 @@ export const HARNESS_BY_ID = {
     quotaEn: "Scarce harness quota",
     binaries: ["codex"],
     execArgs: ["exec", "Read and execute only {brief}. Do not plan or review."],
+    packetRole: "fix",
   },
   "claude-code": {
     id: "claude-code",
@@ -238,6 +242,7 @@ export const HARNESS_BY_ID = {
     quotaEn: "Scarce harness quota",
     binaries: ["claude"],
     execArgs: ["-p", "Read and execute only {brief}. Do not plan or review."],
+    packetRole: "implement",
   },
   "grok-build": {
     id: "grok-build",
@@ -249,6 +254,7 @@ export const HARNESS_BY_ID = {
     quotaEn: "Scarce harness quota",
     binaries: ["grok", "grok-build"],
     execArgs: ["--prompt", "Read and execute only {brief}. Do not plan or review."],
+    packetRole: "ci",
   },
   opencode: {
     id: "opencode",
@@ -260,6 +266,7 @@ export const HARNESS_BY_ID = {
     quotaEn: "Scarce harness quota",
     binaries: ["opencode"],
     execArgs: ["run", "Read and execute only {brief}. Do not plan or review."],
+    packetRole: "implement",
   },
   "kiro-cli": {
     id: "kiro-cli",
@@ -271,6 +278,7 @@ export const HARNESS_BY_ID = {
     quotaEn: "Scarce harness quota",
     binaries: ["kiro"],
     execArgs: ["--prompt", "Read and execute only {brief}. Do not plan or review."],
+    packetRole: "implement",
   },
 } satisfies Record<HarnessId, HarnessCatalogEntry>;
 
@@ -323,6 +331,23 @@ export function modelForProvider(id: ProviderId, config: AppConfig): string {
       return config.openaiCompatibleModel;
     default:
       return assertNever(id, `Unknown provider: ${id}`);
+  }
+}
+
+export function packetRoleCopy(role: HarnessPacketRole, lang: "vi" | "en"): string {
+  switch (role) {
+    case "implement":
+      return lang === "vi" ? "Sửa code" : "Implement";
+    case "fix":
+      return lang === "vi" ? "Test + sửa bug" : "Tests + fix";
+    case "ci":
+      return lang === "vi" ? "CI/CD" : "CI/CD";
+    case "docs":
+      return lang === "vi" ? "Wiki / docs" : "Wiki / docs";
+    case "general":
+      return lang === "vi" ? "Gói việc" : "Work packet";
+    default:
+      return assertNever(role, `Unknown packet role: ${role}`);
   }
 }
 
