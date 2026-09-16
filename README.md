@@ -21,6 +21,7 @@ một tool nghĩ + sửa + review.
 | Test + sửa bug (execute) | Codex |
 | CI/CD | Grok Build |
 | Codex = não (lệnh MCP) / AGY = chạy code | Optional: `--brain-codex --harness agy` |
+| AGY = não / Codex = chạy code | Optional: `--brain-agy --harness codex` |
 | Wiki | `docs/wiki` outbox, dán ADO/Jira |
 
 **Codex does not review.** Không plugin chính thức của vendor. Không Jira OAuth.
@@ -29,7 +30,9 @@ một tool nghĩ + sửa + review.
 `install.sh` vẫn `c2x init --harness codex` cho người chỉ dùng Codex.
 Optional Codex-brain + AGY: `c2x init --brain-codex --harness agy` hoặc
 `c2x init --pipeline-agy` (team `[agy]`, không `[codex,agy]`). Codex chat
-là não (MCP); AGY chạy code. Không spawn Codex. Không Jira OAuth.
+là não (MCP); AGY chạy code. Inverse: `c2x init --brain-agy --harness codex`
+— AGY là não, Codex chỉ chạy `.c2x/briefs/codex.md`. Không spawn harness
+não. Không Jira OAuth.
 
 | Tên / Name | Nghĩa / Meaning |
 | --- | --- |

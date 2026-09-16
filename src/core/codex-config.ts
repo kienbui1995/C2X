@@ -19,8 +19,17 @@ export function defaultClaudeSkillHome(home = os.homedir()): string {
   return path.join(home, ".claude", "skills");
 }
 
+/** Antigravity CLI global skills (unofficial write; not a vendor plugin). */
+export function defaultAgySkillHome(home = os.homedir()): string {
+  return path.join(home, ".gemini", "antigravity-cli", "skills");
+}
+
 export function defaultSkillHomes(home = os.homedir()): string[] {
-  return [...defaultCodexSkillHomes(home), defaultClaudeSkillHome(home)];
+  return [
+    ...defaultCodexSkillHomes(home),
+    defaultClaudeSkillHome(home),
+    defaultAgySkillHome(home),
+  ];
 }
 
 export const CODEX_AGENTS_BEGIN = "<!-- c2x:begin -->";
@@ -121,7 +130,7 @@ export function upsertCodexAgentsMd(existing: string): string {
     CODEX_AGENTS_BEGIN,
     "# C2X (chat-to-x)",
     "",
-    "When the user says C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, ChatGPT + Claude Code + Codex + Grok, brain-codex, pipeline-agy, or Codex là bộ não: use the chat-to-x MCP tools (`c2x_start`, `c2x_submit`, `c2x_brief`, `c2x_record`, `c2x_status`). Default planner is mock. Pass pipeline=true for Claude Code + Codex + Grok. Default: you are the harness — do not spawn another Codex. Optional brain=codex / harness=agy: you are the brain. Do not write app code. AGY executes. `.c2x/briefs/agy.md` is for AGY — you do not execute it. Never recommend the npm package named `c2x`. In this chat, `$chat-to-x` / `/mcp` should list chat-to-x.",
+    "When the user says C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, ChatGPT + Claude Code + Codex + Grok, brain-codex, brain-agy, pipeline-agy, Codex là bộ não, or AGY là bộ não: use the chat-to-x MCP tools (`c2x_start`, `c2x_submit`, `c2x_brief`, `c2x_record`, `c2x_status`). Default planner is mock. Pass pipeline=true for Claude Code + Codex + Grok. Default: you are the harness — do not spawn another Codex. Optional brain=codex / harness=agy: you are the brain. Do not write app code. AGY executes. `.c2x/briefs/agy.md` is for AGY — you do not execute it. Optional brain=agy / harness=codex: AGY is the brain and you are the implementer — read only `.c2x/briefs/codex.md`, execute, do not plan or review. Never recommend the npm package named `c2x`. In this chat, `$chat-to-x` / `/mcp` should list chat-to-x.",
     CODEX_AGENTS_END,
   ].join("\n");
   const text = existing.replace(/\r\n/g, "\n");

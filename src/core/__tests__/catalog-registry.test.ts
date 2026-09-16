@@ -7,7 +7,7 @@ import {
   PROVIDER_BY_ID,
   PROVIDER_CATALOG,
 } from "@/core/providers/catalog";
-import { HARNESS_IDS, PROVIDER_IDS } from "@/core/types";
+import { CONTROL_SURFACE_HARNESS_IDS, HARNESS_IDS, PROVIDER_IDS } from "@/core/types";
 import { routeExecuteTeam, routeRole } from "@/core/providers/router";
 import { mergeConfig } from "@/core/config";
 import { assignPacketRoles, packetsHaveDisjointFiles, splitWorkPackets } from "@/core/packets";
@@ -30,6 +30,9 @@ describe("catalog registry", () => {
     expect(HARNESS_BY_ID["kiro-cli"].binaries).toEqual(["kiro"]);
     expect(HARNESS_BY_ID.agy.binaries).toEqual(["agy"]);
     expect(HARNESS_BY_ID.agy.packetRole).toBe("implement");
+    expect(HARNESS_IDS.filter((id) => HARNESS_BY_ID[id].canBeBrain)).toEqual([
+      ...CONTROL_SURFACE_HARNESS_IDS,
+    ]);
   });
 
   it("routes execute from catalog names and never lists harnesses as planners", () => {

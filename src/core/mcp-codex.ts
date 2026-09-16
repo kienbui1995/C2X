@@ -3,9 +3,9 @@ import { getHarness } from "@/core/providers/catalog";
 import { importControlMessage, runPlan, runRecord, runReview } from "@/core/run-loop";
 import { getSession } from "@/core/store";
 import {
-  PIPELINE_AGY_HARNESS_TEAM,
   PIPELINE_HARNESS_TEAM,
   assertNever,
+  defaultExecuteTeamForBrain,
   isHarnessId,
   isPlannerChoice,
   isSessionBrain,
@@ -118,6 +118,7 @@ function recordOwnerFromSession(
       }
       return owner;
     }
+    case "agy":
     case "none": {
       return ownerFromArgs(args);
     }
@@ -131,6 +132,7 @@ function briefForCodex(session: SessionRecord): string | null {
   switch (brain) {
     case "codex":
       return null;
+    case "agy":
     case "none": {
       if (!session.harnessTeam.includes(CODEX_MCP_OWNER)) {
         return null;
@@ -179,6 +181,7 @@ function waitInstruction(session?: SessionRecord): string {
       const drops = session.harnessTeam.map((id) => `\`.c2x/briefs/${id}.md\``).join(", ");
       return `You are the brain. Do not write app code. ${names} executes. ${drops} is for the harness — you do not execute it. Call c2x_status after they record. Do not spawn Codex.`;
     }
+    case "agy":
     case "none":
       return "Codex packet xong. Đợi teammate (Claude Code / Grok) execute. Không review. Khi cả đội xong, gọi c2x_status.";
     default:
@@ -240,6 +243,7 @@ function actionFor(session: SessionRecord): CodexMcpAction {
   switch (brain) {
     case "codex":
       return actionForCodexBrain(session);
+    case "agy":
     case "none":
       return actionForCodexHarness(session);
     default:
@@ -298,7 +302,7 @@ export function listCodexMcpTools(): CodexMcpToolSpec[] {
     {
       name: "c2x_start",
       description:
-        "Start or resume a C2X session from inside Codex. Default planner is mock so the user only writes a goal and you execute. Pass planner=chatgpt-web only if they asked to paste a web chat (dán ChatGPT). Pass brainstorm=true or phase=brainstorm for nghiệp vụ notes first. Pass pipeline=true for Claude Code + Codex + Grok. Pass brain=codex and/or harness=agy / team=agy so this chat is the brain and AGY executes — do not write app code and do not spawn Codex. Never spawn another Codex.",
+        "Start or resume a C2X session from inside Codex. Default planner is mock so the user only writes a goal and you execute. Pass planner=chatgpt-web only if they asked to paste a web chat (dán ChatGPT). Pass brainstorm=true or phase=brainstorm for nghiệp vụ notes first. Pass pipeline=true for Claude Code + Codex + Grok. Pass brain=codex and harness=agy so this chat is the brain and AGY executes — do not write app code. Pass brain=agy and harness=codex so AGY is the brain and you execute only .c2x/briefs/codex.md. Never spawn another Codex.",
       inputSchema: {
         type: "object",
         properties: {
@@ -318,7 +322,7 @@ export function listCodexMcpTools(): CodexMcpToolSpec[] {
           },
           brain: {
             type: "string",
-            description: "codex = this chat plans/commands; harness team executes",
+            description: "agy|codex = control-surface harness excluded from execute",
           },
           harness: { type: "string", description: "Single execute harness (e.g. agy)" },
           team: { type: "string", description: "Comma-separated execute harness ids" },
@@ -440,6 +444,18 @@ async function startTurn(args: Record<string, unknown>): Promise<CodexMcpResult>
   return turnFromSession(session);
 }
 
+function executeFallbackForBrain(brain: SessionBrain): HarnessId[] {
+  switch (brain) {
+    case "none":
+      return [CODEX_MCP_OWNER];
+    case "codex":
+    case "agy":
+      return defaultExecuteTeamForBrain(brain);
+    default:
+      return assertNever(brain, `Unknown session brain: ${brain}`);
+  }
+}
+
 function startTeamFromArgs(
   args: Record<string, unknown>,
 ): { harnessTeam: HarnessId[]; brain: SessionBrain } | CodexMcpFailure {
@@ -470,7 +486,7 @@ function startTeamFromArgs(
       brain,
       harnessTeam: pipeline ? PIPELINE_HARNESS_TEAM : teamArg,
       harness: pipeline ? undefined : harnessArg,
-      fallbackTeam: brain === "codex" ? PIPELINE_AGY_HARNESS_TEAM : [CODEX_MCP_OWNER],
+      fallbackTeam: executeFallbackForBrain(brain),
     }),
   };
 }
@@ -501,6 +517,7 @@ async function briefTurn(args: Record<string, unknown>): Promise<CodexMcpResult>
         ok: false,
         error: "briefs in .c2x/briefs/ are for the harness team — you do not execute them",
       };
+    case "agy":
     case "none": {
       const owner = ownerFromArgs(args);
       if (typeof owner !== "string") {

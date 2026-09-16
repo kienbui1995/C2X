@@ -28,6 +28,8 @@ export type HarnessCatalogEntry = {
   packetRole: CatalogPacketRole;
   /** Community / unofficial catalog row — doctor should say flags may change. */
   unofficial?: boolean;
+  /** This harness may sit as the control-surface brain (excluded from execute). */
+  canBeBrain?: boolean;
 };
 
 export function resolveExecArgs(entry: HarnessCatalogEntry, briefRel: string): string[] {
@@ -233,6 +235,7 @@ export const HARNESS_BY_ID = {
     binaries: ["codex"],
     execArgs: ["exec", "Read and execute only {brief}. Do not plan or review."],
     packetRole: "fix",
+    canBeBrain: true,
   },
   "claude-code": {
     id: "claude-code",
@@ -294,6 +297,7 @@ export const HARNESS_BY_ID = {
     execArgs: ["-p", "Read and execute only {brief}. Do not plan or review."],
     packetRole: "implement",
     unofficial: true,
+    canBeBrain: true,
   },
 } satisfies Record<HarnessId, HarnessCatalogEntry>;
 

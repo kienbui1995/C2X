@@ -1,6 +1,6 @@
 ---
 name: chat-to-x
-description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you finish it here. Default planner is mock (no paste). Trigger on C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, pipeline đầy đủ, ChatGPT + Claude Code + Codex + Grok, brain-codex, pipeline-agy, Codex là bộ não, AGY, or a coding goal that should not burn Codex quota on planning.
+description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you finish it here. Default planner is mock (no paste). Trigger on C2X, chat-to-x, tự làm hết, Dùng C2X, pipeline, pipeline đầy đủ, ChatGPT + Claude Code + Codex + Grok, brain-codex, brain-agy, pipeline-agy, Codex là bộ não, AGY là bộ não, AGY, or a coding goal that should not burn Codex quota on planning.
 ---
 
 # chat-to-x
@@ -10,11 +10,13 @@ This is **not** an official OpenAI skill or plugin. Unofficial community project
 The checkout lives at: replace-with-absolute-path
 
 Install with `c2x init --harness codex`, `c2x init --pipeline`,
-`c2x init --brain-codex --harness agy`, `c2x init --pipeline-agy`, or
-`c2x skill-install` (writes `$HOME/.agents/skills/chat-to-x/SKILL.md`,
-`~/.codex/skills/chat-to-x/SKILL.md` for older Codex,
-`~/.claude/skills/chat-to-x/SKILL.md`, the C2X block in `~/.codex/AGENTS.md`,
-and `[mcp_servers.chat-to-x]` in `~/.codex/config.toml`).
+`c2x init --brain-codex --harness agy`, `c2x init --brain-agy --harness codex`,
+`c2x init --pipeline-agy`, or `c2x skill-install` (writes
+`$HOME/.agents/skills/chat-to-x/SKILL.md`, `~/.codex/skills/chat-to-x/SKILL.md`
+for older Codex, `~/.claude/skills/chat-to-x/SKILL.md`,
+`~/.gemini/antigravity-cli/skills/chat-to-x/SKILL.md` if that AGY CLI home
+exists on this machine, the C2X block in `~/.codex/AGENTS.md`, and
+`[mcp_servers.chat-to-x]` in `~/.codex/config.toml`). No official AGY plugin.
 
 | Vai | Ai |
 | --- | --- |
@@ -23,7 +25,8 @@ and `[mcp_servers.chat-to-x]` in `~/.codex/config.toml`).
 | Code | Claude Code |
 | Test + sửa bug (execute) | Codex |
 | CI/CD | Grok Build |
-| Codex = não (lệnh MCP) / AGY = chạy code | Optional: `brain=codex` + harness `agy` |
+| Codex = não (lệnh MCP) / AGY = chạy code | Optional: `--brain-codex --harness agy` |
+| AGY = não / Codex = chạy code | Optional: `--brain-agy --harness codex` |
 | Wiki | `docs/wiki` outbox, dán ADO/Jira |
 
 **Codex does not review.** No official vendor plugin. No Jira OAuth.
@@ -76,6 +79,17 @@ Optional Codex-brain + AGY — “Codex là bộ não” / `c2x init --brain-cod
 - `.c2x/briefs/agy.md` is for AGY — you do not execute it.
 - After AGY records, call `c2x_status`. You are not a catalog reviewer.
 
+Optional AGY-brain + Codex — “AGY là bộ não” / `c2x init --brain-agy --harness codex`
+/ `c2x_start` with `brain=agy` and `harness=codex`:
+
+- AGY is the brain (plan + commands). Codex **is** the implementer.
+- If you are Codex in this mode: you **are** the harness. Read **only**
+  `.c2x/briefs/codex.md`. Execute it. Do not plan or review. Then `c2x_record`.
+- If you are AGY in this mode: **You are the brain.** Do not write app code.
+  Do not spawn Codex. Codex reads `.c2x/briefs/codex.md`.
+- Planner stays `mock` unless the user asked to paste a web chat.
+- Never put both `codex` and `agy` on the execute team.
+
 If MCP tools are missing, fallback:
 
 ```bash
@@ -105,6 +119,7 @@ INIT → PLAN (packets) → EXECUTING (per harness) → EXECUTED (merge) → REV
 c2x init --harness codex
 c2x init --pipeline
 c2x init --brain-codex --harness agy
+c2x init --brain-agy --harness codex
 c2x init --pipeline-agy
 c2x brainstorm "nghiệp vụ…"
 c2x_start / c2x_submit / c2x_record

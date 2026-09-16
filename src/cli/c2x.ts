@@ -45,6 +45,7 @@ import {
   HARNESS_IDS,
   PIPELINE_AGY_HARNESS_TEAM,
   PIPELINE_HARNESS_TEAM,
+  brainFromFlags,
   isExecutionExitStatus,
   isHarnessId,
   isPlannerChoice,
@@ -494,6 +495,8 @@ program
   .option("--harness <id>", "single harness")
   .option("--pipeline", "alias: team claude-code,codex,grok-build", false)
   .option("--brain-codex", "Codex CLI is the brain (MCP); harness executes", false)
+  .option("--brain-agy", "AGY is the brain; Codex executes", false)
+  .option("--brain <id>", "control-surface harness: agy|codex")
   .option("--pipeline-agy", "alias: brain Codex + team agy", false)
   .option("--cwd <path>", "workspace root for brief drops (CLI only)")
   .option("--workspace <src>", "demo|repo", "demo")
@@ -504,6 +507,8 @@ program
     harness?: string;
     pipeline?: boolean;
     brainCodex?: boolean;
+    brainAgy?: boolean;
+    brain?: string;
     pipelineAgy?: boolean;
     cwd?: string;
     workspace: string;
@@ -527,7 +532,7 @@ program
       harness: opts.harness && isHarnessId(opts.harness) ? opts.harness : undefined,
       pipeline: opts.pipeline,
       pipelineAgy: opts.pipelineAgy,
-      brain: opts.brainCodex || opts.pipelineAgy ? "codex" : "none",
+      brain: brainFromFlags(opts),
       workspaceSource: opts.workspace,
       cwd: opts.cwd,
       repoRoot: packageRoot(),
@@ -617,6 +622,7 @@ program
     process.stdout.write(`${agentsPath}\n`);
     process.stdout.write(`${mcpConfigPath}\n`);
     process.stdout.write("Claude Code skill: ~/.claude/skills/chat-to-x\n");
+    process.stdout.write("AGY CLI skill (optional): ~/.gemini/antigravity-cli/skills/chat-to-x\n");
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

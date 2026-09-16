@@ -159,6 +159,7 @@ function shouldSkipBrainSpawn(session: SessionRecord, owner: HarnessId): boolean
     case "none":
       return false;
     case "codex":
+    case "agy":
       return owner === brain;
     default:
       return assertNever(brain, `Unknown session brain: ${brain}`);

@@ -36,12 +36,15 @@ describe("full-pipeline docs", () => {
     expect(cli).toMatch(/\.command\("brainstorm"\)/);
     expect(cli).toMatch(/--pipeline/);
     expect(cli).toMatch(/--brain-codex/);
+    expect(cli).toMatch(/--brain-agy/);
     expect(cli).toMatch(/--pipeline-agy/);
     expect(cli).toMatch(/defaultSkillHomes|defaultClaudeSkillHome/);
     expect(readme).toMatch(/--pipeline/);
     expect(readme).toMatch(/--brain-codex|--pipeline-agy/);
+    expect(readme).toMatch(/--brain-agy/);
     expect(skill).toMatch(/--pipeline|pipeline/);
     expect(skill).toMatch(/--brain-codex|--pipeline-agy/);
+    expect(skill).toMatch(/--brain-agy/);
     expect(skill).toMatch(/ChatGPT \+ Claude Code \+ Codex \+ Grok|pipeline đầy đủ/);
     expect(skill).toMatch(/pipeline đầy đủ|pipeline=true/);
     expect(skill).toMatch(/brainstorm=true|phase=brainstorm/);

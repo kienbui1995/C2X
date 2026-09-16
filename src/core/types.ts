@@ -41,8 +41,18 @@ export const PIPELINE_HARNESS_TEAM: HarnessId[] = ["claude-code", "codex", "grok
 /** Codex CLI is the brain (MCP). AGY executes — `c2x init --pipeline-agy`. */
 export const PIPELINE_AGY_HARNESS_TEAM: HarnessId[] = ["agy"];
 
-export const SESSION_BRAINS = ["none", "codex"] as const;
+/** Harness ids that may sit as the control-surface brain (excluded from execute). */
+export const CONTROL_SURFACE_HARNESS_IDS = ["codex", "agy"] as const;
+export type ControlSurfaceHarnessId = (typeof CONTROL_SURFACE_HARNESS_IDS)[number];
+
+export const SESSION_BRAINS = ["none", ...CONTROL_SURFACE_HARNESS_IDS] as const;
 export type SessionBrain = (typeof SESSION_BRAINS)[number];
+
+/** Default execute team when that harness is the brain — never both on the team. */
+export const BRAIN_DEFAULT_EXECUTE_TEAM = {
+  codex: ["agy"],
+  agy: ["codex"],
+} as const satisfies Record<ControlSurfaceHarnessId, readonly HarnessId[]>;
 
 export const CATALOG_PACKET_ROLES = ["implement", "fix", "ci", "docs"] as const;
 export type CatalogPacketRole = (typeof CATALOG_PACKET_ROLES)[number];
@@ -240,7 +250,7 @@ export type SessionRecord = {
   iterationLimit: number;
   brainstormNotes: string | null;
   brainstormPending: boolean;
-  /** `codex` = this Codex CLI chat plans/commands; harness team executes. */
+  /** Control-surface harness excluded from execute (`none` = no brain mode). */
   brain: SessionBrain;
 };
 
@@ -312,6 +322,26 @@ export function resolveSessionBrain(value: unknown): SessionBrain {
   return "none";
 }
 
+/** Map CLI/MCP flags onto a session brain without naming harness ids in the CLI. */
+export function brainFromFlags(flags: {
+  brain?: string;
+  brainAgy?: boolean;
+  brainCodex?: boolean;
+  pipelineAgy?: boolean;
+}): SessionBrain {
+  const explicit = flags.brain ? resolveSessionBrain(flags.brain) : "none";
+  if (explicit !== "none") {
+    return explicit;
+  }
+  if (flags.brainAgy) {
+    return "agy";
+  }
+  if (flags.brainCodex || flags.pipelineAgy) {
+    return "codex";
+  }
+  return "none";
+}
+
 function hasExplicitHarnessTeam(input: {
   harnessTeam?: unknown;
   harness?: unknown;
@@ -325,7 +355,15 @@ function hasExplicitHarnessTeam(input: {
   return typeof input.harness === "string" && isHarnessId(input.harness);
 }
 
-/** Executors for a session. When `brain` is `codex`, Codex is not on the team. */
+export function isControlSurfaceHarness(value: string): value is ControlSurfaceHarnessId {
+  return (CONTROL_SURFACE_HARNESS_IDS as readonly string[]).includes(value);
+}
+
+export function defaultExecuteTeamForBrain(brain: ControlSurfaceHarnessId): HarnessId[] {
+  return [...BRAIN_DEFAULT_EXECUTE_TEAM[brain]];
+}
+
+/** Executors for a session. The brain harness is never on the execute team. */
 export function resolveBrainTeam(input: {
   brain?: unknown;
   harnessTeam?: unknown;
@@ -340,16 +378,18 @@ export function resolveBrainTeam(input: {
         harness: input.harness,
         fallbackTeam: input.fallbackTeam,
       });
-    case "codex": {
+    case "codex":
+    case "agy": {
+      const fallback = defaultExecuteTeamForBrain(brain);
       const team = hasExplicitHarnessTeam(input)
         ? resolveHarnessTeam({
             harnessTeam: input.harnessTeam,
             harness: input.harness,
-            fallbackTeam: PIPELINE_AGY_HARNESS_TEAM,
+            fallbackTeam: fallback,
           })
-        : [...PIPELINE_AGY_HARNESS_TEAM];
+        : [...fallback];
       const executors = team.filter((id) => id !== brain);
-      return executors.length > 0 ? executors : [...PIPELINE_AGY_HARNESS_TEAM];
+      return executors.length > 0 ? executors : [...fallback];
     }
     default:
       return assertNever(brain, `Unknown session brain: ${brain}`);

@@ -144,6 +144,7 @@ export function formatInitReport(result: InitResult): string {
     ...briefLines,
     "Open Codex in the project and say the goal. Codex uses the chat-to-x MCP tools.",
     "Claude Code skill: ~/.claude/skills/chat-to-x (written by init / skill-install).",
+    "AGY CLI skill (optional, not an official plugin): ~/.gemini/antigravity-cli/skills/chat-to-x.",
     pipelineRoleLines(result.session.harnessTeam),
     ...initClosingLines(result.session),
     "",
@@ -166,6 +167,11 @@ function initClosingLines(session: SessionRecord): string[] {
     case "codex":
       return [
         "Codex is the brain (MCP commands). Do not write app code. The harness team executes.",
+        "C2X does not spawn harnesses from init. Codex does not review.",
+      ];
+    case "agy":
+      return [
+        "AGY is the brain (plan + commands). Codex is the implementer — read only .c2x/briefs/codex.md.",
         "C2X does not spawn harnesses from init. Codex does not review.",
       ];
     case "none":

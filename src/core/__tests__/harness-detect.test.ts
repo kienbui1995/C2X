@@ -137,6 +137,7 @@ describe("installSkill", () => {
       path.join("/home/alice", ".agents", "skills"),
       path.join("/home/alice", ".codex", "skills"),
       path.join("/home/alice", ".claude", "skills"),
+      path.join("/home/alice", ".gemini", "antigravity-cli", "skills"),
     ]);
     const root = await mkdtemp(path.join(os.tmpdir(), "c2x-skills-"));
     const agents = path.join(root, ".agents", "skills");

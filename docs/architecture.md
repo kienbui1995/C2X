@@ -59,7 +59,8 @@ Code sections.
 | Code | Claude Code |
 | Test + sửa bug (execute) | Codex |
 | CI/CD | Grok Build |
-| Codex = não (lệnh MCP) / AGY = chạy code | Optional `brain=codex` + team `[agy]` |
+| Codex = não (lệnh MCP) / AGY = chạy code | Optional `--brain-codex --harness agy` |
+| AGY = não / Codex = chạy code | Optional `--brain-agy --harness codex` |
 | Wiki | `docs/wiki` outbox, dán ADO/Jira |
 
 **Codex does not review.** Unofficial community project — not an official
@@ -70,6 +71,8 @@ entry (`implement` / `fix` / `ci` / `docs`); the splitter `map`s it.
 `c2x init --brain-codex --harness agy` / `--pipeline-agy` sets team `[agy]`
 with `brain: "codex"` — Codex CLI is the MCP brain; AGY executes. Do not
 spawn a Codex harness in that mode.
+`c2x init --brain-agy --harness codex` is the inverse: AGY is the brain,
+Codex executes only `.c2x/briefs/codex.md`.
 `install.sh` stays `c2x init --harness codex`.
 
 | Role | Who | Never |

@@ -96,22 +96,31 @@ describe("agy catalog row", () => {
   });
 });
 
-describe("Codex-brain session flag", () => {
-  it("defaults missing brain to none and accepts brain=codex", () => {
+describe("symmetric brain seats", () => {
+  it("accepts brain=agy and brain=codex and excludes the brain from the execute team", () => {
     expect(isSessionBrain("none")).toBe(true);
     expect(isSessionBrain("codex")).toBe(true);
-    expect(isSessionBrain("agy")).toBe(false);
+    expect(isSessionBrain("agy")).toBe(true);
+    expect(isSessionBrain("claude-code")).toBe(false);
     expect(resolveSessionBrain(undefined)).toBe("none");
     expect(resolveSessionBrain("codex")).toBe("codex");
+    expect(resolveSessionBrain("agy")).toBe("agy");
     expect(PIPELINE_AGY_HARNESS_TEAM).toEqual(["agy"]);
     expect(PIPELINE_HARNESS_TEAM).toEqual(["claude-code", "codex", "grok-build"]);
     expect(resolveBrainTeam({ brain: "codex" })).toEqual(["agy"]);
     expect(resolveBrainTeam({ brain: "codex", harness: "agy" })).toEqual(["agy"]);
     expect(resolveBrainTeam({ brain: "codex", harnessTeam: ["codex", "agy"] })).toEqual(["agy"]);
+    expect(resolveBrainTeam({ brain: "agy" })).toEqual(["codex"]);
+    expect(resolveBrainTeam({ brain: "agy", harness: "codex" })).toEqual(["codex"]);
+    expect(resolveBrainTeam({ brain: "agy", harnessTeam: ["agy", "codex"] })).toEqual(["codex"]);
     expect(resolveBrainTeam({ brain: "none", harnessTeam: ["codex"] })).toEqual(["codex"]);
+    expect(resolveBrainTeam({ brain: "agy" })).not.toContain("agy");
+    expect(resolveBrainTeam({ brain: "codex" })).not.toContain("codex");
+    expect(resolveBrainTeam({ brain: "agy" }).includes("agy") && resolveBrainTeam({ brain: "agy" }).includes("codex")).toBe(false);
+    expect(resolveBrainTeam({ brain: "codex" }).includes("agy") && resolveBrainTeam({ brain: "codex" }).includes("codex")).toBe(false);
   });
 
-  it("stores brain=codex on new sessions and restores none on legacy rows", () => {
+  it("stores either brain on new sessions and restores none on legacy rows", () => {
     const created = createSession({
       goal: "Sửa createTask",
       planner: "mock",
@@ -127,6 +136,19 @@ describe("Codex-brain session flag", () => {
     const legacy = { ...created } as { brain?: string };
     delete legacy.brain;
     expect(normalizeSession(legacy as typeof created).brain).toBe("none");
+
+    const agyBrain = createSession({
+      goal: "Sửa createTask",
+      planner: "mock",
+      plannerChoice: "mock",
+      harnessTeam: ["codex"],
+      budgetTokens: 2000,
+      workspaceSource: "demo",
+      brain: "agy",
+    });
+    expect(agyBrain.brain).toBe("agy");
+    expect(agyBrain.harnessTeam).toEqual(["codex"]);
+    expect(agyBrain.harnessTeam).not.toContain("agy");
   });
 });
 
@@ -171,6 +193,33 @@ describe("runInit Codex-brain + AGY", () => {
     expect(result.session.harnessTeam).toEqual(["agy"]);
     expect(result.session.planner).toBe("mock");
     expect(result.briefDrops).toEqual([path.join(workspaceRoot, ".c2x", "briefs", "agy.md")]);
+  });
+
+  it("uses --brain-agy --harness codex with mock planner and drops codex.md only", async () => {
+    const result = await runInit({
+      goal: "Sửa createTask",
+      brain: "agy",
+      harness: "codex",
+      workspaceSource: "demo",
+      cwd: workspaceRoot,
+      repoRoot: process.cwd(),
+      skillHomes: [skillHome],
+      agentsPath,
+      codexConfigPath,
+    });
+    expect(result.session.planner).toBe("mock");
+    expect(result.session.brain).toBe("agy");
+    expect(result.session.harnessTeam).toEqual(["codex"]);
+    expect(result.session.harnessTeam).not.toContain("agy");
+    expect(result.doctor.map((item) => item.id)).toEqual(["codex"]);
+    expect(result.briefDrops).toEqual([path.join(workspaceRoot, ".c2x", "briefs", "codex.md")]);
+    expect(await readFile(result.briefDrops[0]!, "utf8")).toMatch(/OWNER:\s*codex/);
+    const report = formatInitReport(result);
+    expect(report).toMatch(/brain|não/i);
+    expect(report).toMatch(/agy/i);
+    expect(report).toMatch(/does not spawn/i);
+    expect(report).toMatch(/Codex is the implementer|OWNER:\s*codex|briefs\/codex/i);
+    expect(report).not.toMatch(/Codex is the harness/i);
   });
 });
 
@@ -264,6 +313,63 @@ describe("Codex MCP brain=codex", () => {
   });
 });
 
+describe("Codex MCP brain=agy", () => {
+  it("treats Codex as the implementer: execute only the Codex brief", async () => {
+    const started = await callCodexMcpTool("c2x_start", {
+      goal: "Sửa createTask",
+      cwd: workspaceRoot,
+      workspace: "demo",
+      brain: "agy",
+      harness: "codex",
+    });
+    expect(started.ok).toBe(true);
+    if (!started.ok) {
+      return;
+    }
+    expect(started.state).toBe("PLAN");
+    expect(started.action).toBe("execute");
+    expect(started.brief).toMatch(/OWNER:\s*codex/);
+    expect(started.brief).not.toMatch(/OWNER:\s*agy/);
+    expect(started.instruction).toMatch(/You are the harness|execute only this brief/i);
+    expect(started.instruction).not.toMatch(/You are the brain/i);
+    expect(started.instruction).toMatch(/Do not plan or review/i);
+
+    const session = await getSession(started.session);
+    expect(session?.brain).toBe("agy");
+    expect(session?.harnessTeam).toEqual(["codex"]);
+    expect(session?.planner).toBe("mock");
+
+    const leak = await callCodexMcpTool("c2x_brief", {
+      session: started.session,
+      owner: "agy",
+    });
+    expect(leak.ok).toBe(false);
+
+    const brief = await callCodexMcpTool("c2x_brief", {
+      session: started.session,
+      owner: "codex",
+    });
+    expect(brief.ok).toBe(true);
+    if (!brief.ok) {
+      return;
+    }
+    expect(brief.action).toBe("execute");
+    expect(brief.brief).toMatch(/OWNER:\s*codex/);
+
+    const recorded = await callCodexMcpTool("c2x_record", {
+      session: started.session,
+      owner: "codex",
+      cwd: workspaceRoot,
+    });
+    expect(recorded.ok).toBe(true);
+    if (!recorded.ok) {
+      return;
+    }
+    expect(recorded.state).toBe("DONE");
+    expect(recorded.action).toBe("done");
+  });
+});
+
 describe("drive does not spawn Codex when it is the brain", () => {
   it("spawns only the AGY lane and never a Codex harness", async () => {
     const owners: string[] = [];
@@ -296,6 +402,41 @@ describe("drive does not spawn Codex when it is the brain", () => {
     expect(result.spawns.map((item) => item.owner)).toEqual(["agy"]);
     expect(await readFile(path.join(workspaceRoot, ".c2x", "briefs", "agy.md"), "utf8")).toMatch(
       /OWNER:\s*agy/,
+    );
+    expect(result.session.state).toBe("DONE");
+  });
+
+  it("spawns only Codex when AGY is the brain", async () => {
+    const owners: string[] = [];
+    const result = await runDrive({
+      goal: "Sửa createTask",
+      plannerChoice: "mock",
+      harnessTeam: ["codex"],
+      brain: "agy",
+      workspaceSource: "demo",
+      cwd: workspaceRoot,
+      spawn: true,
+      spawnHarness: async ({ owner }) => {
+        owners.push(owner);
+        if (owner === "agy") {
+          throw new Error("must not spawn AGY when brain=agy");
+        }
+        return {
+          owner,
+          command: "codex",
+          args: ["exec"],
+          exitCode: 0,
+          skipped: false,
+          reason: null,
+        };
+      },
+    });
+    expect(result.session.brain).toBe("agy");
+    expect(result.session.harnessTeam).toEqual(["codex"]);
+    expect(owners).toEqual(["codex"]);
+    expect(result.spawns.map((item) => item.owner)).toEqual(["codex"]);
+    expect(await readFile(path.join(workspaceRoot, ".c2x", "briefs", "codex.md"), "utf8")).toMatch(
+      /OWNER:\s*codex/,
     );
     expect(result.session.state).toBe("DONE");
   });
@@ -332,18 +473,20 @@ describe("catalog is the only place that names agy", () => {
     }
     const cli = readFileSync(path.join(process.cwd(), "src/cli/c2x.ts"), "utf8");
     expect(cli).toMatch(/--brain-codex/);
+    expect(cli).toMatch(/--brain-agy/);
     expect(cli).toMatch(/--pipeline-agy/);
     const install = readFileSync(path.join(process.cwd(), "install.sh"), "utf8");
     expect(install).toMatch(/c2x init --harness codex/);
-    expect(install).not.toMatch(/--pipeline-agy|--brain-codex/);
+    expect(install).not.toMatch(/--pipeline-agy|--brain-codex|--brain-agy/);
   });
 
-  it("documents Codex as the brain and AGY as the executor in skill and README", () => {
+  it("documents both brain seats in skill and README", () => {
     const skill = readFileSync(path.join(process.cwd(), "skill", "SKILL.md"), "utf8");
     const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");
     const architecture = readFileSync(path.join(process.cwd(), "docs/architecture.md"), "utf8");
     for (const text of [skill, readme, architecture]) {
       expect(text).toMatch(/--brain-codex|--pipeline-agy/);
+      expect(text).toMatch(/--brain-agy/);
       expect(text).toMatch(/AGY|agy/);
       expect(text).toMatch(/não|brain/i);
       expect(text).not.toMatch(/Jira Cloud OAuth app|Azure DevOps PAT in repo/i);
@@ -352,7 +495,9 @@ describe("catalog is the only place that names agy", () => {
     expect(skill).toMatch(/You are the brain/i);
     expect(skill).toMatch(/Do not write app code/i);
     expect(skill).toMatch(/\.c2x\/briefs\/agy\.md/);
+    expect(skill).toMatch(/\.c2x\/briefs\/codex\.md/);
     expect(skill).toMatch(/You \*\*are\*\* the harness|you are the harness/i);
     expect(skill).toMatch(/\.claude\/skills/);
+    expect(skill).toMatch(/--brain-agy --harness codex|brain=agy/);
   });
 });
