@@ -223,7 +223,7 @@ export const PROVIDER_CATALOG: readonly ProviderCatalogEntry[] = PROVIDER_IDS.ma
   (id) => PROVIDER_BY_ID[id],
 );
 
-export const HARNESS_BY_ID = {
+export const HARNESS_BY_ID: Record<HarnessId, HarnessCatalogEntry> = {
   codex: {
     id: "codex",
     name: "Codex",
@@ -299,7 +299,7 @@ export const HARNESS_BY_ID = {
     unofficial: true,
     canBeBrain: true,
   },
-} satisfies Record<HarnessId, HarnessCatalogEntry>;
+};
 
 export const HARNESS_CATALOG: readonly HarnessCatalogEntry[] = HARNESS_IDS.map(
   (id) => HARNESS_BY_ID[id],
