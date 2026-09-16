@@ -8,9 +8,10 @@ description: Use chat-to-x (C2X) MCP from Codex CLI. The user writes a goal; you
 The checkout lives at: replace-with-absolute-path
 
 Install with `c2x init --harness codex` or `c2x skill-install` (writes
-`~/.codex/skills/chat-to-x/SKILL.md` and `[mcp_servers.chat-to-x]` in
-`~/.codex/config.toml`). Claude Code: copy the same file to
-`~/.claude/skills/chat-to-x/` — C2X does not auto-install there.
+`$HOME/.agents/skills/chat-to-x/SKILL.md`, `~/.codex/skills/chat-to-x/SKILL.md`
+for older Codex, the C2X block in `~/.codex/AGENTS.md`, and
+`[mcp_servers.chat-to-x]` in `~/.codex/config.toml`). Claude Code: copy the
+same file to `~/.claude/skills/chat-to-x/` — C2X does not auto-install there.
 
 ## When the user opens Codex CLI
 

@@ -118,6 +118,8 @@ These are locks, not suggestions. Full table: spec §18.
   Repo walks also honor a root `.c2xignore` (one path per line). Demo stays
   in-memory.
 - `c2x init` composes skill-install + doctor + mock PLAN + brief drops.
+  Skill goes to `$HOME/.agents/skills` (current Codex USER) and
+  `~/.codex/skills` (older Codex), plus a C2X block in `~/.codex/AGENTS.md`.
   It does not spawn a harness or start MCP.
 - Resume a session from `/sessions` (`/?session=<id>`) or `c2x status`.
   The control room shows the next protocol step; it does not rewalk the repo.

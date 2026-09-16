@@ -1,20 +1,22 @@
 #!/usr/bin/env npx tsx
 
 import { readFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { Command } from "commander";
 import { planToBrief, planToBriefs, renderCodexBrief } from "@/core/brief";
 import { mergeConfig } from "@/core/config";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import {
   chatToXMcpLaunch,
+  defaultCodexAgentsPath,
   defaultCodexConfigPath,
+  defaultCodexSkillHomes,
+  detectCodexHooks,
+  installCodexAgents,
   installCodexMcp,
 } from "@/core/codex-config";
 import {
   detectHarnessTeam,
-  installSkill,
+  installSkills,
   writeHarnessBrief,
   writeWorkspaceBriefDrop,
 } from "@/core/harness";
@@ -54,6 +56,7 @@ const SIMPLE_USAGE = [
   "Hoặc trong checkout:  ./install.sh",
   "Dùng:  cd <project> && codex",
   "Gõ:    Dùng C2X, tự làm hết: <mô tả>",
+  "Trong Codex: /mcp hoặc $chat-to-x — không có banner C2X.",
   "",
 ].join("\n");
 
@@ -318,6 +321,12 @@ program
   .option("--team <ids>", "comma-separated harness ids")
   .action(async (opts: { team?: string }) => {
     const team = opts.team ? teamFromOpts(opts) : [...HARNESS_IDS];
+    const hooks = await detectCodexHooks();
+    for (const hook of hooks) {
+      const status = hook.ok ? "ok" : "missing";
+      const detail = hook.ok ? hook.path : hook.hintVi;
+      process.stdout.write(`${hook.id}\t${status}\t${detail}\n`);
+    }
     const results = await detectHarnessTeam(team);
     for (const result of results) {
       const status = result.ok ? "ok" : "missing";
@@ -500,7 +509,8 @@ program
       workspaceSource: opts.workspace,
       cwd: opts.cwd,
       repoRoot: packageRoot(),
-      skillHome: path.join(os.homedir(), ".codex/skills"),
+      skillHomes: defaultCodexSkillHomes(),
+      agentsPath: defaultCodexAgentsPath(),
       codexConfigPath: defaultCodexConfigPath(),
       budgetTokens: Number(opts.budget),
     });
@@ -511,17 +521,24 @@ program
   .command("skill-install")
   .description("Copy the chat-to-x skill and Codex MCP plugin")
   .action(async () => {
-    const dest = await installSkill({
-      repoRoot: packageRoot(),
-      skillHome: path.join(os.homedir(), ".codex/skills"),
+    const repoRoot = packageRoot();
+    const dests = await installSkills({
+      repoRoot,
+      skillHomes: defaultCodexSkillHomes(),
     });
-    const mcp = chatToXMcpLaunch(packageRoot());
+    const agentsPath = await installCodexAgents({
+      agentsPath: defaultCodexAgentsPath(),
+    });
+    const mcp = chatToXMcpLaunch(repoRoot);
     const mcpConfigPath = await installCodexMcp({
       configPath: defaultCodexConfigPath(),
       command: mcp.command,
       args: mcp.args,
     });
-    process.stdout.write(`${dest}\n`);
+    for (const dest of dests) {
+      process.stdout.write(`${dest}\n`);
+    }
+    process.stdout.write(`${agentsPath}\n`);
     process.stdout.write(`${mcpConfigPath}\n`);
     process.stdout.write(
       "Claude Code: copy the same SKILL.md to ~/.claude/skills/chat-to-x/ (C2X does not auto-install there).\n",

@@ -207,3 +207,14 @@ export async function installSkill(input: {
   await writeFile(dest, text, "utf8");
   return dest;
 }
+
+export async function installSkills(input: {
+  repoRoot: string;
+  skillHomes: readonly string[];
+}): Promise<string[]> {
+  const paths: string[] = [];
+  for (const skillHome of input.skillHomes) {
+    paths.push(await installSkill({ repoRoot: input.repoRoot, skillHome }));
+  }
+  return paths;
+}

@@ -47,8 +47,18 @@ Repo: [github.com/kienbui1995/chat-to-x](https://github.com/kienbui1995/chat-to-
 npm vẫn `"private": true` — khi publish `chat-to-x` mới đổi sang
 `npm i -g chat-to-x && c2x init`. **Không** `npx c2x`.
 
-`init` đọc skill và plugin Codex MCP (`[mcp_servers.chat-to-x]` trong
-`~/.codex/config.toml`) từ package đã cài — không cần `cwd` là git C2X.
+`init` đọc skill USER Codex (`$HOME/.agents/skills/chat-to-x`), skill cũ
+(`~/.codex/skills`), khối C2X trong `~/.codex/AGENTS.md`, và plugin MCP
+(`[mcp_servers.chat-to-x]` trong `~/.codex/config.toml`) từ package đã cài —
+không cần `cwd` là git C2X.
+
+C2X **không** hiện banner trong Codex. Cài trên **máy đang chạy Codex** (cài
+trên VM khác thì laptop không thấy). Mở lại Codex rồi kiểm:
+
+- `$chat-to-x` hoặc `/skills` — skill USER
+- `/mcp` hoặc `codex mcp list` — server `chat-to-x`
+- `c2x doctor` — bốn dòng `codex-skill` / `codex-agents` / `codex-mcp` phải `ok`
+
 Sau đó **chỉ làm việc trong Codex** trên app của bạn:
 
 ```bash

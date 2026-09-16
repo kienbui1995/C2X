@@ -42,9 +42,13 @@ describe("install.sh", () => {
     expect(existsSync(bin)).toBe(true);
     expect(readFileSync(bin, "utf8")).toMatch(/tsx|chat-to-x/);
     expect(readFileSync(bin, "utf8")).not.toMatch(/npx c2x/);
+    expect(existsSync(path.join(home, ".agents", "skills", "chat-to-x", "SKILL.md"))).toBe(true);
     expect(existsSync(path.join(home, ".codex", "skills", "chat-to-x", "SKILL.md"))).toBe(true);
     expect(readFileSync(path.join(home, ".codex", "config.toml"), "utf8")).toMatch(
       /\[mcp_servers\.chat-to-x\]/,
+    );
+    expect(readFileSync(path.join(home, ".codex", "AGENTS.md"), "utf8")).toMatch(
+      /<!-- c2x:begin -->|c2x_start/,
     );
     await rm(home, { recursive: true, force: true });
   });

@@ -8,7 +8,9 @@ import { DEFAULT_INIT_GOAL, formatInitReport, runInit } from "@/core/init";
 let dataDir = "";
 let workspaceRoot = "";
 let skillHome = "";
+let skillHomeLegacy = "";
 let codexConfigPath = "";
+let agentsPath = "";
 let prevData: string | undefined;
 let prevWorkspace: string | undefined;
 
@@ -16,8 +18,10 @@ beforeEach(async () => {
   dataDir = await mkdtemp(path.join(os.tmpdir(), "c2x-init-data-"));
   workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "c2x-init-ws-"));
   skillHome = await mkdtemp(path.join(os.tmpdir(), "c2x-init-skill-"));
+  skillHomeLegacy = await mkdtemp(path.join(os.tmpdir(), "c2x-init-skill-legacy-"));
   const codexHome = await mkdtemp(path.join(os.tmpdir(), "c2x-init-codex-"));
   codexConfigPath = path.join(codexHome, "config.toml");
+  agentsPath = path.join(codexHome, "AGENTS.md");
   prevData = process.env.FRUGAL_DATA_DIR;
   prevWorkspace = process.env.C2X_WORKSPACE;
   process.env.FRUGAL_DATA_DIR = dataDir;
@@ -38,6 +42,7 @@ afterEach(async () => {
   await rm(dataDir, { recursive: true, force: true });
   await rm(workspaceRoot, { recursive: true, force: true });
   await rm(skillHome, { recursive: true, force: true });
+  await rm(skillHomeLegacy, { recursive: true, force: true });
   await rm(path.dirname(codexConfigPath), { recursive: true, force: true });
 });
 
@@ -49,11 +54,19 @@ describe("runInit", () => {
       workspaceSource: "demo",
       cwd: workspaceRoot,
       repoRoot: process.cwd(),
-      skillHome,
+      skillHomes: [skillHome, skillHomeLegacy],
+      agentsPath,
       codexConfigPath,
     });
     expect(result.skillPath).toBe(path.join(skillHome, "chat-to-x", "SKILL.md"));
+    expect(result.skillPaths).toEqual([
+      path.join(skillHome, "chat-to-x", "SKILL.md"),
+      path.join(skillHomeLegacy, "chat-to-x", "SKILL.md"),
+    ]);
+    expect(result.agentsPath).toBe(agentsPath);
     expect(result.mcpConfigPath).toBe(codexConfigPath);
+    expect(await readFile(agentsPath, "utf8")).toMatch(/<!-- c2x:begin -->/);
+    expect(await readFile(agentsPath, "utf8")).toMatch(/c2x_start/);
     const mcpToml = await readFile(codexConfigPath, "utf8");
     expect(mcpToml).toMatch(/\[mcp_servers\.chat-to-x\]/);
     expect(mcpToml).toMatch(/tsx/);
@@ -62,6 +75,14 @@ describe("runInit", () => {
     expect(skill).toContain(process.cwd());
     expect(skill).not.toContain("replace-with-absolute-path");
     expect(await readdir(skillHome)).toEqual(["chat-to-x"]);
+    expect(await readdir(skillHomeLegacy)).toEqual(["chat-to-x"]);
+    expect(result.hooks.map((item) => item.id)).toEqual([
+      "codex-skill",
+      "codex-skill-legacy",
+      "codex-agents",
+      "codex-mcp",
+    ]);
+    expect(result.hooks.every((item) => item.ok)).toBe(true);
     expect(result.session.state).toBe("PLAN");
     expect(result.session.planner).toBe("mock");
     expect(result.session.goal).toBe("Sửa createTask");
@@ -76,6 +97,8 @@ describe("runInit", () => {
     const report = formatInitReport(result);
     expect(report).toContain(result.skillPath);
     expect(report).toContain(result.session.id);
+    expect(report).toMatch(/codex-skill/);
+    expect(report).toMatch(/codex-agents/);
     expect(report).toMatch(/Claude Code: copy the same SKILL.md/);
     expect(report).toMatch(/does not spawn/i);
     expect(report).toMatch(/codex-plugin/);
@@ -85,6 +108,7 @@ describe("runInit", () => {
   it("defaults to the demo workspace and default init goal", async () => {
     const result = await runInit({
       skillHome,
+      agentsPath,
       repoRoot: process.cwd(),
       cwd: workspaceRoot,
       codexConfigPath,
@@ -114,6 +138,7 @@ describe("runInit --cwd isolation", () => {
       cwd: other,
       repoRoot: process.cwd(),
       skillHome,
+      agentsPath,
       codexConfigPath,
     });
     expect(result.briefDrops).toEqual([path.join(other, ".c2x", "briefs", "codex.md")]);
