@@ -67,6 +67,7 @@ npm stays `"private": true`. Do not publish as `c2x`.
 
 Cài trên **máy đang chạy Codex**. Mở lại Codex rồi kiểm `$chat-to-x` /
 `/skills`, `/mcp` hoặc `codex mcp list`, và `c2x doctor`.
+`c2x` works from any directory — cwd stays your app / thư mục bất kỳ.
 
 ```bash
 cd <project-cần-sửa>

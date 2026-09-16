@@ -209,6 +209,11 @@ export async function installCodexMcp(input: {
 export function chatToXMcpLaunch(repoRoot: string): { command: string; args: string[] } {
   return {
     command: path.join(repoRoot, "node_modules", ".bin", "tsx"),
-    args: [path.join(repoRoot, "src", "cli", "c2x.ts"), "mcp"],
+    args: [
+      "--tsconfig",
+      path.join(repoRoot, "tsconfig.json"),
+      path.join(repoRoot, "src", "cli", "c2x.ts"),
+      "mcp",
+    ],
   };
 }

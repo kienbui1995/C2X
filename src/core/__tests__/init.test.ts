@@ -70,6 +70,8 @@ describe("runInit", () => {
     const mcpToml = await readFile(codexConfigPath, "utf8");
     expect(mcpToml).toMatch(/\[mcp_servers\.chat-to-x\]/);
     expect(mcpToml).toMatch(/tsx/);
+    expect(mcpToml).toMatch(/--tsconfig/);
+    expect(mcpToml).toContain(path.join(process.cwd(), "tsconfig.json"));
     expect(mcpToml).not.toMatch(/command = "npx"/);
     const skill = await readFile(result.skillPath, "utf8");
     expect(skill).toContain(process.cwd());

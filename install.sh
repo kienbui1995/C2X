@@ -157,7 +157,7 @@ fi
 for name in c2x chat-to-x; do
   cat > "${BIN_DIR}/${name}" <<EOF
 #!/usr/bin/env bash
-exec "${TSX}" "${CLI}" "\$@"
+exec "${TSX}" --tsconfig "${DEST}/tsconfig.json" "${CLI}" "\$@"
 EOF
   chmod +x "${BIN_DIR}/${name}"
 done
