@@ -30,7 +30,7 @@ describe("catalog registry", () => {
     expect(HARNESS_BY_ID["kiro-cli"].binaries).toEqual(["kiro"]);
     expect(HARNESS_BY_ID.agy.binaries).toEqual(["agy"]);
     expect(HARNESS_BY_ID.agy.packetRole).toBe("implement");
-    expect(HARNESS_IDS.filter((id) => HARNESS_BY_ID[id].canBeBrain)).toEqual([
+    expect(HARNESS_IDS.filter((id) => getHarness(id).canBeBrain)).toEqual([
       ...CONTROL_SURFACE_HARNESS_IDS,
     ]);
   });
