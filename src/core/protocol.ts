@@ -16,7 +16,7 @@ export const CONTROL_BUDGET_DEFAULT = 1200;
 export const CONTROL_BUDGET_MAX = 2000;
 
 export function createTaskId(): string {
-  const bytes = new Uint8Array(4);
+  const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   return `c2x_${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }

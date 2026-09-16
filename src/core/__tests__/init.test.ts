@@ -54,7 +54,10 @@ describe("runInit", () => {
     });
     expect(result.skillPath).toBe(path.join(skillHome, "chat-to-x", "SKILL.md"));
     expect(result.mcpConfigPath).toBe(codexConfigPath);
-    expect(await readFile(codexConfigPath, "utf8")).toMatch(/\[mcp_servers\.chat-to-x\]/);
+    const mcpToml = await readFile(codexConfigPath, "utf8");
+    expect(mcpToml).toMatch(/\[mcp_servers\.chat-to-x\]/);
+    expect(mcpToml).toMatch(/tsx/);
+    expect(mcpToml).not.toMatch(/command = "npx"/);
     const skill = await readFile(result.skillPath, "utf8");
     expect(skill).toContain(process.cwd());
     expect(skill).not.toContain("replace-with-absolute-path");

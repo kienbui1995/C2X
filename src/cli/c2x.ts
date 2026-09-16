@@ -8,7 +8,7 @@ import { planToBrief, planToBriefs, renderCodexBrief } from "@/core/brief";
 import { mergeConfig } from "@/core/config";
 import { DEMO_FILES } from "@/core/fixtures/demo-workspace";
 import {
-  chatToXMcpArgs,
+  chatToXMcpLaunch,
   defaultCodexConfigPath,
   installCodexMcp,
 } from "@/core/codex-config";
@@ -515,10 +515,11 @@ program
       repoRoot: packageRoot(),
       skillHome: path.join(os.homedir(), ".codex/skills"),
     });
+    const mcp = chatToXMcpLaunch(packageRoot());
     const mcpConfigPath = await installCodexMcp({
       configPath: defaultCodexConfigPath(),
-      command: "npx",
-      args: chatToXMcpArgs(packageRoot()),
+      command: mcp.command,
+      args: mcp.args,
     });
     process.stdout.write(`${dest}\n`);
     process.stdout.write(`${mcpConfigPath}\n`);

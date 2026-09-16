@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 import {
-  chatToXMcpArgs,
+  chatToXMcpLaunch,
   defaultCodexConfigPath,
   installCodexMcp,
 } from "@/core/codex-config";
@@ -49,10 +49,11 @@ export async function runInit(input: {
     harness: input.harness,
   });
   const skillPath = await installSkill({ repoRoot, skillHome });
+  const mcp = chatToXMcpLaunch(repoRoot);
   const mcpConfigPath = await installCodexMcp({
     configPath: input.codexConfigPath ?? defaultCodexConfigPath(),
-    command: "npx",
-    args: chatToXMcpArgs(repoRoot),
+    command: mcp.command,
+    args: mcp.args,
   });
   const doctor = await detectHarnessTeam(harnessTeam);
   const session = await runPlan({

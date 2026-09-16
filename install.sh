@@ -76,12 +76,22 @@ elif [[ -n "${CHECKOUT}" && "${CHECKOUT}" != "${DEST}" ]]; then
     -cf - . | tar -C "${DEST}" -xf -
 elif [[ -n "${REPO}" ]]; then
   need git
+  case "${DEST}" in
+    /|"${HOME}"|"${HOME}/")
+      echo "refusing to install into ${DEST}" >&2
+      exit 1
+      ;;
+  esac
   if [[ -d "${DEST}/.git" ]] && is_checkout "${DEST}"; then
     git -C "${DEST}" pull --ff-only
   else
     mkdir -p "$(dirname "${DEST}")"
     rm -rf "${DEST}"
     git clone --depth 1 "${REPO}" "${DEST}"
+  fi
+  if ! is_checkout "${DEST}"; then
+    echo "cloned repo is not chat-to-x; refusing to continue" >&2
+    exit 1
   fi
 elif is_checkout "${DEST}"; then
   true

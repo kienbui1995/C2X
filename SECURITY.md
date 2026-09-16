@@ -25,7 +25,9 @@ CLI). It never opens a port, never tunnels, never OAuth, never spawns a
 harness. Optional HTTP `c2x mcp --session` still binds **127.0.0.1** only and
 stays read-only. First-run does not start the HTTP server.
 
-- Dashboard `dev` / `start` bind **`127.0.0.1`** only
+- Dashboard `dev` / `start` bind **`127.0.0.1`** only and have **no login**.
+  Treat as single-user. Do not expose the port. Do not browse untrusted sites
+  while it is running (CSRF can rewrite `data/config.json` keys).
 - HTTP bodies must not carry `cwd` / `workspaceRoot` — the process cwd is the repo
 - Control messages stay tiny (no file bodies, no full diffs, no logs)
 - `.env*` and `/data/*` (except `.gitkeep`) stay out of git

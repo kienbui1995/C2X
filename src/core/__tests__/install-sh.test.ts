@@ -13,6 +13,7 @@ describe("install.sh", () => {
     expect(text.startsWith("#!/usr/bin/env bash")).toBe(true);
     expect(text).toMatch(/C2X_REPO|--repo/);
     expect(text).toMatch(/c2x init --harness codex/);
+    expect(text).toMatch(/refusing to install/);
     expect(text).not.toMatch(/npx c2x/);
     expect(text).not.toMatch(/github\.com\/[A-Za-z0-9_.-]+\/chat-to-x/);
     const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");

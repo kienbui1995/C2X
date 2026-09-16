@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+.playwright-mcp/
+agent-tools/
 
 # next.js
 /.next/
