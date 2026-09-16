@@ -34,8 +34,7 @@ Node.js 20+, Codex đã login trên PATH. **Không** `npx c2x` (đó là tool kh
 ghi `c2x` vào `~/.local/bin`, và `c2x init --harness codex`:
 
 ```bash
-# thay <raw-install.sh> và <this-repo.git> bằng URL repo chat-to-x của bạn
-curl -fsSL <raw-install.sh> | bash -s -- --repo <this-repo.git>
+curl -fsSL https://raw.githubusercontent.com/kienbui1995/chat-to-x/main/install.sh | bash
 ```
 
 Đã có thư mục chat-to-x trên máy:
@@ -44,8 +43,9 @@ curl -fsSL <raw-install.sh> | bash -s -- --repo <this-repo.git>
 ./install.sh
 ```
 
-Không bịa URL GitHub. npm vẫn `"private": true` — khi publish `chat-to-x` mới
-đổi sang `npm i -g chat-to-x && c2x init`. **Không** `npx c2x`.
+Repo: [github.com/kienbui1995/chat-to-x](https://github.com/kienbui1995/chat-to-x).
+npm vẫn `"private": true` — khi publish `chat-to-x` mới đổi sang
+`npm i -g chat-to-x && c2x init`. **Không** `npx c2x`.
 
 `init` đọc skill và plugin Codex MCP (`[mcp_servers.chat-to-x]` trong
 `~/.codex/config.toml`) từ package đã cài — không cần `cwd` là git C2X.
@@ -165,13 +165,10 @@ Attribution MIT: ý tưởng protocol từ
 
 ## Public / npm
 
-Repo Origin vẫn có thể Private — bật Public là việc maintainers (Settings),
-không phải lệnh trong repo. Clone: `git clone <this-repo>`.
+GitHub: [https://github.com/kienbui1995/chat-to-x](https://github.com/kienbui1995/chat-to-x).
+Clone: `git clone https://github.com/kienbui1995/chat-to-x.git`.
 
 npm: giữ `"private": true` đến khi publish **`chat-to-x`**. Không publish `c2x`.
-
-Sau khi Public: có thể thêm badge CI **từ URL repo thật**. Không commit badge
-trỏ domain hoặc owner bịa.
 
 ## License
 

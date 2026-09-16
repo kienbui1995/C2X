@@ -15,11 +15,11 @@ describe("install.sh", () => {
     expect(text).toMatch(/c2x init --harness codex/);
     expect(text).toMatch(/refusing to install/);
     expect(text).not.toMatch(/npx c2x/);
-    expect(text).not.toMatch(/github\.com\/[A-Za-z0-9_.-]+\/chat-to-x/);
+    expect(text).toMatch(/github\.com\/kienbui1995\/chat-to-x/);
     const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");
     expect(readme).toMatch(/curl -fsSL/);
     expect(readme).toMatch(/\| bash/);
-    expect(readme).not.toMatch(/github\.com\/[A-Za-z0-9_.-]+\/chat-to-x/);
+    expect(readme).toMatch(/raw\.githubusercontent\.com\/kienbui1995\/chat-to-x/);
   });
 
   it("installs c2x and Codex plugin into HOME without cloning the app", async () => {

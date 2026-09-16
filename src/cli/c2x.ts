@@ -50,7 +50,7 @@ import {
 } from "@/core/types";
 
 const SIMPLE_USAGE = [
-  "Cài một lệnh:  curl -fsSL <raw-install.sh> | bash -s -- --repo <this-repo.git>",
+  "Cài một lệnh:  curl -fsSL https://raw.githubusercontent.com/kienbui1995/chat-to-x/main/install.sh | bash",
   "Hoặc trong checkout:  ./install.sh",
   "Dùng:  cd <project> && codex",
   "Gõ:    Dùng C2X, tự làm hết: <mô tả>",

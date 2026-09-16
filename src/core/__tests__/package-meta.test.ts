@@ -14,12 +14,11 @@ describe("npm package identity", () => {
     expect(pkg.bin?.c2x).toBe("src/cli/c2x.ts");
   });
 
-  it("does not invent a public GitHub URL and stays private as chat-to-x", () => {
+  it("points at the real public GitHub repo and stays private as chat-to-x", () => {
     const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");
     expect(readme).toMatch(/npx chat-to-x/);
     expect(readme).toMatch(/Không[\s\S]*npx c2x/);
-    expect(readme).not.toMatch(/github\.com\/[A-Za-z0-9_.-]+\/chat-to-x/);
+    expect(readme).toMatch(/github\.com\/kienbui1995\/chat-to-x/);
     expect(readme).toMatch(/private/);
-    expect(readme).toMatch(/Settings|Public/);
   });
 });
