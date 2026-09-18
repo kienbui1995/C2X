@@ -188,7 +188,14 @@ base on top of it.
 ## Next features
 
 v1 plus phase-2 Slice L (`.c2x/briefs/`), P (doctor/dashboard polish), M
-(loopback MCP), and O (OSS notes) are **shipped**. Track tasks in:
+(loopback MCP), and O (OSS notes) are **shipped**. Public visibility is done
+(repo `https://github.com/kienbui1995/C2X`). Track the public-OSS trust
+slice (CI + real screenshots) in:
+
+- [docs/superpowers/plans/2026-09-18-c2x-public-oss.md](superpowers/plans/2026-09-18-c2x-public-oss.md)
+- Locked design: [docs/superpowers/specs/2026-09-18-c2x-public-oss-design.md](superpowers/specs/2026-09-18-c2x-public-oss-design.md)
+
+Shipped history (do not re-implement):
 
 - [docs/superpowers/plans/2026-09-12-chat-to-x-next.md](superpowers/plans/2026-09-12-chat-to-x-next.md)
 - Locked design: [docs/superpowers/specs/2026-09-12-chat-to-x-features-design.md](superpowers/specs/2026-09-12-chat-to-x-features-design.md)
