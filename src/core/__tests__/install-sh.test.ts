@@ -76,14 +76,14 @@ describe("install.sh", () => {
     expect(text).toMatch(/\.local\/bin/);
     expect(text).not.toMatch(/npx c2x/);
     expect(text).not.toMatch(/npm audit fix --force/);
-    expect(text).toMatch(/github\.com\/kienbui1995\/chat-to-x/);
+    expect(text).toMatch(/github\.com\/kienbui1995\/C2X/);
     expect(text).toMatch(
       /exec "\$\{TSX\}" --tsconfig "\$\{DEST\}\/tsconfig\.json" "\$\{CLI\}" "\\\$@"/,
     );
     const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");
     expect(readme).toMatch(/curl -fsSL/);
     expect(readme).toMatch(/\| bash/);
-    expect(readme).toMatch(/raw\.githubusercontent\.com\/kienbui1995\/chat-to-x/);
+    expect(readme).toMatch(/raw\.githubusercontent\.com\/kienbui1995\/C2X/);
     expect(readme).toMatch(/any directory|thư mục bất kỳ|mọi thư mục/i);
   });
 

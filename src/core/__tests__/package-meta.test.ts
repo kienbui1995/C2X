@@ -24,8 +24,8 @@ describe("npm package identity", () => {
     expect(pkg.engines?.node).toBe(">=20");
     const repo =
       typeof pkg.repository === "string" ? pkg.repository : pkg.repository?.url;
-    expect(repo).toMatch(/github\.com\/kienbui1995\/chat-to-x/);
-    expect(pkg.homepage).toMatch(/github\.com\/kienbui1995\/chat-to-x/);
+    expect(repo).toMatch(/github\.com\/kienbui1995\/C2X/);
+    expect(pkg.homepage).toMatch(/github\.com\/kienbui1995\/C2X/);
     expect(pkg.author?.email).toBeUndefined();
   });
 
@@ -33,7 +33,7 @@ describe("npm package identity", () => {
     const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");
     expect(readme).toMatch(/npx chat-to-x/);
     expect(readme).toMatch(/Không[\s\S]*npx c2x/);
-    expect(readme).toMatch(/github\.com\/kienbui1995\/chat-to-x/);
+    expect(readme).toMatch(/github\.com\/kienbui1995\/C2X/);
     expect(readme).toMatch(/private/);
   });
 });
