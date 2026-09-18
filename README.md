@@ -36,8 +36,8 @@ não. Không Jira OAuth.
 
 | Tên / Name | Nghĩa / Meaning |
 | --- | --- |
-| **chat-to-x** | Package and repo name. npm stays `"private": true`. |
-| **C2X** | Short name of this project. |
+| **chat-to-x** | npm package name. Stays `"private": true`. Never publish as `c2x`. |
+| **C2X** | GitHub repo (`kienbui1995/C2X`) and short project name. |
 | **`[C2X]`** | Paste tag for control messages. |
 | **`[C2C]`** | Same paste tag only — not the C2C bridge, tunnel, or OAuth. |
 | **`c2x mcp`** | Local chat-to-x MCP server. Not an official Codex plugin. |
@@ -59,18 +59,18 @@ Node.js 20+. **Không** `npx c2x` (đó là tool khác — CSS→XPath).
 Lead path — clone, then read and run the installer:
 
 ```bash
-git clone https://github.com/kienbui1995/chat-to-x.git
-cd chat-to-x
+git clone https://github.com/kienbui1995/C2X.git
+cd C2X
 ./install.sh
 ```
 
 Second path — pipe only after you have **read `install.sh`**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kienbui1995/chat-to-x/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kienbui1995/C2X/main/install.sh | bash
 ```
 
-Repo: [github.com/kienbui1995/chat-to-x](https://github.com/kienbui1995/chat-to-x).
+Repo: [github.com/kienbui1995/C2X](https://github.com/kienbui1995/C2X).
 npm stays `"private": true`. Do not publish as `c2x`.
 
 `install.sh` / `c2x init` writes **no Codex splash**. Paths:
@@ -226,8 +226,8 @@ Attribution MIT: ý tưởng protocol từ
 
 ## Public / npm
 
-GitHub: [https://github.com/kienbui1995/chat-to-x](https://github.com/kienbui1995/chat-to-x).
-Clone: `git clone https://github.com/kienbui1995/chat-to-x.git`.
+GitHub: [https://github.com/kienbui1995/C2X](https://github.com/kienbui1995/C2X).
+Clone: `git clone https://github.com/kienbui1995/C2X.git`.
 
 npm: giữ `"private": true` đến khi publish **`chat-to-x`**. Không publish `c2x`.
 **Không** `npx c2x`.
