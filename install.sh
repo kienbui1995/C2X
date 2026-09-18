@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # chat-to-x one-shot installer. Safe to pipe:
-#   curl -fsSL https://raw.githubusercontent.com/kienbui1995/chat-to-x/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/kienbui1995/C2X/main/install.sh | bash
 set -euo pipefail
 
-DEFAULT_REPO="https://github.com/kienbui1995/chat-to-x.git"
+DEFAULT_REPO="https://github.com/kienbui1995/C2X.git"
 REPO="${C2X_REPO:-}"
 IN_PLACE="${C2X_IN_PLACE:-0}"
 DEST="${C2X_HOME:-${HOME}/.chat-to-x}"
@@ -121,7 +121,7 @@ elif is_checkout "${DEST}"; then
 else
   echo "Không thấy bộ cài chat-to-x." >&2
   echo "Chạy từ checkout, hoặc:" >&2
-  echo "  curl -fsSL https://raw.githubusercontent.com/kienbui1995/chat-to-x/main/install.sh | bash" >&2
+  echo "  curl -fsSL https://raw.githubusercontent.com/kienbui1995/C2X/main/install.sh | bash" >&2
   exit 1
 fi
 

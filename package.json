@@ -6,10 +6,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kienbui1995/chat-to-x"
+    "url": "https://github.com/kienbui1995/C2X"
   },
-  "bugs": "https://github.com/kienbui1995/chat-to-x/issues",
-  "homepage": "https://github.com/kienbui1995/chat-to-x",
+  "bugs": "https://github.com/kienbui1995/C2X/issues",
+  "homepage": "https://github.com/kienbui1995/C2X",
   "engines": {
     "node": ">=20"
   },
