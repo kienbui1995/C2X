@@ -11,6 +11,7 @@ describe("GitHub Actions CI workflow", () => {
     const yaml = readFileSync(workflowPath, "utf8");
     expect(yaml).toMatch(/node-version:\s*['"]?20['"]?/);
     expect(yaml).toMatch(/npm test/);
+    expect(yaml).toMatch(/next typegen|typegen/);
     expect(yaml).toMatch(/typecheck/);
     expect(yaml).not.toMatch(/npm publish/);
     expect(yaml).not.toMatch(/npx c2x/);
