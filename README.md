@@ -1,5 +1,6 @@
 # chat-to-x (C2X)
 
+[![CI](https://github.com/kienbui1995/C2X/actions/workflows/ci.yml/badge.svg)](https://github.com/kienbui1995/C2X/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js 20+](https://img.shields.io/badge/node-20%2B-brightgreen)](https://nodejs.org/)
 
@@ -231,6 +232,18 @@ Clone: `git clone https://github.com/kienbui1995/C2X.git`.
 
 npm: giữ `"private": true` đến khi publish **`chat-to-x`**. Không publish `c2x`.
 **Không** `npx c2x`.
+
+## Screenshots / Ảnh thật
+
+Từ dashboard `npm run dev` → [http://127.0.0.1:45217](http://127.0.0.1:45217). Không ảnh stock.
+
+![Phòng điều khiển](docs/screenshots/control-room.png)
+
+![Prompt dán PLAN](docs/screenshots/paste-plan.png)
+
+![Hai lane OWNER + .c2x/briefs](docs/screenshots/briefs.png)
+
+![reviewPastePrompt — chưa DONE](docs/screenshots/review.png)
 
 ## License
 
